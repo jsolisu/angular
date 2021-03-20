@@ -20,24 +20,21 @@ export interface R3PartialDeclaration {
    * to all Angular exports, including Ivy instructions.
    */
   ngImport: o.Expression;
+
+  /**
+   * Reference to the decorated class, which is subject to this partial declaration.
+   */
+  type: o.Expression;
 }
 
 /**
- * Describes the shape of the object that the `ɵɵngDeclareDirective() function accepts.
- *
- * This interface serves primarily as documentation, as conformance to this interface is not
- * enforced during linking.
+ * Describes the shape of the object that the `ɵɵngDeclareDirective()` function accepts.
  */
 export interface R3DeclareDirectiveMetadata extends R3PartialDeclaration {
   /**
    * Unparsed selector of the directive.
    */
   selector?: string;
-
-  /**
-   * Reference to the directive class itself.
-   */
-  type: o.Expression;
 
   /**
    * A mapping of inputs from class property names to binding property names, or to a tuple of
@@ -115,9 +112,6 @@ export interface R3DeclareDirectiveMetadata extends R3PartialDeclaration {
 
 /**
  * Describes the shape of the object that the `ɵɵngDeclareComponent()` function accepts.
- *
- * This interface serves primarily as documentation, as conformance to this interface is not
- * enforced during linking.
  */
 export interface R3DeclareComponentMetadata extends R3DeclareDirectiveMetadata {
   /**
@@ -140,38 +134,20 @@ export interface R3DeclareComponentMetadata extends R3DeclareDirectiveMetadata {
   styles?: string[];
 
   /**
+   * List of components which matched in the template, including sufficient
+   * metadata for each directive to attribute bindings and references within
+   * the template to each directive specifically, if the runtime instructions
+   * support this.
+   */
+  components?: R3DeclareUsedDirectiveMetadata[];
+
+  /**
    * List of directives which matched in the template, including sufficient
    * metadata for each directive to attribute bindings and references within
    * the template to each directive specifically, if the runtime instructions
    * support this.
    */
-  directives?: {
-    /**
-     * Selector of the directive.
-     */
-    selector: string;
-
-    /**
-     * Reference to the directive class (possibly a forward reference wrapped in a `forwardRef`
-     * invocation).
-     */
-    type: o.Expression | (() => o.Expression);
-
-    /**
-     * Property names of the directive's inputs.
-     */
-    inputs?: string[];
-
-    /**
-     * Event names of the directive's outputs.
-     */
-    outputs?: string[];
-
-    /**
-     * Names by which this directive exports itself for references.
-     */
-    exportAs?: string[];
-  }[];
+  directives?: R3DeclareUsedDirectiveMetadata[];
 
   /**
    * A map of pipe names to an expression referencing the pipe type (possibly a forward reference
@@ -212,6 +188,34 @@ export interface R3DeclareComponentMetadata extends R3DeclareDirectiveMetadata {
   preserveWhitespaces?: boolean;
 }
 
+export interface R3DeclareUsedDirectiveMetadata {
+  /**
+   * Selector of the directive.
+   */
+  selector: string;
+
+  /**
+   * Reference to the directive class (possibly a forward reference wrapped in a `forwardRef`
+   * invocation).
+   */
+  type: o.Expression|(() => o.Expression);
+
+  /**
+   * Property names of the directive's inputs.
+   */
+  inputs?: string[];
+
+  /**
+   * Event names of the directive's outputs.
+   */
+  outputs?: string[];
+
+  /**
+   * Names by which this directive exports itself for references.
+   */
+  exportAs?: string[];
+}
+
 export interface R3DeclareQueryMetadata {
   /**
    * Name of the property on the class to update with query results.
@@ -237,9 +241,6 @@ export interface R3DeclareQueryMetadata {
   /**
    * True to only fire changes if there are underlying changes to the query.
    */
-  // TODO(misko):  This will become `true` be default in v12. `QueryList.changes` would fire even if
-  // no changes to the query list were detected. This is not ideal, as changes should only fire if
-  // the `QueryList` actually materially changed.
   emitDistinctChangesOnly?: boolean;
 
   /**
@@ -265,17 +266,59 @@ export interface R3DeclareQueryMetadata {
 }
 
 /**
+ * Describes the shape of the objects that the `ɵɵngDeclareNgModule()` accepts.
+ */
+export interface R3DeclareNgModuleMetadata extends R3PartialDeclaration {
+  /**
+   * An array of expressions representing the bootstrap components specified by the module.
+   */
+  bootstrap?: o.Expression[];
+
+  /**
+   * An array of expressions representing the directives and pipes declared by the module.
+   */
+  declarations?: o.Expression[];
+
+  /**
+   * An array of expressions representing the imports of the module.
+   */
+  imports?: o.Expression[];
+
+  /**
+   * An array of expressions representing the exports of the module.
+   */
+  exports?: o.Expression[];
+
+  /**
+   * The set of schemas that declare elements to be allowed in the NgModule.
+   */
+  schemas?: o.Expression[];
+
+  /** Unique ID or expression representing the unique ID of an NgModule. */
+  id?: o.Expression;
+}
+
+/**
+ * Describes the shape of the objects that the `ɵɵngDeclareInjector()` accepts.
+ */
+export interface R3DeclareInjectorMetadata extends R3PartialDeclaration {
+  /**
+   * The list of providers provided by the injector.
+   */
+  providers?: o.Expression;
+  /**
+   * The list of imports into the injector.
+   */
+  imports?: o.Expression[];
+}
+
+/**
  * Describes the shape of the object that the `ɵɵngDeclarePipe()` function accepts.
  *
  * This interface serves primarily as documentation, as conformance to this interface is not
  * enforced during linking.
  */
 export interface R3DeclarePipeMetadata extends R3PartialDeclaration {
-  /**
-   * Reference to the pipe class itself.
-   */
-  type: o.Expression;
-
   /**
    * The name to use in templates to refer to this pipe.
    */

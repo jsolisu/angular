@@ -208,7 +208,6 @@ groups:
          - petebacondarwin         # Pete Bacon Darwin
          - pkozlowski-opensource   # Pawel Kozlowski
          - Splaktar                # Michael Prentice
-         - StephenFluin            # Stephen Fluin
          - twerske                 # Emma Twersky
 
   # =========================================================
@@ -928,7 +927,7 @@ groups:
       users:
         - aikidave
         - IgorMinar
-        - StephenFluin
+        - jelbourn
 
 
   # =========================================================
@@ -953,7 +952,6 @@ groups:
         - aikidave
         - IgorMinar
         - mgechev
-        - StephenFluin
 
   # =========================================================
   #  Docs: Observables
@@ -1139,6 +1137,15 @@ groups:
           'aio/src/**',
           'aio/tests/**',
           'aio/tools/**',
+          'aio/content/images/guide/contributors-guide/**',
+          'aio/content/guide/contributors-guide-overview.md',
+          'aio/content/guide/contributors-guide-overview/**',
+          'aio/content/guide/reviewing-content.md',
+          'aio/content/guide/reviewing-content/**',
+          'aio/content/guide/updating-content-github-ui.md',
+          'aio/content/guide/updating-content-github-ui/**',
+          'aio/content/guide/updating-search-keywords.md',
+          'aio/content/guide/updating-search-keywords/**',
           'aio/content/guide/docs-style-guide.md',
           'aio/content/examples/docs-style-guide/**',
           'aio/content/images/guide/docs-style-guide/**',
@@ -1159,7 +1166,7 @@ groups:
     conditions:
       - *can-be-global-approved
       - >
-        contains_any_globs(files.exclude("CHANGELOG.md").exclude("packages/compiler-cli/**/BUILD.bazel"), [
+        contains_any_globs(files.exclude("packages/compiler-cli/**/BUILD.bazel"), [
           '*',
           '.circleci/**',
           '.devcontainer/**',
@@ -1220,7 +1227,6 @@ groups:
       - >
         contains_any_globs(files, [
           'goldens/public-api/**',
-          'CHANGELOG.md',
           'docs/NAMING.md',
           'aio/content/errors/*.md',
           'aio/content/guide/glossary.md',

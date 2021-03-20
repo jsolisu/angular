@@ -603,7 +603,8 @@ runInEachFileSystem(() => {
 
       const processedFile = fs.readFile(_('/node_modules/test-package/index.js'));
       expect(processedFile)
-          .toContain('FooModule.ɵmod = ɵngcc0.ɵɵdefineNgModule({ type: FooModule });');
+          .toContain(
+              'FooModule.ɵmod = /*@__PURE__*/ ɵngcc0.ɵɵdefineNgModule({ type: FooModule });');
       expect(processedFile)
           .toContain(
               'ɵngcc0.ɵɵsetNgModuleScope(FooModule, { declarations: function () { return [exports.FooDirective]; } });');
@@ -714,8 +715,8 @@ runInEachFileSystem(() => {
       expect(jsContents)
           .toContain(
               `TestClass.ɵfac = function TestClass_Factory(t) { return new (t || TestClass)(); };\n` +
-              `TestClass.ɵpipe = ɵngcc0.ɵɵdefinePipe({ name: "myTestPipe", type: TestClass, pure: true });\n` +
-              `TestClass.ɵprov = ɵngcc0.ɵɵdefineInjectable({`);
+              `TestClass.ɵpipe = /*@__PURE__*/ ɵngcc0.ɵɵdefinePipe({ name: "myTestPipe", type: TestClass, pure: true });\n` +
+              `TestClass.ɵprov = /*@__PURE__*/ ɵngcc0.ɵɵdefineInjectable({`);
     });
 
     // https://github.com/angular/angular/issues/38883
@@ -1355,6 +1356,66 @@ runInEachFileSystem(() => {
             .toMatch(ANGULAR_CORE_IMPORT_REGEX);
         // And makes a backup
         expect(fs.exists(_(`/node_modules/@angular/common/common.d.ts.__ivy_ngcc_bak`))).toBe(true);
+      });
+
+      it('should not compile anything when typings have already been processed', () => {
+        let logger = new MockLogger();
+        mainNgcc({
+          basePath: '/node_modules',
+          propertiesToConsider: ['esm2015'],
+          targetEntryPointPath: '@angular/core',
+          typingsOnly: true,
+          logger,
+        });
+        expect(loadPackage('@angular/core').__processed_by_ivy_ngcc__).toEqual({
+          typings: '0.0.0-PLACEHOLDER',
+        });
+        expect(fs.readFile(_(`/node_modules/@angular/core/esm2015/src/application_init.js`)))
+            .not.toMatch(ANGULAR_CORE_IMPORT_REGEX);
+        expect(logger.logs.debug).toContain(['  Successfully compiled @angular/core : esm2015']);
+
+        // Try to process the typings for @angular/core again, now using a different format
+        // property, to verify that it does not process the entry-point again and that the JS
+        // files are still untouched.
+        logger = new MockLogger();
+        mainNgcc({
+          basePath: '/node_modules',
+          propertiesToConsider: ['main'],
+          targetEntryPointPath: '@angular/core',
+          typingsOnly: true,
+          logger,
+        });
+        expect(loadPackage('@angular/core').__processed_by_ivy_ngcc__).toEqual({
+          typings: '0.0.0-PLACEHOLDER',
+        });
+        expect(fs.readFile(_(`/node_modules/@angular/core/esm2015/src/application_init.js`)))
+            .not.toMatch(ANGULAR_CORE_IMPORT_REGEX);
+        expect(logger.logs.debug).toContain([
+          'Skipping @angular/core : typings have already been processed.'
+        ]);
+
+        // Now also process the typings for @angular/common to verify that its dependency on
+        // @angular/core, which has already been processed and will therefore be skipped, is able
+        // to succeed.
+        logger = new MockLogger();
+        mainNgcc({
+          basePath: '/node_modules',
+          propertiesToConsider: ['esm2015'],
+          targetEntryPointPath: '@angular/common',
+          typingsOnly: true,
+          logger,
+        });
+        expect(loadPackage('@angular/core').__processed_by_ivy_ngcc__).toEqual({
+          typings: '0.0.0-PLACEHOLDER',
+        });
+        expect(fs.readFile(_(`/node_modules/@angular/core/esm2015/src/application_init.js`)))
+            .not.toMatch(ANGULAR_CORE_IMPORT_REGEX);
+        expect(fs.readFile(_(`/node_modules/@angular/common/esm2015/src/common_module.js`)))
+            .not.toMatch(ANGULAR_CORE_IMPORT_REGEX);
+        expect(logger.logs.debug).toContain([
+          'Skipping @angular/core : typings have already been processed.'
+        ]);
+        expect(logger.logs.debug).toContain(['  Successfully compiled @angular/common : esm2015']);
       });
 
       it('should cope with compiling the same entry-point multiple times with different formats',
@@ -2125,7 +2186,7 @@ runInEachFileSystem(() => {
            const jsContents = fs.readFile(_(`/node_modules/test-package/index.js`));
            expect(jsContents)
                .toContain(
-                   'DerivedDir.ɵdir = ɵngcc0.ɵɵdefineDirective({ type: DerivedDir, ' +
+                   'DerivedDir.ɵdir = /*@__PURE__*/ ɵngcc0.ɵɵdefineDirective({ type: DerivedDir, ' +
                    'selectors: [["", "base", ""]], exportAs: ["base1", "base2"], ' +
                    'features: [ɵngcc0.ɵɵInheritDefinitionFeature, ɵngcc0.ɵɵCopyDefinitionFeature] });');
 
@@ -2164,7 +2225,7 @@ runInEachFileSystem(() => {
 
 
            const jsContents = fs.readFile(_(`/node_modules/test-package/index.js`));
-           expect(jsContents).toContain('DerivedCmp.ɵcmp = ɵngcc0.ɵɵdefineComponent');
+           expect(jsContents).toContain('DerivedCmp.ɵcmp = /*@__PURE__*/ ɵngcc0.ɵɵdefineComponent');
            expect(jsContents)
                .toContain(
                    'features: [ɵngcc0.ɵɵInheritDefinitionFeature, ɵngcc0.ɵɵCopyDefinitionFeature]');

@@ -7,7 +7,8 @@
  */
 import * as o from '../../output/output_ast';
 import {Identifiers as R3} from '../r3_identifiers';
-import {R3DirectiveDef, R3DirectiveMetadata, R3HostMetadata, R3QueryMetadata} from '../view/api';
+import {R3CompiledExpression} from '../util';
+import {R3DirectiveMetadata, R3HostMetadata, R3QueryMetadata} from '../view/api';
 import {createDirectiveType} from '../view/compiler';
 import {asLiteral, conditionallyCreateMapObjectLiteral, DefinitionMap} from '../view/util';
 import {R3DeclareDirectiveMetadata, R3DeclareQueryMetadata} from './api';
@@ -17,13 +18,14 @@ import {toOptionalLiteralMap} from './util';
 /**
  * Compile a directive declaration defined by the `R3DirectiveMetadata`.
  */
-export function compileDeclareDirectiveFromMetadata(meta: R3DirectiveMetadata): R3DirectiveDef {
+export function compileDeclareDirectiveFromMetadata(meta: R3DirectiveMetadata):
+    R3CompiledExpression {
   const definitionMap = createDirectiveDefinitionMap(meta);
 
   const expression = o.importExpr(R3.declareDirective).callFn([definitionMap.toLiteralMap()]);
   const type = createDirectiveType(meta);
 
-  return {expression, type};
+  return {expression, type, statements: []};
 }
 
 /**
@@ -87,9 +89,11 @@ function compileQuery(query: R3QueryMetadata): o.LiteralMapExpr {
   meta.set(
       'predicate', Array.isArray(query.predicate) ? asLiteral(query.predicate) : query.predicate);
   if (!query.emitDistinctChangesOnly) {
-    // `emitDistinctChangesOnly` is special because in future we expect it to be `true`. For this
-    // reason the absence should be interpreted as `true`.
+    // `emitDistinctChangesOnly` is special because we expect it to be `true`.
+    // Therefore we explicitly emit the field, and explicitly place it only when it's `false`.
     meta.set('emitDistinctChangesOnly', o.literal(false));
+  } else {
+    // The linker will assume that an absent `emitDistinctChangesOnly` flag is by default `true`.
   }
   if (query.descendants) {
     meta.set('descendants', o.literal(true));

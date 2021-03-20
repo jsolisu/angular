@@ -273,10 +273,8 @@ export class Identifiers {
     moduleName: CORE,
   };
 
-  static defineInjector: o.ExternalReference = {
-    name: 'ɵɵdefineInjector',
-    moduleName: CORE,
-  };
+  static defineInjector: o.ExternalReference = {name: 'ɵɵdefineInjector', moduleName: CORE};
+  static declareInjector: o.ExternalReference = {name: 'ɵɵngDeclareInjector', moduleName: CORE};
 
   static NgModuleDefWithMeta: o.ExternalReference = {
     name: 'ɵɵNgModuleDefWithMeta',
@@ -289,6 +287,7 @@ export class Identifiers {
   };
 
   static defineNgModule: o.ExternalReference = {name: 'ɵɵdefineNgModule', moduleName: CORE};
+  static declareNgModule: o.ExternalReference = {name: 'ɵɵngDeclareNgModule', moduleName: CORE};
   static setNgModuleScope: o.ExternalReference = {name: 'ɵɵsetNgModuleScope', moduleName: CORE};
 
   static PipeDefWithMeta: o.ExternalReference = {name: 'ɵɵPipeDefWithMeta', moduleName: CORE};
@@ -312,11 +311,6 @@ export class Identifiers {
   static ProvidersFeature: o.ExternalReference = {name: 'ɵɵProvidersFeature', moduleName: CORE};
 
   static listener: o.ExternalReference = {name: 'ɵɵlistener', moduleName: CORE};
-
-  static getFactoryOf: o.ExternalReference = {
-    name: 'ɵɵgetFactoryOf',
-    moduleName: CORE,
-  };
 
   static getInheritedFactory: o.ExternalReference = {
     name: 'ɵɵgetInheritedFactory',

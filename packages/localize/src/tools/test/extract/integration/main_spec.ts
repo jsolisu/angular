@@ -399,7 +399,8 @@ runInNativeFileSystem(() => {
              // These source file paths are due to how Bazel TypeScript compilation source-maps
              // work
              `          <context context-type="sourcefile">../packages/localize/src/tools/test/extract/integration/test_files/src/a.ts</context>`,
-             `          <context context-type="linenumber">3</context>`,
+             `          <context context-type="linenumber">3,${
+                 target === 'es2015' ? 7 : 5}</context>`,
              `        </context-group>`,
              `      </trans-unit>`,
              `      <trans-unit id="7829869508202074508" datatype="html">`,
@@ -493,6 +494,49 @@ runInNativeFileSystem(() => {
           `  }`,
           `}`,
         ].join('\n'));
+      });
+
+      it('should generate the migration map file, if requested', () => {
+        extractTranslations({
+          rootPath,
+          sourceLocale: 'en',
+          sourceFilePaths: [sourceFilePath],
+          format: 'legacy-migrate',
+          outputPath,
+          logger,
+          useSourceMaps: false,
+          useLegacyIds: true,
+          duplicateMessageHandling: 'ignore',
+          fileSystem: fs
+        });
+        expect(fs.readFile(outputPath)).toEqual([
+          `{`,
+          `  "1234567890123456789012345678901234567890": "273296103957933077",`,
+          `  "12345678901234567890": "273296103957933077"`,
+          `}`,
+        ].join('\n'));
+      });
+
+      it('should log a warning if there are no legacy message IDs to migrate', () => {
+        extractTranslations({
+          rootPath,
+          sourceLocale: 'en',
+          sourceFilePaths: [textFile1],
+          format: 'legacy-migrate',
+          outputPath,
+          logger,
+          useSourceMaps: false,
+          useLegacyIds: true,
+          duplicateMessageHandling: 'ignore',
+          fileSystem: fs
+        });
+
+        expect(fs.readFile(outputPath)).toBe('{}');
+        expect(logger.logs.warn).toEqual([[
+          'Messages extracted with warnings\n' +
+          'WARNINGS:\n' +
+          ' - Could not find any legacy message IDs in source files while generating the legacy message migration file.'
+        ]]);
       });
     });
   });

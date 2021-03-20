@@ -32,7 +32,7 @@ import * as i0 from "@angular/core";
 export class ViewQueryComponent {
 }
 ViewQueryComponent.ɵfac = function ViewQueryComponent_Factory(t) { return new (t || ViewQueryComponent)(); };
-ViewQueryComponent.ɵcmp = i0.ɵɵngDeclareComponent({ version: "0.0.0-PLACEHOLDER", type: ViewQueryComponent, selector: "view-query-component", viewQueries: [{ propertyName: "someDir", first: true, predicate: SomeDirective, emitDistinctChangesOnly: false, descendants: true }, { propertyName: "someDirs", predicate: SomeDirective, emitDistinctChangesOnly: false, descendants: true }], ngImport: i0, template: `
+ViewQueryComponent.ɵcmp = i0.ɵɵngDeclareComponent({ version: "0.0.0-PLACEHOLDER", type: ViewQueryComponent, selector: "view-query-component", viewQueries: [{ propertyName: "someDir", first: true, predicate: SomeDirective, descendants: true }, { propertyName: "someDirs", predicate: SomeDirective, descendants: true }], ngImport: i0, template: `
     <div someDir></div>
   `, isInline: true, directives: [{ type: i0.forwardRef(function () { return SomeDirective; }), selector: "[someDir]" }] });
 (function () { (typeof ngDevMode === "undefined" || ngDevMode) && i0.ɵsetClassMetadata(ViewQueryComponent, [{
@@ -52,9 +52,9 @@ ViewQueryComponent.ɵcmp = i0.ɵɵngDeclareComponent({ version: "0.0.0-PLACEHOLD
         }] }); })();
 export class MyModule {
 }
-MyModule.ɵmod = i0.ɵɵdefineNgModule({ type: MyModule });
-MyModule.ɵinj = i0.ɵɵdefineInjector({ factory: function MyModule_Factory(t) { return new (t || MyModule)(); } });
-(function () { (typeof ngJitMode === "undefined" || ngJitMode) && i0.ɵɵsetNgModuleScope(MyModule, { declarations: [SomeDirective, ViewQueryComponent] }); })();
+MyModule.ɵfac = function MyModule_Factory(t) { return new (t || MyModule)(); };
+MyModule.ɵmod = i0.ɵɵngDeclareNgModule({ version: "0.0.0-PLACEHOLDER", ngImport: i0, type: MyModule, declarations: [SomeDirective, ViewQueryComponent] });
+MyModule.ɵinj = i0.ɵɵngDeclareInjector({ version: "0.0.0-PLACEHOLDER", ngImport: i0, type: MyModule });
 (function () { (typeof ngDevMode === "undefined" || ngDevMode) && i0.ɵsetClassMetadata(MyModule, [{
         type: NgModule,
         args: [{ declarations: [SomeDirective, ViewQueryComponent] }]
@@ -74,6 +74,7 @@ export declare class ViewQueryComponent {
     static ɵcmp: i0.ɵɵComponentDefWithMeta<ViewQueryComponent, "view-query-component", never, {}, {}, never, never>;
 }
 export declare class MyModule {
+    static ɵfac: i0.ɵɵFactoryDef<MyModule, never>;
     static ɵmod: i0.ɵɵNgModuleDefWithMeta<MyModule, [typeof i1.SomeDirective, typeof ViewQueryComponent], never, never>;
     static ɵinj: i0.ɵɵInjectorDef<MyModule>;
 }
@@ -86,7 +87,7 @@ import * as i0 from "@angular/core";
 export class ViewQueryComponent {
 }
 ViewQueryComponent.ɵfac = function ViewQueryComponent_Factory(t) { return new (t || ViewQueryComponent)(); };
-ViewQueryComponent.ɵcmp = i0.ɵɵngDeclareComponent({ version: "0.0.0-PLACEHOLDER", type: ViewQueryComponent, selector: "view-query-component", viewQueries: [{ propertyName: "myRef", first: true, predicate: ["myRef"], emitDistinctChangesOnly: false, descendants: true }, { propertyName: "myRefs", predicate: ["myRef1, myRef2, myRef3"], emitDistinctChangesOnly: false, descendants: true }], ngImport: i0, template: `
+ViewQueryComponent.ɵcmp = i0.ɵɵngDeclareComponent({ version: "0.0.0-PLACEHOLDER", type: ViewQueryComponent, selector: "view-query-component", viewQueries: [{ propertyName: "myRef", first: true, predicate: ["myRef"], descendants: true }, { propertyName: "myRefs", predicate: ["myRef1, myRef2, myRef3"], descendants: true }], ngImport: i0, template: `
     <div #myRef></div>
     <div #myRef1></div>
   `, isInline: true });
@@ -108,9 +109,9 @@ ViewQueryComponent.ɵcmp = i0.ɵɵngDeclareComponent({ version: "0.0.0-PLACEHOLD
         }] }); })();
 export class MyModule {
 }
-MyModule.ɵmod = i0.ɵɵdefineNgModule({ type: MyModule });
-MyModule.ɵinj = i0.ɵɵdefineInjector({ factory: function MyModule_Factory(t) { return new (t || MyModule)(); } });
-(function () { (typeof ngJitMode === "undefined" || ngJitMode) && i0.ɵɵsetNgModuleScope(MyModule, { declarations: [ViewQueryComponent] }); })();
+MyModule.ɵfac = function MyModule_Factory(t) { return new (t || MyModule)(); };
+MyModule.ɵmod = i0.ɵɵngDeclareNgModule({ version: "0.0.0-PLACEHOLDER", ngImport: i0, type: MyModule, declarations: [ViewQueryComponent] });
+MyModule.ɵinj = i0.ɵɵngDeclareInjector({ version: "0.0.0-PLACEHOLDER", ngImport: i0, type: MyModule });
 (function () { (typeof ngDevMode === "undefined" || ngDevMode) && i0.ɵsetClassMetadata(MyModule, [{
         type: NgModule,
         args: [{ declarations: [ViewQueryComponent] }]
@@ -128,6 +129,7 @@ export declare class ViewQueryComponent {
     static ɵcmp: i0.ɵɵComponentDefWithMeta<ViewQueryComponent, "view-query-component", never, {}, {}, never, never>;
 }
 export declare class MyModule {
+    static ɵfac: i0.ɵɵFactoryDef<MyModule, never>;
     static ɵmod: i0.ɵɵNgModuleDefWithMeta<MyModule, [typeof ViewQueryComponent], never, never>;
     static ɵinj: i0.ɵɵInjectorDef<MyModule>;
 }
@@ -166,7 +168,7 @@ import * as i0 from "@angular/core";
 export class ViewQueryComponent {
 }
 ViewQueryComponent.ɵfac = function ViewQueryComponent_Factory(t) { return new (t || ViewQueryComponent)(); };
-ViewQueryComponent.ɵcmp = i0.ɵɵngDeclareComponent({ version: "0.0.0-PLACEHOLDER", type: ViewQueryComponent, selector: "view-query-component", viewQueries: [{ propertyName: "someDir", first: true, predicate: SomeDirective, emitDistinctChangesOnly: false, descendants: true, static: true }, { propertyName: "foo", first: true, predicate: ["foo"], emitDistinctChangesOnly: false, descendants: true }], ngImport: i0, template: `
+ViewQueryComponent.ɵcmp = i0.ɵɵngDeclareComponent({ version: "0.0.0-PLACEHOLDER", type: ViewQueryComponent, selector: "view-query-component", viewQueries: [{ propertyName: "someDir", first: true, predicate: SomeDirective, descendants: true, static: true }, { propertyName: "foo", first: true, predicate: ["foo"], descendants: true }], ngImport: i0, template: `
     <div someDir></div>
   `, isInline: true, directives: [{ type: i0.forwardRef(function () { return SomeDirective; }), selector: "[someDir]" }] });
 (function () { (typeof ngDevMode === "undefined" || ngDevMode) && i0.ɵsetClassMetadata(ViewQueryComponent, [{
@@ -186,9 +188,9 @@ ViewQueryComponent.ɵcmp = i0.ɵɵngDeclareComponent({ version: "0.0.0-PLACEHOLD
         }] }); })();
 export class MyModule {
 }
-MyModule.ɵmod = i0.ɵɵdefineNgModule({ type: MyModule });
-MyModule.ɵinj = i0.ɵɵdefineInjector({ factory: function MyModule_Factory(t) { return new (t || MyModule)(); } });
-(function () { (typeof ngJitMode === "undefined" || ngJitMode) && i0.ɵɵsetNgModuleScope(MyModule, { declarations: [SomeDirective, ViewQueryComponent] }); })();
+MyModule.ɵfac = function MyModule_Factory(t) { return new (t || MyModule)(); };
+MyModule.ɵmod = i0.ɵɵngDeclareNgModule({ version: "0.0.0-PLACEHOLDER", ngImport: i0, type: MyModule, declarations: [SomeDirective, ViewQueryComponent] });
+MyModule.ɵinj = i0.ɵɵngDeclareInjector({ version: "0.0.0-PLACEHOLDER", ngImport: i0, type: MyModule });
 (function () { (typeof ngDevMode === "undefined" || ngDevMode) && i0.ɵsetClassMetadata(MyModule, [{
         type: NgModule,
         args: [{ declarations: [SomeDirective, ViewQueryComponent] }]
@@ -208,6 +210,7 @@ export declare class ViewQueryComponent {
     static ɵcmp: i0.ɵɵComponentDefWithMeta<ViewQueryComponent, "view-query-component", never, {}, {}, never, never>;
 }
 export declare class MyModule {
+    static ɵfac: i0.ɵɵFactoryDef<MyModule, never>;
     static ɵmod: i0.ɵɵNgModuleDefWithMeta<MyModule, [typeof i1.SomeDirective, typeof ViewQueryComponent], never, never>;
     static ɵinj: i0.ɵɵInjectorDef<MyModule>;
 }
@@ -246,7 +249,7 @@ import * as i0 from "@angular/core";
 export class ViewQueryComponent {
 }
 ViewQueryComponent.ɵfac = function ViewQueryComponent_Factory(t) { return new (t || ViewQueryComponent)(); };
-ViewQueryComponent.ɵcmp = i0.ɵɵngDeclareComponent({ version: "0.0.0-PLACEHOLDER", type: ViewQueryComponent, selector: "view-query-component", viewQueries: [{ propertyName: "myRef", first: true, predicate: ["myRef"], emitDistinctChangesOnly: false, descendants: true, read: TemplateRef }, { propertyName: "someDir", first: true, predicate: SomeDirective, emitDistinctChangesOnly: false, descendants: true, read: ElementRef }, { propertyName: "myRefs", predicate: ["myRef1, myRef2, myRef3"], emitDistinctChangesOnly: false, descendants: true, read: ElementRef }, { propertyName: "someDirs", predicate: SomeDirective, emitDistinctChangesOnly: false, descendants: true, read: TemplateRef }], ngImport: i0, template: `
+ViewQueryComponent.ɵcmp = i0.ɵɵngDeclareComponent({ version: "0.0.0-PLACEHOLDER", type: ViewQueryComponent, selector: "view-query-component", viewQueries: [{ propertyName: "myRef", first: true, predicate: ["myRef"], descendants: true, read: TemplateRef }, { propertyName: "someDir", first: true, predicate: SomeDirective, descendants: true, read: ElementRef }, { propertyName: "myRefs", predicate: ["myRef1, myRef2, myRef3"], descendants: true, read: ElementRef }, { propertyName: "someDirs", predicate: SomeDirective, descendants: true, read: TemplateRef }], ngImport: i0, template: `
     <div someDir></div>
     <div #myRef></div>
     <div #myRef1></div>
@@ -276,9 +279,9 @@ ViewQueryComponent.ɵcmp = i0.ɵɵngDeclareComponent({ version: "0.0.0-PLACEHOLD
         }] }); })();
 export class MyModule {
 }
-MyModule.ɵmod = i0.ɵɵdefineNgModule({ type: MyModule });
-MyModule.ɵinj = i0.ɵɵdefineInjector({ factory: function MyModule_Factory(t) { return new (t || MyModule)(); } });
-(function () { (typeof ngJitMode === "undefined" || ngJitMode) && i0.ɵɵsetNgModuleScope(MyModule, { declarations: [ViewQueryComponent] }); })();
+MyModule.ɵfac = function MyModule_Factory(t) { return new (t || MyModule)(); };
+MyModule.ɵmod = i0.ɵɵngDeclareNgModule({ version: "0.0.0-PLACEHOLDER", ngImport: i0, type: MyModule, declarations: [ViewQueryComponent] });
+MyModule.ɵinj = i0.ɵɵngDeclareInjector({ version: "0.0.0-PLACEHOLDER", ngImport: i0, type: MyModule });
 (function () { (typeof ngDevMode === "undefined" || ngDevMode) && i0.ɵsetClassMetadata(MyModule, [{
         type: NgModule,
         args: [{ declarations: [ViewQueryComponent] }]
@@ -298,6 +301,7 @@ export declare class ViewQueryComponent {
     static ɵcmp: i0.ɵɵComponentDefWithMeta<ViewQueryComponent, "view-query-component", never, {}, {}, never, never>;
 }
 export declare class MyModule {
+    static ɵfac: i0.ɵɵFactoryDef<MyModule, never>;
     static ɵmod: i0.ɵɵNgModuleDefWithMeta<MyModule, [typeof ViewQueryComponent], never, never>;
     static ɵinj: i0.ɵɵInjectorDef<MyModule>;
 }
@@ -336,7 +340,7 @@ import * as i0 from "@angular/core";
 export class ContentQueryComponent {
 }
 ContentQueryComponent.ɵfac = function ContentQueryComponent_Factory(t) { return new (t || ContentQueryComponent)(); };
-ContentQueryComponent.ɵcmp = i0.ɵɵngDeclareComponent({ version: "0.0.0-PLACEHOLDER", type: ContentQueryComponent, selector: "content-query-component", queries: [{ propertyName: "someDir", first: true, predicate: SomeDirective, emitDistinctChangesOnly: false, descendants: true }, { propertyName: "someDirList", predicate: SomeDirective, emitDistinctChangesOnly: false }], ngImport: i0, template: `
+ContentQueryComponent.ɵcmp = i0.ɵɵngDeclareComponent({ version: "0.0.0-PLACEHOLDER", type: ContentQueryComponent, selector: "content-query-component", queries: [{ propertyName: "someDir", first: true, predicate: SomeDirective, descendants: true }, { propertyName: "someDirList", predicate: SomeDirective }], ngImport: i0, template: `
     <div><ng-content></ng-content></div>
   `, isInline: true });
 (function () { (typeof ngDevMode === "undefined" || ngDevMode) && i0.ɵsetClassMetadata(ContentQueryComponent, [{
@@ -361,7 +365,7 @@ MyApp.ɵcmp = i0.ɵɵngDeclareComponent({ version: "0.0.0-PLACEHOLDER", type: My
     <content-query-component>
       <div someDir></div>
     </content-query-component>
-  `, isInline: true, directives: [{ type: i0.forwardRef(function () { return ContentQueryComponent; }), selector: "content-query-component" }, { type: i0.forwardRef(function () { return SomeDirective; }), selector: "[someDir]" }] });
+  `, isInline: true, components: [{ type: i0.forwardRef(function () { return ContentQueryComponent; }), selector: "content-query-component" }], directives: [{ type: i0.forwardRef(function () { return SomeDirective; }), selector: "[someDir]" }] });
 (function () { (typeof ngDevMode === "undefined" || ngDevMode) && i0.ɵsetClassMetadata(MyApp, [{
         type: Component,
         args: [{
@@ -375,9 +379,9 @@ MyApp.ɵcmp = i0.ɵɵngDeclareComponent({ version: "0.0.0-PLACEHOLDER", type: My
     }], null, null); })();
 export class MyModule {
 }
-MyModule.ɵmod = i0.ɵɵdefineNgModule({ type: MyModule });
-MyModule.ɵinj = i0.ɵɵdefineInjector({ factory: function MyModule_Factory(t) { return new (t || MyModule)(); } });
-(function () { (typeof ngJitMode === "undefined" || ngJitMode) && i0.ɵɵsetNgModuleScope(MyModule, { declarations: [SomeDirective, ContentQueryComponent, MyApp] }); })();
+MyModule.ɵfac = function MyModule_Factory(t) { return new (t || MyModule)(); };
+MyModule.ɵmod = i0.ɵɵngDeclareNgModule({ version: "0.0.0-PLACEHOLDER", ngImport: i0, type: MyModule, declarations: [SomeDirective, ContentQueryComponent, MyApp] });
+MyModule.ɵinj = i0.ɵɵngDeclareInjector({ version: "0.0.0-PLACEHOLDER", ngImport: i0, type: MyModule });
 (function () { (typeof ngDevMode === "undefined" || ngDevMode) && i0.ɵsetClassMetadata(MyModule, [{
         type: NgModule,
         args: [{ declarations: [SomeDirective, ContentQueryComponent, MyApp] }]
@@ -401,6 +405,7 @@ export declare class MyApp {
     static ɵcmp: i0.ɵɵComponentDefWithMeta<MyApp, "my-app", never, {}, {}, never, never>;
 }
 export declare class MyModule {
+    static ɵfac: i0.ɵɵFactoryDef<MyModule, never>;
     static ɵmod: i0.ɵɵNgModuleDefWithMeta<MyModule, [typeof i1.SomeDirective, typeof ContentQueryComponent, typeof MyApp], never, never>;
     static ɵinj: i0.ɵɵInjectorDef<MyModule>;
 }
@@ -413,7 +418,7 @@ import * as i0 from "@angular/core";
 export class ContentQueryComponent {
 }
 ContentQueryComponent.ɵfac = function ContentQueryComponent_Factory(t) { return new (t || ContentQueryComponent)(); };
-ContentQueryComponent.ɵcmp = i0.ɵɵngDeclareComponent({ version: "0.0.0-PLACEHOLDER", type: ContentQueryComponent, selector: "content-query-component", queries: [{ propertyName: "myRef", first: true, predicate: ["myRef"], emitDistinctChangesOnly: false, descendants: true }, { propertyName: "myRefs", predicate: ["myRef1, myRef2, myRef3"], emitDistinctChangesOnly: false }], ngImport: i0, template: `
+ContentQueryComponent.ɵcmp = i0.ɵɵngDeclareComponent({ version: "0.0.0-PLACEHOLDER", type: ContentQueryComponent, selector: "content-query-component", queries: [{ propertyName: "myRef", first: true, predicate: ["myRef"], descendants: true }, { propertyName: "myRefs", predicate: ["myRef1, myRef2, myRef3"] }], ngImport: i0, template: `
     <div #myRef></div>
     <div #myRef1></div>
   `, isInline: true });
@@ -435,9 +440,9 @@ ContentQueryComponent.ɵcmp = i0.ɵɵngDeclareComponent({ version: "0.0.0-PLACEH
         }] }); })();
 export class MyModule {
 }
-MyModule.ɵmod = i0.ɵɵdefineNgModule({ type: MyModule });
-MyModule.ɵinj = i0.ɵɵdefineInjector({ factory: function MyModule_Factory(t) { return new (t || MyModule)(); } });
-(function () { (typeof ngJitMode === "undefined" || ngJitMode) && i0.ɵɵsetNgModuleScope(MyModule, { declarations: [ContentQueryComponent] }); })();
+MyModule.ɵfac = function MyModule_Factory(t) { return new (t || MyModule)(); };
+MyModule.ɵmod = i0.ɵɵngDeclareNgModule({ version: "0.0.0-PLACEHOLDER", ngImport: i0, type: MyModule, declarations: [ContentQueryComponent] });
+MyModule.ɵinj = i0.ɵɵngDeclareInjector({ version: "0.0.0-PLACEHOLDER", ngImport: i0, type: MyModule });
 (function () { (typeof ngDevMode === "undefined" || ngDevMode) && i0.ɵsetClassMetadata(MyModule, [{
         type: NgModule,
         args: [{ declarations: [ContentQueryComponent] }]
@@ -455,6 +460,7 @@ export declare class ContentQueryComponent {
     static ɵcmp: i0.ɵɵComponentDefWithMeta<ContentQueryComponent, "content-query-component", never, {}, {}, ["myRef", "myRefs"], never>;
 }
 export declare class MyModule {
+    static ɵfac: i0.ɵɵFactoryDef<MyModule, never>;
     static ɵmod: i0.ɵɵNgModuleDefWithMeta<MyModule, [typeof ContentQueryComponent], never, never>;
     static ɵinj: i0.ɵɵInjectorDef<MyModule>;
 }
@@ -493,7 +499,7 @@ import * as i0 from "@angular/core";
 export class ContentQueryComponent {
 }
 ContentQueryComponent.ɵfac = function ContentQueryComponent_Factory(t) { return new (t || ContentQueryComponent)(); };
-ContentQueryComponent.ɵcmp = i0.ɵɵngDeclareComponent({ version: "0.0.0-PLACEHOLDER", type: ContentQueryComponent, selector: "content-query-component", queries: [{ propertyName: "someDir", first: true, predicate: SomeDirective, emitDistinctChangesOnly: false, descendants: true, static: true }, { propertyName: "foo", first: true, predicate: ["foo"], emitDistinctChangesOnly: false, descendants: true }], ngImport: i0, template: `
+ContentQueryComponent.ɵcmp = i0.ɵɵngDeclareComponent({ version: "0.0.0-PLACEHOLDER", type: ContentQueryComponent, selector: "content-query-component", queries: [{ propertyName: "someDir", first: true, predicate: SomeDirective, descendants: true, static: true }, { propertyName: "foo", first: true, predicate: ["foo"], descendants: true }], ngImport: i0, template: `
     <div><ng-content></ng-content></div>
   `, isInline: true });
 (function () { (typeof ngDevMode === "undefined" || ngDevMode) && i0.ɵsetClassMetadata(ContentQueryComponent, [{
@@ -518,7 +524,7 @@ MyApp.ɵcmp = i0.ɵɵngDeclareComponent({ version: "0.0.0-PLACEHOLDER", type: My
     <content-query-component>
       <div someDir></div>
     </content-query-component>
-  `, isInline: true, directives: [{ type: i0.forwardRef(function () { return ContentQueryComponent; }), selector: "content-query-component" }, { type: i0.forwardRef(function () { return SomeDirective; }), selector: "[someDir]" }] });
+  `, isInline: true, components: [{ type: i0.forwardRef(function () { return ContentQueryComponent; }), selector: "content-query-component" }], directives: [{ type: i0.forwardRef(function () { return SomeDirective; }), selector: "[someDir]" }] });
 (function () { (typeof ngDevMode === "undefined" || ngDevMode) && i0.ɵsetClassMetadata(MyApp, [{
         type: Component,
         args: [{
@@ -532,9 +538,9 @@ MyApp.ɵcmp = i0.ɵɵngDeclareComponent({ version: "0.0.0-PLACEHOLDER", type: My
     }], null, null); })();
 export class MyModule {
 }
-MyModule.ɵmod = i0.ɵɵdefineNgModule({ type: MyModule });
-MyModule.ɵinj = i0.ɵɵdefineInjector({ factory: function MyModule_Factory(t) { return new (t || MyModule)(); } });
-(function () { (typeof ngJitMode === "undefined" || ngJitMode) && i0.ɵɵsetNgModuleScope(MyModule, { declarations: [SomeDirective, ContentQueryComponent, MyApp] }); })();
+MyModule.ɵfac = function MyModule_Factory(t) { return new (t || MyModule)(); };
+MyModule.ɵmod = i0.ɵɵngDeclareNgModule({ version: "0.0.0-PLACEHOLDER", ngImport: i0, type: MyModule, declarations: [SomeDirective, ContentQueryComponent, MyApp] });
+MyModule.ɵinj = i0.ɵɵngDeclareInjector({ version: "0.0.0-PLACEHOLDER", ngImport: i0, type: MyModule });
 (function () { (typeof ngDevMode === "undefined" || ngDevMode) && i0.ɵsetClassMetadata(MyModule, [{
         type: NgModule,
         args: [{ declarations: [SomeDirective, ContentQueryComponent, MyApp] }]
@@ -558,6 +564,7 @@ export declare class MyApp {
     static ɵcmp: i0.ɵɵComponentDefWithMeta<MyApp, "my-app", never, {}, {}, never, never>;
 }
 export declare class MyModule {
+    static ɵfac: i0.ɵɵFactoryDef<MyModule, never>;
     static ɵmod: i0.ɵɵNgModuleDefWithMeta<MyModule, [typeof i1.SomeDirective, typeof ContentQueryComponent, typeof MyApp], never, never>;
     static ɵinj: i0.ɵɵInjectorDef<MyModule>;
 }
@@ -596,7 +603,7 @@ import * as i0 from "@angular/core";
 export class ContentQueryComponent {
 }
 ContentQueryComponent.ɵfac = function ContentQueryComponent_Factory(t) { return new (t || ContentQueryComponent)(); };
-ContentQueryComponent.ɵcmp = i0.ɵɵngDeclareComponent({ version: "0.0.0-PLACEHOLDER", type: ContentQueryComponent, selector: "content-query-component", queries: [{ propertyName: "myRef", first: true, predicate: ["myRef"], emitDistinctChangesOnly: false, descendants: true, read: TemplateRef }, { propertyName: "someDir", first: true, predicate: SomeDirective, emitDistinctChangesOnly: false, descendants: true, read: ElementRef }, { propertyName: "myRefs", predicate: ["myRef1, myRef2, myRef3"], emitDistinctChangesOnly: false, read: ElementRef }, { propertyName: "someDirs", predicate: SomeDirective, emitDistinctChangesOnly: false, read: TemplateRef }], ngImport: i0, template: `
+ContentQueryComponent.ɵcmp = i0.ɵɵngDeclareComponent({ version: "0.0.0-PLACEHOLDER", type: ContentQueryComponent, selector: "content-query-component", queries: [{ propertyName: "myRef", first: true, predicate: ["myRef"], descendants: true, read: TemplateRef }, { propertyName: "someDir", first: true, predicate: SomeDirective, descendants: true, read: ElementRef }, { propertyName: "myRefs", predicate: ["myRef1, myRef2, myRef3"], read: ElementRef }, { propertyName: "someDirs", predicate: SomeDirective, read: TemplateRef }], ngImport: i0, template: `
     <div someDir></div>
     <div #myRef></div>
     <div #myRef1></div>
@@ -626,9 +633,9 @@ ContentQueryComponent.ɵcmp = i0.ɵɵngDeclareComponent({ version: "0.0.0-PLACEH
         }] }); })();
 export class MyModule {
 }
-MyModule.ɵmod = i0.ɵɵdefineNgModule({ type: MyModule });
-MyModule.ɵinj = i0.ɵɵdefineInjector({ factory: function MyModule_Factory(t) { return new (t || MyModule)(); } });
-(function () { (typeof ngJitMode === "undefined" || ngJitMode) && i0.ɵɵsetNgModuleScope(MyModule, { declarations: [ContentQueryComponent] }); })();
+MyModule.ɵfac = function MyModule_Factory(t) { return new (t || MyModule)(); };
+MyModule.ɵmod = i0.ɵɵngDeclareNgModule({ version: "0.0.0-PLACEHOLDER", ngImport: i0, type: MyModule, declarations: [ContentQueryComponent] });
+MyModule.ɵinj = i0.ɵɵngDeclareInjector({ version: "0.0.0-PLACEHOLDER", ngImport: i0, type: MyModule });
 (function () { (typeof ngDevMode === "undefined" || ngDevMode) && i0.ɵsetClassMetadata(MyModule, [{
         type: NgModule,
         args: [{ declarations: [ContentQueryComponent] }]
@@ -648,6 +655,7 @@ export declare class ContentQueryComponent {
     static ɵcmp: i0.ɵɵComponentDefWithMeta<ContentQueryComponent, "content-query-component", never, {}, {}, ["myRef", "someDir", "myRefs", "someDirs"], never>;
 }
 export declare class MyModule {
+    static ɵfac: i0.ɵɵFactoryDef<MyModule, never>;
     static ɵmod: i0.ɵɵNgModuleDefWithMeta<MyModule, [typeof ContentQueryComponent], never, never>;
     static ɵinj: i0.ɵɵInjectorDef<MyModule>;
 }
@@ -714,9 +722,9 @@ ContentQueryComponent.ɵcmp = i0.ɵɵngDeclareComponent({ version: "0.0.0-PLACEH
         }] }); })();
 export class MyModule {
 }
-MyModule.ɵmod = i0.ɵɵdefineNgModule({ type: MyModule });
-MyModule.ɵinj = i0.ɵɵdefineInjector({ factory: function MyModule_Factory(t) { return new (t || MyModule)(); } });
-(function () { (typeof ngJitMode === "undefined" || ngJitMode) && i0.ɵɵsetNgModuleScope(MyModule, { declarations: [ContentQueryComponent] }); })();
+MyModule.ɵfac = function MyModule_Factory(t) { return new (t || MyModule)(); };
+MyModule.ɵmod = i0.ɵɵngDeclareNgModule({ version: "0.0.0-PLACEHOLDER", ngImport: i0, type: MyModule, declarations: [ContentQueryComponent] });
+MyModule.ɵinj = i0.ɵɵngDeclareInjector({ version: "0.0.0-PLACEHOLDER", ngImport: i0, type: MyModule });
 (function () { (typeof ngDevMode === "undefined" || ngDevMode) && i0.ɵsetClassMetadata(MyModule, [{
         type: NgModule,
         args: [{ declarations: [ContentQueryComponent] }]
@@ -736,6 +744,7 @@ export declare class ContentQueryComponent {
     static ɵcmp: i0.ɵɵComponentDefWithMeta<ContentQueryComponent, "content-query-component", never, {}, {}, ["myRefs", "oldMyRefs"], never>;
 }
 export declare class MyModule {
+    static ɵfac: i0.ɵɵFactoryDef<MyModule, never>;
     static ɵmod: i0.ɵɵNgModuleDefWithMeta<MyModule, [typeof ContentQueryComponent], never, never>;
     static ɵinj: i0.ɵɵInjectorDef<MyModule>;
 }

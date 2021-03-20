@@ -29,6 +29,14 @@ import {getTargetAtPosition, TargetContext, TargetNodeKind} from './template_tar
 import {findTightestNode, getClassDeclFromDecoratorProp, getPropertyAssignmentFromValue} from './ts_utils';
 import {getTemplateInfoAtPosition, isTypeScriptFile} from './utils';
 
+interface LanguageServiceConfig {
+  /**
+   * If true, enable `strictTemplates` in Angular compiler options regardless
+   * of its value in tsconfig.json.
+   */
+  forceStrictTemplates?: true;
+}
+
 export class LanguageService {
   private options: CompilerOptions;
   readonly compilerFactory: CompilerFactory;
@@ -37,9 +45,12 @@ export class LanguageService {
   private readonly parseConfigHost: LSParseConfigHost;
 
   constructor(
-      private readonly project: ts.server.Project, private readonly tsLS: ts.LanguageService) {
+      private readonly project: ts.server.Project,
+      private readonly tsLS: ts.LanguageService,
+      private readonly config: LanguageServiceConfig,
+  ) {
     this.parseConfigHost = new LSParseConfigHost(project.projectService.host);
-    this.options = parseNgCompilerOptions(project, this.parseConfigHost);
+    this.options = parseNgCompilerOptions(project, this.parseConfigHost, config);
     logCompilerOptions(project, this.options);
     this.strategy = createTypeCheckingProgramStrategy(project);
     this.adapter = new LanguageServiceAdapter(project);
@@ -59,7 +70,28 @@ export class LanguageService {
       const program = compiler.getNextProgram();
       const sourceFile = program.getSourceFile(fileName);
       if (sourceFile) {
-        diagnostics.push(...compiler.getDiagnosticsForFile(sourceFile, OptimizeFor.SingleFile));
+        const ngDiagnostics = compiler.getDiagnosticsForFile(sourceFile, OptimizeFor.SingleFile);
+        // There are several kinds of diagnostics returned by `NgCompiler` for a source file:
+        //
+        // 1. Angular-related non-template diagnostics from decorated classes within that file.
+        // 2. Template diagnostics for components with direct inline templates (a string literal).
+        // 3. Template diagnostics for components with indirect inline templates (templates computed
+        //    by expression).
+        // 4. Template diagnostics for components with external templates.
+        //
+        // When showing diagnostics for a TS source file, we want to only include kinds 1 and 2 -
+        // those diagnostics which are reported at a location within the TS file itself. Diagnostics
+        // for external templates will be shown when editing that template file (the `else` block)
+        // below.
+        //
+        // Currently, indirect inline template diagnostics (kind 3) are not shown at all by the
+        // Language Service, because there is no sensible location in the user's code for them. Such
+        // templates are an edge case, though, and should not be common.
+        //
+        // TODO(alxhub): figure out a good user experience for indirect template diagnostics and
+        // show them from within the Language Service.
+        diagnostics.push(...ngDiagnostics.filter(
+            diag => diag.file !== undefined && diag.file.fileName === sourceFile.fileName));
       }
     } else {
       const components = compiler.getComponentsWithTemplateFile(fileName);
@@ -169,9 +201,8 @@ export class LanguageService {
         positionDetails.context.nodes[0] :
         positionDetails.context.node;
     return new CompletionBuilder(
-        this.tsLS, compiler, templateInfo.component, node,
-        nodeContextFromTarget(positionDetails.context), positionDetails.parent,
-        positionDetails.template);
+        this.tsLS, compiler, templateInfo.component, node, positionDetails,
+        isTypeScriptFile(fileName));
   }
 
   getCompletionsAtPosition(
@@ -340,7 +371,7 @@ export class LanguageService {
         project.getConfigFilePath(), (fileName: string, eventKind: ts.FileWatcherEventKind) => {
           project.log(`Config file changed: ${fileName}`);
           if (eventKind === ts.FileWatcherEventKind.Changed) {
-            this.options = parseNgCompilerOptions(project, this.parseConfigHost);
+            this.options = parseNgCompilerOptions(project, this.parseConfigHost, this.config);
             logCompilerOptions(project, this.options);
           }
         });
@@ -354,7 +385,8 @@ function logCompilerOptions(project: ts.server.Project, options: CompilerOptions
 }
 
 function parseNgCompilerOptions(
-    project: ts.server.Project, host: ConfigurationHost): CompilerOptions {
+    project: ts.server.Project, host: ConfigurationHost,
+    config: LanguageServiceConfig): CompilerOptions {
   if (!(project instanceof ts.server.ConfiguredProject)) {
     return {};
   }
@@ -374,6 +406,12 @@ function parseNgCompilerOptions(
   // are not exported. In many cases, this ensures the test NgModules are ignored by the compiler
   // and only the real component declaration is used.
   options.compileNonExportedClasses = false;
+
+  // If `forceStrictTemplates` is true, always enable `strictTemplates`
+  // regardless of its value in tsconfig.json.
+  if (config.forceStrictTemplates === true) {
+    options.strictTemplates = true;
+  }
 
   return options;
 }
@@ -430,29 +468,6 @@ function getOrCreateTypeCheckScriptInfo(
     project.addRoot(scriptInfo);
   }
   return scriptInfo;
-}
-
-function nodeContextFromTarget(target: TargetContext): CompletionNodeContext {
-  switch (target.kind) {
-    case TargetNodeKind.ElementInTagContext:
-      return CompletionNodeContext.ElementTag;
-    case TargetNodeKind.ElementInBodyContext:
-      // Completions in element bodies are for new attributes.
-      return CompletionNodeContext.ElementAttributeKey;
-    case TargetNodeKind.TwoWayBindingContext:
-      return CompletionNodeContext.TwoWayBinding;
-    case TargetNodeKind.AttributeInKeyContext:
-      return CompletionNodeContext.ElementAttributeKey;
-    case TargetNodeKind.AttributeInValueContext:
-      if (target.node instanceof TmplAstBoundEvent) {
-        return CompletionNodeContext.EventValue;
-      } else {
-        return CompletionNodeContext.None;
-      }
-    default:
-      // No special context is available.
-      return CompletionNodeContext.None;
-  }
 }
 
 function isTemplateContext(program: ts.Program, fileName: string, position: number): boolean {

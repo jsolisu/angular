@@ -41,7 +41,11 @@ function getDiagnosticSourceCode(diag: ts.Diagnostic): string {
   return diag.file!.text.substr(diag.start!, diag.length!);
 }
 
-runInEachFileSystem(os => {
+runInEachFileSystem(allTests);
+
+// Wrap all tests into a function to work around clang-format going crazy and (poorly)
+// reformatting the entire file.
+function allTests(os: string) {
   describe('ngtsc behavioral tests', () => {
     let env!: NgtscTestEnvironment;
 
@@ -233,7 +237,7 @@ runInEachFileSystem(os => {
       env.driveMain();
 
       const jsContents = env.getContents('test.js');
-      expect(jsContents).toContain('TestDir.ɵdir = i0.ɵɵdefineDirective');
+      expect(jsContents).toContain('TestDir.ɵdir = /*@__PURE__*/ i0.ɵɵdefineDirective');
       expect(jsContents).toContain('TestDir.ɵfac = function');
       expect(jsContents).not.toContain('__decorate');
 
@@ -255,7 +259,7 @@ runInEachFileSystem(os => {
       env.driveMain();
 
       const jsContents = env.getContents('test.js');
-      expect(jsContents).toContain('TestDir.ɵdir = i0.ɵɵdefineDirective');
+      expect(jsContents).toContain('TestDir.ɵdir = /*@__PURE__*/ i0.ɵɵdefineDirective');
       expect(jsContents).toContain('TestDir.ɵfac = function');
       expect(jsContents).not.toContain('__decorate');
 
@@ -280,7 +284,7 @@ runInEachFileSystem(os => {
       env.driveMain();
 
       const jsContents = env.getContents('test.js');
-      expect(jsContents).toContain('TestCmp.ɵcmp = i0.ɵɵdefineComponent');
+      expect(jsContents).toContain('TestCmp.ɵcmp = /*@__PURE__*/ i0.ɵɵdefineComponent');
       expect(jsContents).toContain('TestCmp.ɵfac = function');
       expect(jsContents).not.toContain('__decorate');
 
@@ -305,7 +309,7 @@ runInEachFileSystem(os => {
       env.driveMain();
 
       const jsContents = env.getContents('test.js');
-      expect(jsContents).toContain('TestCmp.ɵcmp = i0.ɵɵdefineComponent');
+      expect(jsContents).toContain('TestCmp.ɵcmp = /*@__PURE__*/ i0.ɵɵdefineComponent');
       expect(jsContents).toContain('TestCmp.ɵfac = function');
       expect(jsContents).not.toContain('__decorate');
 
@@ -335,7 +339,7 @@ runInEachFileSystem(os => {
       env.driveMain();
 
       const jsContents = env.getContents('test.js');
-      expect(jsContents).toContain('TestCmp.ɵcmp = i0.ɵɵdefineComponent');
+      expect(jsContents).toContain('TestCmp.ɵcmp = /*@__PURE__*/ i0.ɵɵdefineComponent');
       expect(jsContents).toContain('TestCmp.ɵfac = function');
       expect(jsContents).not.toContain('__decorate');
 
@@ -393,6 +397,31 @@ runInEachFileSystem(os => {
     // that start with `C:`.
     if (os !== 'Windows' || platform() === 'win32') {
       describe('when closure annotations are requested', () => {
+        it('should add @pureOrBreakMyCode to getInheritedFactory calls', () => {
+          env.tsconfig({
+            'annotateForClosureCompiler': true,
+          });
+          env.write(`test.ts`, `
+            import {Directive} from '@angular/core';
+
+            @Directive({
+              selector: '[base]',
+            })
+            class Base {}
+
+            @Directive({
+              selector: '[test]',
+            })
+            class Dir extends Base {
+            }
+        `);
+
+          env.driveMain();
+
+          const jsContents = env.getContents('test.js');
+          expect(jsContents).toContain('/** @pureOrBreakMyCode */ i0.ɵɵgetInheritedFactory(Dir)');
+        });
+
         it('should add @nocollapse to static fields', () => {
           env.tsconfig({
             'annotateForClosureCompiler': true,
@@ -652,13 +681,13 @@ runInEachFileSystem(os => {
       env.driveMain();
 
       const jsContents = env.getContents('test.js');
-      expect(jsContents).toContain('TestBase.ɵdir = i0.ɵɵdefineDirective');
-      expect(jsContents).toContain('TestComponent.ɵcmp = i0.ɵɵdefineComponent');
-      expect(jsContents).toContain('TestDirective.ɵdir = i0.ɵɵdefineDirective');
-      expect(jsContents).toContain('TestPipe.ɵpipe = i0.ɵɵdefinePipe');
-      expect(jsContents).toContain('TestInjectable.ɵprov = i0.ɵɵdefineInjectable');
-      expect(jsContents).toContain('MyModule.ɵmod = i0.ɵɵdefineNgModule');
-      expect(jsContents).toContain('MyModule.ɵinj = i0.ɵɵdefineInjector');
+      expect(jsContents).toContain('TestBase.ɵdir = /*@__PURE__*/ i0.ɵɵdefineDirective');
+      expect(jsContents).toContain('TestComponent.ɵcmp = /*@__PURE__*/ i0.ɵɵdefineComponent');
+      expect(jsContents).toContain('TestDirective.ɵdir = /*@__PURE__*/ i0.ɵɵdefineDirective');
+      expect(jsContents).toContain('TestPipe.ɵpipe = /*@__PURE__*/ i0.ɵɵdefinePipe');
+      expect(jsContents).toContain('TestInjectable.ɵprov = /*@__PURE__*/ i0.ɵɵdefineInjectable');
+      expect(jsContents).toContain('MyModule.ɵmod = /*@__PURE__*/ i0.ɵɵdefineNgModule');
+      expect(jsContents).toContain('MyModule.ɵinj = /*@__PURE__*/ i0.ɵɵdefineInjector');
       expect(jsContents).toContain('inputs: { input: "input" }');
       expect(jsContents).toContain('outputs: { output: "output" }');
     });
@@ -1069,8 +1098,8 @@ runInEachFileSystem(os => {
               'function () { (typeof ngJitMode === "undefined" || ngJitMode) && i0.ɵɵsetNgModuleScope(TestModule, { declarations: [TestCmp] }); })();');
       expect(jsContents)
           .toContain(
-              'i0.ɵɵdefineInjector({ factory: ' +
-              'function TestModule_Factory(t) { return new (t || TestModule)(); } });');
+              'TestModule.ɵfac = function TestModule_Factory(t) { return new (t || TestModule)(); }');
+      expect(jsContents).toContain('i0.ɵɵdefineInjector({});');
 
       const dtsContents = env.getContents('test.d.ts');
       expect(dtsContents)
@@ -1182,8 +1211,10 @@ runInEachFileSystem(os => {
       const jsContents = env.getContents('test.js');
       expect(jsContents)
           .toContain(
-              'i0.ɵɵdefineInjector({ factory: function TestModule_Factory(t) ' +
-              '{ return new (t || TestModule)(); }, imports: [[OtherModule, RouterModule.forRoot()],' +
+              'TestModule.ɵfac = function TestModule_Factory(t) { return new (t || TestModule)(); }');
+      expect(jsContents)
+          .toContain(
+              'i0.ɵɵdefineInjector({ imports: [[OtherModule, RouterModule.forRoot()],' +
               ' OtherModule, RouterModule] });');
     });
 
@@ -1213,12 +1244,15 @@ runInEachFileSystem(os => {
       env.driveMain();
 
       const jsContents = env.getContents('test.js');
+      expect(jsContents)
+          .toContain(
+              'TestModule.ɵfac = function TestModule_Factory(t) { return new (t || TestModule)(); }');
       expect(jsContents).toContain('i0.ɵɵdefineNgModule({ type: TestModule });');
       expect(jsContents)
           .toContain(
-              `TestModule.ɵinj = i0.ɵɵdefineInjector({ factory: ` +
-              `function TestModule_Factory(t) { return new (t || TestModule)(); }, providers: [{ provide: ` +
-              `Token, useValue: 'test' }], imports: [[OtherModule]] });`);
+              `TestModule.ɵinj = /*@__PURE__*/ i0.ɵɵdefineInjector({ ` +
+              `providers: [{ provide: Token, useValue: 'test' }], ` +
+              `imports: [[OtherModule]] });`);
 
       const dtsContents = env.getContents('test.d.ts');
       expect(dtsContents)
@@ -1253,12 +1287,15 @@ runInEachFileSystem(os => {
       env.driveMain();
 
       const jsContents = env.getContents('test.js');
+      expect(jsContents)
+          .toContain(
+              'TestModule.ɵfac = function TestModule_Factory(t) { return new (t || TestModule)(); }');
       expect(jsContents).toContain('i0.ɵɵdefineNgModule({ type: TestModule });');
       expect(jsContents)
           .toContain(
-              `TestModule.ɵinj = i0.ɵɵdefineInjector({ factory: ` +
-              `function TestModule_Factory(t) { return new (t || TestModule)(); }, providers: [{ provide: ` +
-              `Token, useFactory: function () { return new Token(); } }], imports: [[OtherModule]] });`);
+              `TestModule.ɵinj = /*@__PURE__*/ i0.ɵɵdefineInjector({ ` +
+              `providers: [{ provide: Token, useFactory: function () { return new Token(); } }], ` +
+              `imports: [[OtherModule]] });`);
 
       const dtsContents = env.getContents('test.d.ts');
       expect(dtsContents)
@@ -1297,12 +1334,15 @@ runInEachFileSystem(os => {
       env.driveMain();
 
       const jsContents = env.getContents('test.js');
+      expect(jsContents)
+          .toContain(
+              'TestModule.ɵfac = function TestModule_Factory(t) { return new (t || TestModule)(); }');
       expect(jsContents).toContain('i0.ɵɵdefineNgModule({ type: TestModule });');
       expect(jsContents)
           .toContain(
-              `TestModule.ɵinj = i0.ɵɵdefineInjector({ factory: ` +
-              `function TestModule_Factory(t) { return new (t || TestModule)(); }, providers: [{ provide: ` +
-              `Token, useFactory: function (dep) { return new Token(dep); }, deps: [Dep] }], imports: [[OtherModule]] });`);
+              `TestModule.ɵinj = /*@__PURE__*/ i0.ɵɵdefineInjector({ ` +
+              `providers: [{ provide: Token, useFactory: function (dep) { return new Token(dep); }, deps: [Dep] }], ` +
+              `imports: [[OtherModule]] });`);
 
       const dtsContents = env.getContents('test.d.ts');
       expect(dtsContents)
@@ -1471,7 +1511,7 @@ runInEachFileSystem(os => {
 
       expect(jsContents)
           .toContain(
-              'TestPipe.ɵpipe = i0.ɵɵdefinePipe({ name: "test-pipe", type: TestPipe, pure: false })');
+              'TestPipe.ɵpipe = /*@__PURE__*/ i0.ɵɵdefinePipe({ name: "test-pipe", type: TestPipe, pure: false })');
       expect(jsContents)
           .toContain(
               'TestPipe.ɵfac = function TestPipe_Factory(t) { return new (t || TestPipe)(); }');
@@ -1496,7 +1536,7 @@ runInEachFileSystem(os => {
 
       expect(jsContents)
           .toContain(
-              'TestPipe.ɵpipe = i0.ɵɵdefinePipe({ name: "test-pipe", type: TestPipe, pure: true })');
+              'TestPipe.ɵpipe = /*@__PURE__*/ i0.ɵɵdefinePipe({ name: "test-pipe", type: TestPipe, pure: true })');
       expect(jsContents)
           .toContain(
               'TestPipe.ɵfac = function TestPipe_Factory(t) { return new (t || TestPipe)(); }');
@@ -3093,10 +3133,10 @@ runInEachFileSystem(os => {
       expect(jsContents).toMatch(varRegExp('test1'));
       expect(jsContents).toMatch(varRegExp('test2'));
       expect(jsContents).toMatch(varRegExp('accessor'));
-      // match `i0.ɵɵcontentQuery(dirIndex, _c1, 1, TemplateRef)`
-      expect(jsContents).toMatch(contentQueryRegExp('\\w+', 1, 'TemplateRef'));
-      // match `i0.ɵɵviewQuery(_c2, 1, null)`
-      expect(jsContents).toMatch(viewQueryRegExp('\\w+', 1));
+      // match `i0.ɵɵcontentQuery(dirIndex, _c1, 5, TemplateRef)`
+      expect(jsContents).toMatch(contentQueryRegExp('\\w+', 5, 'TemplateRef'));
+      // match `i0.ɵɵviewQuery(_c2, 5, null)`
+      expect(jsContents).toMatch(viewQueryRegExp('\\w+', 5));
     });
 
     it('should generate queries for directives', () => {
@@ -3125,14 +3165,14 @@ runInEachFileSystem(os => {
       expect(jsContents).toMatch(varRegExp('test1'));
       expect(jsContents).toMatch(varRegExp('test2'));
       expect(jsContents).toMatch(varRegExp('accessor'));
-      // match `i0.ɵɵcontentQuery(dirIndex, _c1, 1, TemplateRef)`
-      expect(jsContents).toMatch(contentQueryRegExp('\\w+', 1, 'TemplateRef'));
+      // match `i0.ɵɵcontentQuery(dirIndex, _c1, 5, TemplateRef)`
+      expect(jsContents).toMatch(contentQueryRegExp('\\w+', 5, 'TemplateRef'));
 
-      // match `i0.ɵɵviewQuery(_c2, 1)`
+      // match `i0.ɵɵviewQuery(_c2, 5)`
       // Note that while ViewQuery doesn't necessarily make sense on a directive,
       // because it doesn't have a view, we still need to handle it because a component
       // could extend the directive.
-      expect(jsContents).toMatch(viewQueryRegExp('\\w+', 1));
+      expect(jsContents).toMatch(viewQueryRegExp('\\w+', 5));
     });
 
     it('should handle queries that use forwardRef', () => {
@@ -3154,13 +3194,13 @@ runInEachFileSystem(os => {
 
       env.driveMain();
       const jsContents = env.getContents('test.js');
-      // match `i0.ɵɵcontentQuery(dirIndex, TemplateRef, 1, null)`
-      expect(jsContents).toMatch(contentQueryRegExp('TemplateRef', 1));
-      // match `i0.ɵɵcontentQuery(dirIndex, ViewContainerRef, 1, null)`
-      expect(jsContents).toMatch(contentQueryRegExp('ViewContainerRef', 1));
-      // match `i0.ɵɵcontentQuery(dirIndex, _c0, 1, null)`
+      // match `i0.ɵɵcontentQuery(dirIndex, TemplateRef, 5, null)`
+      expect(jsContents).toMatch(contentQueryRegExp('TemplateRef', 5));
+      // match `i0.ɵɵcontentQuery(dirIndex, ViewContainerRef, 5, null)`
+      expect(jsContents).toMatch(contentQueryRegExp('ViewContainerRef', 5));
+      // match `i0.ɵɵcontentQuery(dirIndex, _c0, 5, null)`
       expect(jsContents).toContain('_c0 = ["parens"];');
-      expect(jsContents).toMatch(contentQueryRegExp('_c0', 1));
+      expect(jsContents).toMatch(contentQueryRegExp('_c0', 5));
     });
 
     it('should handle queries that use an InjectionToken', () => {
@@ -3181,10 +3221,10 @@ runInEachFileSystem(os => {
 
       env.driveMain();
       const jsContents = env.getContents('test.js');
-      // match `i0.ɵɵviewQuery(TOKEN, 1, null)`
-      expect(jsContents).toMatch(viewQueryRegExp('TOKEN', 1));
-      // match `i0.ɵɵcontentQuery(dirIndex, TOKEN, 1, null)`
-      expect(jsContents).toMatch(contentQueryRegExp('TOKEN', 1));
+      // match `i0.ɵɵviewQuery(TOKEN, 5, null)`
+      expect(jsContents).toMatch(viewQueryRegExp('TOKEN', 5));
+      // match `i0.ɵɵcontentQuery(dirIndex, TOKEN, 5, null)`
+      expect(jsContents).toMatch(contentQueryRegExp('TOKEN', 5));
     });
 
     it('should compile expressions that write keys', () => {
@@ -4188,7 +4228,7 @@ runInEachFileSystem(os => {
       env.driveMain();
       const jsContents = trim(env.getContents('test.js'));
       expect(jsContents).toContain(trim(`
-        MyComp.ɵcmp = i0.ɵɵdefineComponent({
+        MyComp.ɵcmp = /*@__PURE__*/ i0.ɵɵdefineComponent({
           type: MyComp,
           selectors: [["comp"]],
           decls: 1,
@@ -4202,7 +4242,8 @@ runInEachFileSystem(os => {
         });
       `));
       expect(jsContents)
-          .toContain(trim('MyModule.ɵmod = i0.ɵɵdefineNgModule({ type: MyModule });'));
+          .toContain(
+              trim('MyModule.ɵmod = /*@__PURE__*/ i0.ɵɵdefineNgModule({ type: MyModule });'));
     });
 
     it('should emit setClassMetadata calls for all types', () => {
@@ -7843,4 +7884,4 @@ export const Foo = Foo__PRE_R3__;
   function normalize(input: string): string {
     return input.replace(/\s+/g, ' ').trim();
   }
-});
+}

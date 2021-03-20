@@ -69,8 +69,6 @@ export interface ɵɵInjectableDef<T> {
  * @codeGenApi
  */
 export interface ɵɵInjectorDef<T> {
-  factory: () => T;
-
   // TODO(alxhub): Narrow down the type here once decorators properly change the return type of the
   // class they are decorating (to add the ɵprov property for example).
   providers: (Type<any>|ValueProvider|ExistingProvider|FactoryProvider|ConstructorProvider|
@@ -91,7 +89,7 @@ export interface InjectableType<T> extends Type<T> {
   /**
    * Opaque type whose structure is highly version dependent. Do not rely on any properties.
    */
-  ɵprov: never;
+  ɵprov: unknown;
 }
 
 /**
@@ -99,13 +97,14 @@ export interface InjectableType<T> extends Type<T> {
  *
  * `InjectorDefTypes` can be used to configure a `StaticInjector`.
  *
+ * This is an opaque type whose structure is highly version dependent. Do not rely on any
+ * properties.
+ *
  * @publicApi
  */
 export interface InjectorType<T> extends Type<T> {
-  /**
-   * Opaque type whose structure is highly version dependent. Do not rely on any properties.
-   */
-  ɵinj: never;
+  ɵfac?: unknown;
+  ɵinj: unknown;
 }
 
 /**
@@ -143,13 +142,13 @@ export interface InjectorTypeWithProviders<T> {
 export function ɵɵdefineInjectable<T>(opts: {
   token: unknown,
   providedIn?: Type<any>|'root'|'platform'|'any'|null, factory: () => T,
-}): never {
-  return ({
-           token: opts.token,
-           providedIn: opts.providedIn as any || null,
-           factory: opts.factory,
-           value: undefined,
-         } as ɵɵInjectableDef<T>) as never;
+}): unknown {
+  return {
+    token: opts.token,
+    providedIn: opts.providedIn as any || null,
+    factory: opts.factory,
+    value: undefined,
+  } as ɵɵInjectableDef<T>;
 }
 
 /**
@@ -167,9 +166,6 @@ export const defineInjectable = ɵɵdefineInjectable;
  *
  * Options:
  *
- * * `factory`: an `InjectorType` is an instantiable type, so a zero argument `factory` function to
- *   create the type must be provided. If that factory function needs to inject arguments, it can
- *   use the `inject` function.
  * * `providers`: an optional array of providers to add to the injector. Each provider must
  *   either have a factory or point to a type which has a `ɵprov` static property (the
  *   type must be an `InjectableType`).
@@ -179,13 +175,8 @@ export const defineInjectable = ɵɵdefineInjectable;
  *
  * @codeGenApi
  */
-export function ɵɵdefineInjector(options: {factory: () => any, providers?: any[], imports?: any[]}):
-    never {
-  return ({
-           factory: options.factory,
-           providers: options.providers || [],
-           imports: options.imports || [],
-         } as ɵɵInjectorDef<any>) as never;
+export function ɵɵdefineInjector(options: {providers?: any[], imports?: any[]}): unknown {
+  return {providers: options.providers || [], imports: options.imports || []};
 }
 
 /**

@@ -6,18 +6,19 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
-import {compileDeclarePipeFromMetadata, compilePipeFromMetadata, Identifiers, R3FactoryTarget, R3PipeDef, R3PipeMetadata, Statement, WrappedNodeExpr} from '@angular/compiler';
+import {compileDeclarePipeFromMetadata, compilePipeFromMetadata, Identifiers, R3CompiledExpression, R3FactoryTarget, R3PipeMetadata, Statement, WrappedNodeExpr} from '@angular/compiler';
 import * as ts from 'typescript';
 
 import {ErrorCode, FatalDiagnosticError} from '../../diagnostics';
 import {DefaultImportRecorder, Reference} from '../../imports';
+import {SemanticSymbol} from '../../incremental/semantic_graph';
 import {InjectableClassRegistry, MetadataRegistry} from '../../metadata';
 import {PartialEvaluator} from '../../partial_evaluator';
 import {ClassDeclaration, Decorator, ReflectionHost, reflectObjectLiteral} from '../../reflection';
 import {LocalModuleScopeRegistry} from '../../scope';
 import {AnalysisOutput, CompileResult, DecoratorHandler, DetectResult, HandlerPrecedence, ResolveResult} from '../../transform';
-import {createValueHasWrongTypeError} from './diagnostics';
 
+import {createValueHasWrongTypeError} from './diagnostics';
 import {compileNgFactoryDefField} from './factory';
 import {generateSetClassMetadataCall} from './metadata';
 import {findAngularDecorator, getValidConstructorDependencies, makeDuplicateDeclarationError, unwrapExpression, wrapTypeReference} from './util';
@@ -27,7 +28,29 @@ export interface PipeHandlerData {
   metadataStmt: Statement|null;
 }
 
-export class PipeDecoratorHandler implements DecoratorHandler<Decorator, PipeHandlerData, unknown> {
+/**
+ * Represents an Angular pipe.
+ */
+export class PipeSymbol extends SemanticSymbol {
+  constructor(decl: ClassDeclaration, public readonly name: string) {
+    super(decl);
+  }
+
+  isPublicApiAffected(previousSymbol: SemanticSymbol): boolean {
+    if (!(previousSymbol instanceof PipeSymbol)) {
+      return true;
+    }
+
+    return this.name !== previousSymbol.name;
+  }
+
+  isTypeCheckApiAffected(previousSymbol: SemanticSymbol): boolean {
+    return this.isPublicApiAffected(previousSymbol);
+  }
+}
+
+export class PipeDecoratorHandler implements
+    DecoratorHandler<Decorator, PipeHandlerData, PipeSymbol, unknown> {
   constructor(
       private reflector: ReflectionHost, private evaluator: PartialEvaluator,
       private metaRegistry: MetadataRegistry, private scopeRegistry: LocalModuleScopeRegistry,
@@ -114,6 +137,10 @@ export class PipeDecoratorHandler implements DecoratorHandler<Decorator, PipeHan
     };
   }
 
+  symbol(node: ClassDeclaration, analysis: Readonly<PipeHandlerData>): PipeSymbol {
+    return new PipeSymbol(node, analysis.meta.name);
+  }
+
   register(node: ClassDeclaration, analysis: Readonly<PipeHandlerData>): void {
     const ref = new Reference(node);
     this.metaRegistry.registerPipeMetadata({ref, name: analysis.meta.pipeName});
@@ -143,7 +170,7 @@ export class PipeDecoratorHandler implements DecoratorHandler<Decorator, PipeHan
     return this.compilePipe(analysis, res);
   }
 
-  private compilePipe(analysis: Readonly<PipeHandlerData>, def: R3PipeDef) {
+  private compilePipe(analysis: Readonly<PipeHandlerData>, def: R3CompiledExpression) {
     const factoryRes = compileNgFactoryDefField({
       ...analysis.meta,
       injectFn: Identifiers.directiveInject,
@@ -156,7 +183,7 @@ export class PipeDecoratorHandler implements DecoratorHandler<Decorator, PipeHan
       factoryRes, {
         name: 'ɵpipe',
         initializer: def.expression,
-        statements: [],
+        statements: def.statements,
         type: def.type,
       }
     ];

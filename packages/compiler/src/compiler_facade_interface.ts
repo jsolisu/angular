@@ -35,8 +35,14 @@ export interface CompilerFacade {
       angularCoreEnv: CoreEnvironment, sourceMapUrl: string, meta: R3InjectableMetadataFacade): any;
   compileInjector(
       angularCoreEnv: CoreEnvironment, sourceMapUrl: string, meta: R3InjectorMetadataFacade): any;
+  compileInjectorDeclaration(
+      angularCoreEnv: CoreEnvironment, sourceMapUrl: string,
+      declaration: R3DeclareInjectorFacade): any;
   compileNgModule(
       angularCoreEnv: CoreEnvironment, sourceMapUrl: string, meta: R3NgModuleMetadataFacade): any;
+  compileNgModuleDeclaration(
+      angularCoreEnv: CoreEnvironment, sourceMapUrl: string,
+      declaration: R3DeclareNgModuleFacade): any;
   compileDirective(
       angularCoreEnv: CoreEnvironment, sourceMapUrl: string, meta: R3DirectiveMetadataFacade): any;
   compileDirectiveDeclaration(
@@ -133,7 +139,6 @@ export interface R3NgModuleMetadataFacade {
 export interface R3InjectorMetadataFacade {
   name: string;
   type: any;
-  deps: R3DependencyMetadataFacade[]|null;
   providers: any[];
   imports: any[];
 }
@@ -255,6 +260,23 @@ export interface R3DeclareQueryMetadataFacade {
   read?: OpaqueValue;
   static?: boolean;
   emitDistinctChangesOnly?: boolean;
+}
+
+export interface R3DeclareInjectorFacade {
+  type: Function;
+  imports?: OpaqueValue[];
+  providers?: OpaqueValue[];
+  deps: R3DependencyMetadataFacade[]|null;
+}
+
+export interface R3DeclareNgModuleFacade {
+  type: Function;
+  bootstrap?: OpaqueValue[]|(() => OpaqueValue[]);
+  declarations?: OpaqueValue[]|(() => OpaqueValue[]);
+  imports?: OpaqueValue[]|(() => OpaqueValue[]);
+  exports?: OpaqueValue[]|(() => OpaqueValue[]);
+  schemas?: OpaqueValue[];
+  id?: OpaqueValue;
 }
 
 export interface R3DeclarePipeFacade {

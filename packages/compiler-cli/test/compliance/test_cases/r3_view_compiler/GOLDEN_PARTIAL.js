@@ -9,7 +9,7 @@ export class MyApp {
     }
 }
 MyApp.ɵfac = function MyApp_Factory(t) { return new (t || MyApp)(); };
-MyApp.ɵcmp = i0.ɵɵngDeclareComponent({ version: "0.0.0-PLACEHOLDER", type: MyApp, selector: "my-app", ngImport: i0, template: '<todo [data]="list"></todo>', isInline: true, directives: [{ type: i0.forwardRef(function () { return TodoComponent; }), selector: "todo", inputs: ["data"] }] });
+MyApp.ɵcmp = i0.ɵɵngDeclareComponent({ version: "0.0.0-PLACEHOLDER", type: MyApp, selector: "my-app", ngImport: i0, template: '<todo [data]="list"></todo>', isInline: true, components: [{ type: i0.forwardRef(function () { return TodoComponent; }), selector: "todo", inputs: ["data"] }] });
 (function () { (typeof ngDevMode === "undefined" || ngDevMode) && i0.ɵsetClassMetadata(MyApp, [{
         type: Component,
         args: [{ selector: 'my-app', template: '<todo [data]="list"></todo>' }]
@@ -32,9 +32,9 @@ TodoComponent.ɵcmp = i0.ɵɵngDeclareComponent({ version: "0.0.0-PLACEHOLDER", 
         }] }); })();
 export class TodoModule {
 }
-TodoModule.ɵmod = i0.ɵɵdefineNgModule({ type: TodoModule });
-TodoModule.ɵinj = i0.ɵɵdefineInjector({ factory: function TodoModule_Factory(t) { return new (t || TodoModule)(); } });
-(function () { (typeof ngJitMode === "undefined" || ngJitMode) && i0.ɵɵsetNgModuleScope(TodoModule, { declarations: [TodoComponent, MyApp] }); })();
+TodoModule.ɵfac = function TodoModule_Factory(t) { return new (t || TodoModule)(); };
+TodoModule.ɵmod = i0.ɵɵngDeclareNgModule({ version: "0.0.0-PLACEHOLDER", ngImport: i0, type: TodoModule, declarations: [TodoComponent, MyApp] });
+TodoModule.ɵinj = i0.ɵɵngDeclareInjector({ version: "0.0.0-PLACEHOLDER", ngImport: i0, type: TodoModule });
 (function () { (typeof ngDevMode === "undefined" || ngDevMode) && i0.ɵsetClassMetadata(TodoModule, [{
         type: NgModule,
         args: [{
@@ -58,6 +58,7 @@ export declare class TodoComponent {
     static ɵcmp: i0.ɵɵComponentDefWithMeta<TodoComponent, "todo", never, { "data": "data"; }, {}, never, never>;
 }
 export declare class TodoModule {
+    static ɵfac: i0.ɵɵFactoryDef<TodoModule, never>;
     static ɵmod: i0.ɵɵNgModuleDefWithMeta<TodoModule, [typeof TodoComponent, typeof MyApp], never, never>;
     static ɵinj: i0.ɵɵInjectorDef<TodoModule>;
 }

@@ -39,6 +39,7 @@
       "resources": {
         "files": [
           "/assets/images/favicons/**",
+          "/generated/js/custom-elements-es5-polyfills.js",
           "/*-es5*.js",
           "!/**/_unused/**"
         ]
