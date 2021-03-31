@@ -14,6 +14,7 @@ import {TestFile} from '../../file_system/testing';
 import {AbsoluteModuleStrategy, LocalIdentifierStrategy, LogicalProjectStrategy, ModuleResolver, Reexport, Reference, ReferenceEmitter, RelativePathStrategy} from '../../imports';
 import {NOOP_INCREMENTAL_BUILD} from '../../incremental';
 import {ClassPropertyMapping, CompoundMetadataReader} from '../../metadata';
+import {NOOP_PERF_RECORDER} from '../../perf';
 import {ClassDeclaration, isNamedClassDeclaration, TypeScriptReflectionHost} from '../../reflection';
 import {ComponentScopeReader, LocalModuleScope, ScopeData, TypeCheckScopeRegistry} from '../../scope';
 import {makeProgram} from '../../testing';
@@ -188,7 +189,8 @@ export const ALL_ENABLED_CONFIG: Readonly<TypeCheckingConfig> = {
   useContextGenericType: true,
   strictLiteralTypes: true,
   enableTemplateTypeChecker: false,
-  useInlineTypeConstructors: true
+  useInlineTypeConstructors: true,
+  suggestionsForSuboptimalTypeInference: false,
 };
 
 // Remove 'ref' from TypeCheckableDirectiveMeta and add a 'selector' instead.
@@ -272,6 +274,7 @@ export function tcb(
     strictLiteralTypes: true,
     enableTemplateTypeChecker: false,
     useInlineTypeConstructors: true,
+    suggestionsForSuboptimalTypeInference: false,
     ...config
   };
   options = options || {
@@ -513,7 +516,7 @@ export function setup(targets: TypeCheckingTarget[], overrides: {
 
   const templateTypeChecker = new TemplateTypeCheckerImpl(
       program, programStrategy, checkAdapter, fullConfig, emitter, reflectionHost, host,
-      NOOP_INCREMENTAL_BUILD, fakeScopeReader, typeCheckScopeRegistry);
+      NOOP_INCREMENTAL_BUILD, fakeScopeReader, typeCheckScopeRegistry, NOOP_PERF_RECORDER);
   return {
     templateTypeChecker,
     program,
@@ -690,4 +693,5 @@ export class NoopOobRecorder implements OutOfBandDiagnosticRecorder {
   duplicateTemplateVar(): void {}
   requiresInlineTcb(): void {}
   requiresInlineTypeConstructors(): void {}
+  suboptimalTypeInference(): void {}
 }

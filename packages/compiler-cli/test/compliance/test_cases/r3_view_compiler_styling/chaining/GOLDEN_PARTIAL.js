@@ -10,7 +10,7 @@ export class MyComponent {
         this.yesToTomato = false;
     }
 }
-MyComponent.ɵfac = function MyComponent_Factory(t) { return new (t || MyComponent)(); };
+MyComponent.ɵfac = i0.ɵɵngDeclareFactory({ version: "0.0.0-PLACEHOLDER", ngImport: i0, type: MyComponent, deps: [], target: i0.ɵɵFactoryTarget.Component });
 MyComponent.ɵcmp = i0.ɵɵngDeclareComponent({ version: "0.0.0-PLACEHOLDER", type: MyComponent, selector: "ng-component", ngImport: i0, template: `<div
    [class.apple]="yesToApple"
    [class.orange]="yesToOrange"
@@ -33,8 +33,8 @@ export declare class MyComponent {
     yesToApple: boolean;
     yesToOrange: boolean;
     yesToTomato: boolean;
-    static ɵfac: i0.ɵɵFactoryDef<MyComponent, never>;
-    static ɵcmp: i0.ɵɵComponentDefWithMeta<MyComponent, "ng-component", never, {}, {}, never, never>;
+    static ɵfac: i0.ɵɵFactoryDeclaration<MyComponent, never>;
+    static ɵcmp: i0.ɵɵComponentDeclaration<MyComponent, "ng-component", never, {}, {}, never, never>;
 }
 
 /****************************************************************************************************
@@ -49,7 +49,7 @@ export class MyComponent {
         this.transition = 'all 1337ms ease';
     }
 }
-MyComponent.ɵfac = function MyComponent_Factory(t) { return new (t || MyComponent)(); };
+MyComponent.ɵfac = i0.ɵɵngDeclareFactory({ version: "0.0.0-PLACEHOLDER", ngImport: i0, type: MyComponent, deps: [], target: i0.ɵɵFactoryTarget.Component });
 MyComponent.ɵcmp = i0.ɵɵngDeclareComponent({ version: "0.0.0-PLACEHOLDER", type: MyComponent, selector: "ng-component", ngImport: i0, template: `<div
     [style.color]="color"
     [style.border]="border"
@@ -72,8 +72,8 @@ export declare class MyComponent {
     color: string;
     border: string;
     transition: string;
-    static ɵfac: i0.ɵɵFactoryDef<MyComponent, never>;
-    static ɵcmp: i0.ɵɵComponentDefWithMeta<MyComponent, "ng-component", never, {}, {}, never, never>;
+    static ɵfac: i0.ɵɵFactoryDeclaration<MyComponent, never>;
+    static ɵcmp: i0.ɵɵComponentDeclaration<MyComponent, "ng-component", never, {}, {}, never, never>;
 }
 
 /****************************************************************************************************
@@ -91,7 +91,7 @@ export class MyComponent {
         this.yesToTomato = false;
     }
 }
-MyComponent.ɵfac = function MyComponent_Factory(t) { return new (t || MyComponent)(); };
+MyComponent.ɵfac = i0.ɵɵngDeclareFactory({ version: "0.0.0-PLACEHOLDER", ngImport: i0, type: MyComponent, deps: [], target: i0.ɵɵFactoryTarget.Component });
 MyComponent.ɵcmp = i0.ɵɵngDeclareComponent({ version: "0.0.0-PLACEHOLDER", type: MyComponent, selector: "ng-component", ngImport: i0, template: `<div
     [class.apple]="yesToApple"
     [style.color]="color"
@@ -123,8 +123,8 @@ export declare class MyComponent {
     yesToApple: boolean;
     yesToOrange: boolean;
     yesToTomato: boolean;
-    static ɵfac: i0.ɵɵFactoryDef<MyComponent, never>;
-    static ɵcmp: i0.ɵɵComponentDefWithMeta<MyComponent, "ng-component", never, {}, {}, never, never>;
+    static ɵfac: i0.ɵɵFactoryDeclaration<MyComponent, never>;
+    static ɵcmp: i0.ɵɵComponentDeclaration<MyComponent, "ng-component", never, {}, {}, never, never>;
 }
 
 /****************************************************************************************************
@@ -137,7 +137,7 @@ export class MyComponent {
         this.one = '';
     }
 }
-MyComponent.ɵfac = function MyComponent_Factory(t) { return new (t || MyComponent)(); };
+MyComponent.ɵfac = i0.ɵɵngDeclareFactory({ version: "0.0.0-PLACEHOLDER", ngImport: i0, type: MyComponent, deps: [], target: i0.ɵɵFactoryTarget.Component });
 MyComponent.ɵcmp = i0.ɵɵngDeclareComponent({ version: "0.0.0-PLACEHOLDER", type: MyComponent, selector: "ng-component", ngImport: i0, template: `<div
    style.color="a{{one}}b"
    style.border="a{{one}}b"
@@ -158,8 +158,8 @@ MyComponent.ɵcmp = i0.ɵɵngDeclareComponent({ version: "0.0.0-PLACEHOLDER", ty
 import * as i0 from "@angular/core";
 export declare class MyComponent {
     one: string;
-    static ɵfac: i0.ɵɵFactoryDef<MyComponent, never>;
-    static ɵcmp: i0.ɵɵComponentDefWithMeta<MyComponent, "ng-component", never, {}, {}, never, never>;
+    static ɵfac: i0.ɵɵFactoryDeclaration<MyComponent, never>;
+    static ɵcmp: i0.ɵɵComponentDeclaration<MyComponent, "ng-component", never, {}, {}, never, never>;
 }
 
 /****************************************************************************************************
@@ -174,7 +174,7 @@ export class MyComponent {
         this.three = '';
     }
 }
-MyComponent.ɵfac = function MyComponent_Factory(t) { return new (t || MyComponent)(); };
+MyComponent.ɵfac = i0.ɵɵngDeclareFactory({ version: "0.0.0-PLACEHOLDER", ngImport: i0, type: MyComponent, deps: [], target: i0.ɵɵFactoryTarget.Component });
 MyComponent.ɵcmp = i0.ɵɵngDeclareComponent({ version: "0.0.0-PLACEHOLDER", type: MyComponent, selector: "ng-component", ngImport: i0, template: `<div
     style.color="a{{one}}b"
     style.border="a{{one}}b"
@@ -203,8 +203,8 @@ export declare class MyComponent {
     one: string;
     two: string;
     three: string;
-    static ɵfac: i0.ɵɵFactoryDef<MyComponent, never>;
-    static ɵcmp: i0.ɵɵComponentDefWithMeta<MyComponent, "ng-component", never, {}, {}, never, never>;
+    static ɵfac: i0.ɵɵFactoryDeclaration<MyComponent, never>;
+    static ɵcmp: i0.ɵɵComponentDeclaration<MyComponent, "ng-component", never, {}, {}, never, never>;
 }
 
 /****************************************************************************************************
@@ -221,7 +221,7 @@ export class MyComponent {
         this.yesToOrange = true;
     }
 }
-MyComponent.ɵfac = function MyComponent_Factory(t) { return new (t || MyComponent)(); };
+MyComponent.ɵfac = i0.ɵɵngDeclareFactory({ version: "0.0.0-PLACEHOLDER", ngImport: i0, type: MyComponent, deps: [], target: i0.ɵɵFactoryTarget.Component });
 MyComponent.ɵcmp = i0.ɵɵngDeclareComponent({ version: "0.0.0-PLACEHOLDER", type: MyComponent, selector: "ng-component", ngImport: i0, template: `<div
                     style.color="a{{one}}b"
                     style.border="a{{one}}b"
@@ -256,8 +256,8 @@ export declare class MyComponent {
     width: string;
     yesToApple: boolean;
     yesToOrange: boolean;
-    static ɵfac: i0.ɵɵFactoryDef<MyComponent, never>;
-    static ɵcmp: i0.ɵɵComponentDefWithMeta<MyComponent, "ng-component", never, {}, {}, never, never>;
+    static ɵfac: i0.ɵɵFactoryDeclaration<MyComponent, never>;
+    static ɵcmp: i0.ɵɵComponentDeclaration<MyComponent, "ng-component", never, {}, {}, never, never>;
 }
 
 /****************************************************************************************************
@@ -274,7 +274,7 @@ export class MyComponent {
         this.width = '42px';
     }
 }
-MyComponent.ɵfac = function MyComponent_Factory(t) { return new (t || MyComponent)(); };
+MyComponent.ɵfac = i0.ɵɵngDeclareFactory({ version: "0.0.0-PLACEHOLDER", ngImport: i0, type: MyComponent, deps: [], target: i0.ɵɵFactoryTarget.Component });
 MyComponent.ɵcmp = i0.ɵɵngDeclareComponent({ version: "0.0.0-PLACEHOLDER", type: MyComponent, selector: "ng-component", ngImport: i0, template: `<div
     style.color="a{{one}}b"
     style.border="a{{one}}b"
@@ -305,8 +305,8 @@ export declare class MyComponent {
     three: string;
     transition: string;
     width: string;
-    static ɵfac: i0.ɵɵFactoryDef<MyComponent, never>;
-    static ɵcmp: i0.ɵɵComponentDefWithMeta<MyComponent, "ng-component", never, {}, {}, never, never>;
+    static ɵfac: i0.ɵɵFactoryDeclaration<MyComponent, never>;
+    static ɵcmp: i0.ɵɵComponentDeclaration<MyComponent, "ng-component", never, {}, {}, never, never>;
 }
 
 /****************************************************************************************************
@@ -324,7 +324,7 @@ export class MyComponent {
         this.yesToOrange = true;
     }
 }
-MyComponent.ɵfac = function MyComponent_Factory(t) { return new (t || MyComponent)(); };
+MyComponent.ɵfac = i0.ɵɵngDeclareFactory({ version: "0.0.0-PLACEHOLDER", ngImport: i0, type: MyComponent, deps: [], target: i0.ɵɵFactoryTarget.Component });
 MyComponent.ɵcmp = i0.ɵɵngDeclareComponent({ version: "0.0.0-PLACEHOLDER", type: MyComponent, selector: "ng-component", host: { properties: { "class.apple": "yesToApple", "style.color": "color", "class.tomato": "yesToTomato", "style.transition": "transition", "style.border": "this.border", "class.orange": "this.yesToOrange" } }, ngImport: i0, template: '', isInline: true });
 (function () { (typeof ngDevMode === "undefined" || ngDevMode) && i0.ɵsetClassMetadata(MyComponent, [{
         type: Component,
@@ -356,7 +356,7 @@ export declare class MyComponent {
     yesToTomato: boolean;
     border: string;
     yesToOrange: boolean;
-    static ɵfac: i0.ɵɵFactoryDef<MyComponent, never>;
-    static ɵcmp: i0.ɵɵComponentDefWithMeta<MyComponent, "ng-component", never, {}, {}, never, never>;
+    static ɵfac: i0.ɵɵFactoryDeclaration<MyComponent, never>;
+    static ɵcmp: i0.ɵɵComponentDeclaration<MyComponent, "ng-component", never, {}, {}, never, never>;
 }
 

@@ -6,7 +6,7 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
-import {compileDeclareDirectiveFromMetadata, compileDirectiveFromMetadata, ConstantPool, Expression, ExternalExpr, getSafePropertyAccessString, Identifiers, makeBindingParser, ParsedHostBindings, ParseError, parseHostBindings, R3CompiledExpression, R3DependencyMetadata, R3DirectiveMetadata, R3FactoryTarget, R3QueryMetadata, R3ResolvedDependencyType, Statement, verifyHostBindings, WrappedNodeExpr} from '@angular/compiler';
+import {compileDeclareDirectiveFromMetadata, compileDirectiveFromMetadata, ConstantPool, Expression, ExternalExpr, FactoryTarget, getSafePropertyAccessString, makeBindingParser, ParsedHostBindings, ParseError, parseHostBindings, R3DirectiveMetadata, R3FactoryMetadata, R3QueryMetadata, Statement, verifyHostBindings, WrappedNodeExpr} from '@angular/compiler';
 import {emitDistinctChangesOnlyDefaultValue} from '@angular/compiler/src/core';
 import * as ts from 'typescript';
 
@@ -16,14 +16,15 @@ import {areTypeParametersEqual, extractSemanticTypeParameters, isArrayEqual, isS
 import {BindingPropertyName, ClassPropertyMapping, ClassPropertyName, DirectiveTypeCheckMeta, InjectableClassRegistry, MetadataReader, MetadataRegistry, TemplateGuardMeta} from '../../metadata';
 import {extractDirectiveTypeCheckMeta} from '../../metadata/src/util';
 import {DynamicValue, EnumValue, PartialEvaluator} from '../../partial_evaluator';
+import {PerfEvent, PerfRecorder} from '../../perf';
 import {ClassDeclaration, ClassMember, ClassMemberKind, Decorator, filterToMembersWithDecorator, ReflectionHost, reflectObjectLiteral} from '../../reflection';
 import {LocalModuleScopeRegistry} from '../../scope';
 import {AnalysisOutput, CompileResult, DecoratorHandler, DetectResult, HandlerFlags, HandlerPrecedence, ResolveResult} from '../../transform';
 
 import {createValueHasWrongTypeError, getDirectiveDiagnostics, getProviderDiagnostics, getUndecoratedClassWithAngularFeaturesDiagnostic} from './diagnostics';
-import {compileNgFactoryDefField} from './factory';
+import {compileDeclareFactory, compileNgFactoryDefField} from './factory';
 import {generateSetClassMetadataCall} from './metadata';
-import {createSourceSpan, findAngularDecorator, getConstructorDependencies, isAngularDecorator, readBaseClass, resolveProvidersRequiringFactory, unwrapConstructorDependencies, unwrapExpression, unwrapForwardRef, validateConstructorDependencies, wrapFunctionExpressionsInParens, wrapTypeReference} from './util';
+import {compileResults, createSourceSpan, findAngularDecorator, getConstructorDependencies, isAngularDecorator, readBaseClass, resolveProvidersRequiringFactory, toFactoryMetadata, unwrapConstructorDependencies, unwrapExpression, unwrapForwardRef, validateConstructorDependencies, wrapFunctionExpressionsInParens, wrapTypeReference} from './util';
 
 const EMPTY_OBJECT: {[key: string]: string} = {};
 const FIELD_DECORATORS = [
@@ -180,7 +181,7 @@ export class DirectiveDecoratorHandler implements
       private injectableRegistry: InjectableClassRegistry, private isCore: boolean,
       private semanticDepGraphUpdater: SemanticDepGraphUpdater|null,
       private annotateForClosureCompiler: boolean,
-      private compileUndecoratedClassesWithAngularFeatures: boolean) {}
+      private compileUndecoratedClassesWithAngularFeatures: boolean, private perf: PerfRecorder) {}
 
   readonly precedence = HandlerPrecedence.PRIMARY;
   readonly name = DirectiveDecoratorHandler.name;
@@ -210,6 +211,8 @@ export class DirectiveDecoratorHandler implements
     if (this.compileUndecoratedClassesWithAngularFeatures === false && decorator === null) {
       return {diagnostics: [getUndecoratedClassWithAngularFeaturesDiagnostic(node)]};
     }
+
+    this.perf.eventCount(PerfEvent.AnalyzeDirective);
 
     const directiveResult = extractDirectiveMetadata(
         node, decorator, this.reflector, this.evaluator, this.defaultImportRecorder, this.isCore,
@@ -299,36 +302,17 @@ export class DirectiveDecoratorHandler implements
   compileFull(
       node: ClassDeclaration, analysis: Readonly<DirectiveHandlerData>,
       resolution: Readonly<unknown>, pool: ConstantPool): CompileResult[] {
+    const fac = compileNgFactoryDefField(toFactoryMetadata(analysis.meta, FactoryTarget.Directive));
     const def = compileDirectiveFromMetadata(analysis.meta, pool, makeBindingParser());
-    return this.compileDirective(analysis, def);
+    return compileResults(fac, def, analysis.metadataStmt, 'ɵdir');
   }
 
   compilePartial(
       node: ClassDeclaration, analysis: Readonly<DirectiveHandlerData>,
       resolution: Readonly<unknown>): CompileResult[] {
+    const fac = compileDeclareFactory(toFactoryMetadata(analysis.meta, FactoryTarget.Directive));
     const def = compileDeclareDirectiveFromMetadata(analysis.meta);
-    return this.compileDirective(analysis, def);
-  }
-
-  private compileDirective(
-      analysis: Readonly<DirectiveHandlerData>,
-      {expression: initializer, statements, type}: R3CompiledExpression): CompileResult[] {
-    const factoryRes = compileNgFactoryDefField({
-      ...analysis.meta,
-      injectFn: Identifiers.directiveInject,
-      target: R3FactoryTarget.Directive,
-    });
-    if (analysis.metadataStmt !== null) {
-      factoryRes.statements.push(analysis.metadataStmt);
-    }
-    return [
-      factoryRes, {
-        name: 'ɵdir',
-        initializer,
-        statements,
-        type,
-      }
-    ];
+    return compileResults(fac, def, analysis.metadataStmt, 'ɵdir');
   }
 
   /**
@@ -484,27 +468,19 @@ export function extractDirectiveMetadata(
   }
 
   const rawCtorDeps = getConstructorDependencies(clazz, reflector, defaultImportRecorder, isCore);
-  let ctorDeps: R3DependencyMetadata[]|'invalid'|null;
 
   // Non-abstract directives (those with a selector) require valid constructor dependencies, whereas
   // abstract directives are allowed to have invalid dependencies, given that a subclass may call
   // the constructor explicitly.
-  if (selector !== null) {
-    ctorDeps = validateConstructorDependencies(clazz, rawCtorDeps);
-  } else {
-    ctorDeps = unwrapConstructorDependencies(rawCtorDeps);
-  }
+  const ctorDeps = selector !== null ? validateConstructorDependencies(clazz, rawCtorDeps) :
+                                       unwrapConstructorDependencies(rawCtorDeps);
 
-  const isStructural = ctorDeps !== null && ctorDeps !== 'invalid' && ctorDeps.some(dep => {
-    if (dep.resolved !== R3ResolvedDependencyType.Token || !(dep.token instanceof ExternalExpr)) {
-      return false;
-    }
-    if (dep.token.value.moduleName !== '@angular/core' || dep.token.value.name !== 'TemplateRef') {
-      return false;
-    }
-
-    return true;
-  });
+  // Structural directives must have a `TemplateRef` dependency.
+  const isStructural = ctorDeps !== null && ctorDeps !== 'invalid' &&
+      ctorDeps.some(
+          dep => (dep.token instanceof ExternalExpr) &&
+              dep.token.value.moduleName === '@angular/core' &&
+              dep.token.value.name === 'TemplateRef');
 
   // Detect if the component inherits from another class
   const usesInheritance = reflector.hasBaseClass(clazz);

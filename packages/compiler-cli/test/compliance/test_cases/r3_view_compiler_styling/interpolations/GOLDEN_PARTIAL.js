@@ -16,7 +16,7 @@ export class MyComponent {
         this.nine = '';
     }
 }
-MyComponent.ɵfac = function MyComponent_Factory(t) { return new (t || MyComponent)(); };
+MyComponent.ɵfac = i0.ɵɵngDeclareFactory({ version: "0.0.0-PLACEHOLDER", ngImport: i0, type: MyComponent, deps: [], target: i0.ɵɵFactoryTarget.Component });
 MyComponent.ɵcmp = i0.ɵɵngDeclareComponent({ version: "0.0.0-PLACEHOLDER", type: MyComponent, selector: "ng-component", ngImport: i0, template: `
     <div class="a{{one}}b{{two}}c{{three}}d{{four}}e{{five}}f{{six}}g{{seven}}h{{eight}}i{{nine}}j"></div>
     <div class="a{{one}}b{{two}}c{{three}}d{{four}}e{{five}}f{{six}}g{{seven}}h{{eight}}i"></div>
@@ -61,8 +61,8 @@ export declare class MyComponent {
     seven: string;
     eight: string;
     nine: string;
-    static ɵfac: i0.ɵɵFactoryDef<MyComponent, never>;
-    static ɵcmp: i0.ɵɵComponentDefWithMeta<MyComponent, "ng-component", never, {}, {}, never, never>;
+    static ɵfac: i0.ɵɵFactoryDeclaration<MyComponent, never>;
+    static ɵcmp: i0.ɵɵComponentDeclaration<MyComponent, "ng-component", never, {}, {}, never, never>;
 }
 
 /****************************************************************************************************
@@ -83,7 +83,7 @@ export class MyComponent {
         this.nine = '';
     }
 }
-MyComponent.ɵfac = function MyComponent_Factory(t) { return new (t || MyComponent)(); };
+MyComponent.ɵfac = i0.ɵɵngDeclareFactory({ version: "0.0.0-PLACEHOLDER", ngImport: i0, type: MyComponent, deps: [], target: i0.ɵɵFactoryTarget.Component });
 MyComponent.ɵcmp = i0.ɵɵngDeclareComponent({ version: "0.0.0-PLACEHOLDER", type: MyComponent, selector: "ng-component", ngImport: i0, template: `
     <div style.color="a{{one}}b{{two}}c{{three}}d{{four}}e{{five}}f{{six}}g{{seven}}h{{eight}}i{{nine}}j"></div>
     <div style.color="a{{one}}b{{two}}c{{three}}d{{four}}e{{five}}f{{six}}g{{seven}}h{{eight}}i"></div>
@@ -128,8 +128,8 @@ export declare class MyComponent {
     seven: string;
     eight: string;
     nine: string;
-    static ɵfac: i0.ɵɵFactoryDef<MyComponent, never>;
-    static ɵcmp: i0.ɵɵComponentDefWithMeta<MyComponent, "ng-component", never, {}, {}, never, never>;
+    static ɵfac: i0.ɵɵFactoryDeclaration<MyComponent, never>;
+    static ɵcmp: i0.ɵɵComponentDeclaration<MyComponent, "ng-component", never, {}, {}, never, never>;
 }
 
 /****************************************************************************************************
@@ -143,7 +143,7 @@ export class MyComponent {
         this.two = '';
     }
 }
-MyComponent.ɵfac = function MyComponent_Factory(t) { return new (t || MyComponent)(); };
+MyComponent.ɵfac = i0.ɵɵngDeclareFactory({ version: "0.0.0-PLACEHOLDER", ngImport: i0, type: MyComponent, deps: [], target: i0.ɵɵFactoryTarget.Component });
 MyComponent.ɵcmp = i0.ɵɵngDeclareComponent({ version: "0.0.0-PLACEHOLDER", type: MyComponent, selector: "ng-component", ngImport: i0, template: `
     <div style.width.px="a{{one}}b{{two}}c"></div>
   `, isInline: true });
@@ -163,8 +163,8 @@ import * as i0 from "@angular/core";
 export declare class MyComponent {
     one: string;
     two: string;
-    static ɵfac: i0.ɵɵFactoryDef<MyComponent, never>;
-    static ɵcmp: i0.ɵɵComponentDefWithMeta<MyComponent, "ng-component", never, {}, {}, never, never>;
+    static ɵfac: i0.ɵɵFactoryDeclaration<MyComponent, never>;
+    static ɵcmp: i0.ɵɵComponentDeclaration<MyComponent, "ng-component", never, {}, {}, never, never>;
 }
 
 /****************************************************************************************************
@@ -182,7 +182,7 @@ export class MyComponent {
         this.myRepeat = 'no-repeat';
     }
 }
-MyComponent.ɵfac = function MyComponent_Factory(t) { return new (t || MyComponent)(); };
+MyComponent.ɵfac = i0.ɵɵngDeclareFactory({ version: "0.0.0-PLACEHOLDER", ngImport: i0, type: MyComponent, deps: [], target: i0.ɵɵFactoryTarget.Component });
 MyComponent.ɵcmp = i0.ɵɵngDeclareComponent({ version: "0.0.0-PLACEHOLDER", type: MyComponent, selector: "ng-component", ngImport: i0, template: `
     <div style.background="url({{ myUrl1 }})"
          style.borderImage="url({{ myUrl2 }}) {{ myRepeat }} auto"
@@ -210,8 +210,8 @@ export declare class MyComponent {
     myBoxY: string;
     myBoxWidth: string;
     myRepeat: string;
-    static ɵfac: i0.ɵɵFactoryDef<MyComponent, never>;
-    static ɵcmp: i0.ɵɵComponentDefWithMeta<MyComponent, "ng-component", never, {}, {}, never, never>;
+    static ɵfac: i0.ɵɵFactoryDeclaration<MyComponent, never>;
+    static ɵcmp: i0.ɵɵComponentDeclaration<MyComponent, "ng-component", never, {}, {}, never, never>;
 }
 
 /****************************************************************************************************
@@ -225,7 +225,7 @@ export class MyComponent {
         this.two = '';
     }
 }
-MyComponent.ɵfac = function MyComponent_Factory(t) { return new (t || MyComponent)(); };
+MyComponent.ɵfac = i0.ɵɵngDeclareFactory({ version: "0.0.0-PLACEHOLDER", ngImport: i0, type: MyComponent, deps: [], target: i0.ɵɵFactoryTarget.Component });
 MyComponent.ɵcmp = i0.ɵɵngDeclareComponent({ version: "0.0.0-PLACEHOLDER", type: MyComponent, selector: "ng-component", ngImport: i0, template: `
     <div style.width!important="a{{one}}b{{two}}c"></div>
   `, isInline: true });
@@ -245,7 +245,7 @@ import * as i0 from "@angular/core";
 export declare class MyComponent {
     one: string;
     two: string;
-    static ɵfac: i0.ɵɵFactoryDef<MyComponent, never>;
-    static ɵcmp: i0.ɵɵComponentDefWithMeta<MyComponent, "ng-component", never, {}, {}, never, never>;
+    static ɵfac: i0.ɵɵFactoryDeclaration<MyComponent, never>;
+    static ɵcmp: i0.ɵɵComponentDeclaration<MyComponent, "ng-component", never, {}, {}, never, never>;
 }
 

@@ -219,9 +219,6 @@ export class Identifiers {
 
   static injectAttribute: o.ExternalReference = {name: 'ɵɵinjectAttribute', moduleName: CORE};
 
-  static injectPipeChangeDetectorRef:
-      o.ExternalReference = {name: 'ɵɵinjectPipeChangeDetectorRef', moduleName: CORE};
-
   static directiveInject: o.ExternalReference = {name: 'ɵɵdirectiveInject', moduleName: CORE};
   static invalidFactory: o.ExternalReference = {name: 'ɵɵinvalidFactory', moduleName: CORE};
   static invalidFactoryDep: o.ExternalReference = {name: 'ɵɵinvalidFactoryDep', moduleName: CORE};
@@ -250,34 +247,35 @@ export class Identifiers {
     moduleName: CORE,
   };
 
-  static ComponentDefWithMeta: o.ExternalReference = {
-    name: 'ɵɵComponentDefWithMeta',
+  static ComponentDeclaration: o.ExternalReference = {
+    name: 'ɵɵComponentDeclaration',
     moduleName: CORE,
   };
 
-  static FactoryDef: o.ExternalReference = {
-    name: 'ɵɵFactoryDef',
+  static FactoryDeclaration: o.ExternalReference = {
+    name: 'ɵɵFactoryDeclaration',
     moduleName: CORE,
   };
+  static declareFactory: o.ExternalReference = {name: 'ɵɵngDeclareFactory', moduleName: CORE};
+  static FactoryTarget: o.ExternalReference = {name: 'ɵɵFactoryTarget', moduleName: CORE};
 
   static defineDirective: o.ExternalReference = {name: 'ɵɵdefineDirective', moduleName: CORE};
   static declareDirective: o.ExternalReference = {name: 'ɵɵngDeclareDirective', moduleName: CORE};
 
-  static DirectiveDefWithMeta: o.ExternalReference = {
-    name: 'ɵɵDirectiveDefWithMeta',
+  static DirectiveDeclaration: o.ExternalReference = {
+    name: 'ɵɵDirectiveDeclaration',
     moduleName: CORE,
   };
 
-  static InjectorDef: o.ExternalReference = {
-    name: 'ɵɵInjectorDef',
-    moduleName: CORE,
-  };
+  static InjectorDef: o.ExternalReference = {name: 'ɵɵInjectorDef', moduleName: CORE};
+  static InjectorDeclaration:
+      o.ExternalReference = {name: 'ɵɵInjectorDeclaration', moduleName: CORE};
 
   static defineInjector: o.ExternalReference = {name: 'ɵɵdefineInjector', moduleName: CORE};
   static declareInjector: o.ExternalReference = {name: 'ɵɵngDeclareInjector', moduleName: CORE};
 
-  static NgModuleDefWithMeta: o.ExternalReference = {
-    name: 'ɵɵNgModuleDefWithMeta',
+  static NgModuleDeclaration: o.ExternalReference = {
+    name: 'ɵɵNgModuleDeclaration',
     moduleName: CORE,
   };
 
@@ -290,7 +288,7 @@ export class Identifiers {
   static declareNgModule: o.ExternalReference = {name: 'ɵɵngDeclareNgModule', moduleName: CORE};
   static setNgModuleScope: o.ExternalReference = {name: 'ɵɵsetNgModuleScope', moduleName: CORE};
 
-  static PipeDefWithMeta: o.ExternalReference = {name: 'ɵɵPipeDefWithMeta', moduleName: CORE};
+  static PipeDeclaration: o.ExternalReference = {name: 'ɵɵPipeDeclaration', moduleName: CORE};
 
   static definePipe: o.ExternalReference = {name: 'ɵɵdefinePipe', moduleName: CORE};
   static declarePipe: o.ExternalReference = {name: 'ɵɵngDeclarePipe', moduleName: CORE};

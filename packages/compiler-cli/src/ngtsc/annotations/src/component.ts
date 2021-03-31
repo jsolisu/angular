@@ -6,7 +6,7 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
-import {compileComponentFromMetadata, compileDeclareComponentFromMetadata, ConstantPool, CssSelector, DeclarationListEmitMode, DEFAULT_INTERPOLATION_CONFIG, DomElementSchemaRegistry, Expression, ExternalExpr, Identifiers, InterpolationConfig, LexerRange, makeBindingParser, ParsedTemplate, ParseSourceFile, parseTemplate, R3CompiledExpression, R3ComponentMetadata, R3FactoryTarget, R3TargetBinder, R3UsedDirectiveMetadata, SelectorMatcher, Statement, TmplAstNode, WrappedNodeExpr} from '@angular/compiler';
+import {compileComponentFromMetadata, compileDeclareComponentFromMetadata, ConstantPool, CssSelector, DeclarationListEmitMode, DEFAULT_INTERPOLATION_CONFIG, DomElementSchemaRegistry, Expression, ExternalExpr, FactoryTarget, InterpolationConfig, LexerRange, makeBindingParser, ParsedTemplate, ParseSourceFile, parseTemplate, R3ComponentMetadata, R3FactoryMetadata, R3TargetBinder, R3UsedDirectiveMetadata, SelectorMatcher, Statement, TmplAstNode, WrappedNodeExpr} from '@angular/compiler';
 import * as ts from 'typescript';
 
 import {Cycle, CycleAnalyzer, CycleHandlingStrategy} from '../../cycles';
@@ -18,6 +18,7 @@ import {extractSemanticTypeParameters, isArrayEqual, isReferenceEqual, SemanticD
 import {IndexingContext} from '../../indexer';
 import {ClassPropertyMapping, ComponentResources, DirectiveMeta, DirectiveTypeCheckMeta, extractDirectiveTypeCheckMeta, InjectableClassRegistry, MetadataReader, MetadataRegistry, Resource, ResourceRegistry} from '../../metadata';
 import {EnumValue, PartialEvaluator, ResolvedValue} from '../../partial_evaluator';
+import {PerfEvent, PerfRecorder} from '../../perf';
 import {ClassDeclaration, DeclarationNode, Decorator, ReflectionHost, reflectObjectLiteral} from '../../reflection';
 import {ComponentScopeReader, LocalModuleScopeRegistry, TypeCheckScopeRegistry} from '../../scope';
 import {AnalysisOutput, CompileResult, DecoratorHandler, DetectResult, HandlerFlags, HandlerPrecedence, ResolveResult} from '../../transform';
@@ -28,10 +29,10 @@ import {SubsetOfKeys} from '../../util/src/typescript';
 import {ResourceLoader} from './api';
 import {createValueHasWrongTypeError, getDirectiveDiagnostics, getProviderDiagnostics} from './diagnostics';
 import {DirectiveSymbol, extractDirectiveMetadata, parseFieldArrayValue} from './directive';
-import {compileNgFactoryDefField} from './factory';
+import {compileDeclareFactory, compileNgFactoryDefField} from './factory';
 import {generateSetClassMetadataCall} from './metadata';
 import {NgModuleSymbol} from './ng_module';
-import {findAngularDecorator, isAngularCoreReference, isExpressionForwardReference, readBaseClass, resolveProvidersRequiringFactory, unwrapExpression, wrapFunctionExpressionsInParens} from './util';
+import {compileResults, findAngularDecorator, isAngularCoreReference, isExpressionForwardReference, readBaseClass, resolveProvidersRequiringFactory, toFactoryMetadata, unwrapExpression, wrapFunctionExpressionsInParens} from './util';
 
 const EMPTY_MAP = new Map<string, Expression>();
 const EMPTY_ARRAY: any[] = [];
@@ -208,7 +209,7 @@ export class ComponentDecoratorHandler implements
       private depTracker: DependencyTracker|null,
       private injectableRegistry: InjectableClassRegistry,
       private semanticDepGraphUpdater: SemanticDepGraphUpdater|null,
-      private annotateForClosureCompiler: boolean) {}
+      private annotateForClosureCompiler: boolean, private perf: PerfRecorder) {}
 
   private literalCache = new Map<Decorator, ts.ObjectLiteralExpression>();
   private elementSchemaRegistry = new DomElementSchemaRegistry();
@@ -309,6 +310,7 @@ export class ComponentDecoratorHandler implements
   analyze(
       node: ClassDeclaration, decorator: Readonly<Decorator>,
       flags: HandlerFlags = HandlerFlags.NONE): AnalysisOutput<ComponentAnalysisData> {
+    this.perf.eventCount(PerfEvent.AnalyzeComponent);
     const containingFile = node.getSourceFile().fileName;
     this.literalCache.delete(decorator);
 
@@ -831,8 +833,9 @@ export class ComponentDecoratorHandler implements
       return [];
     }
     const meta: R3ComponentMetadata = {...analysis.meta, ...resolution};
+    const fac = compileNgFactoryDefField(toFactoryMetadata(meta, FactoryTarget.Component));
     const def = compileComponentFromMetadata(meta, pool, makeBindingParser());
-    return this.compileComponent(analysis, def);
+    return compileResults(fac, def, analysis.metadataStmt, 'ɵcmp');
   }
 
   compilePartial(
@@ -842,29 +845,9 @@ export class ComponentDecoratorHandler implements
       return [];
     }
     const meta: R3ComponentMetadata = {...analysis.meta, ...resolution};
+    const fac = compileDeclareFactory(toFactoryMetadata(meta, FactoryTarget.Component));
     const def = compileDeclareComponentFromMetadata(meta, analysis.template);
-    return this.compileComponent(analysis, def);
-  }
-
-  private compileComponent(
-      analysis: Readonly<ComponentAnalysisData>,
-      {expression: initializer, statements, type}: R3CompiledExpression): CompileResult[] {
-    const factoryRes = compileNgFactoryDefField({
-      ...analysis.meta,
-      injectFn: Identifiers.directiveInject,
-      target: R3FactoryTarget.Component,
-    });
-    if (analysis.metadataStmt !== null) {
-      factoryRes.statements.push(analysis.metadataStmt);
-    }
-    return [
-      factoryRes, {
-        name: 'ɵcmp',
-        initializer,
-        statements,
-        type,
-      }
-    ];
+    return compileResults(fac, def, analysis.metadataStmt, 'ɵcmp');
   }
 
   private _resolveLiteral(decorator: Decorator): ts.ObjectLiteralExpression {

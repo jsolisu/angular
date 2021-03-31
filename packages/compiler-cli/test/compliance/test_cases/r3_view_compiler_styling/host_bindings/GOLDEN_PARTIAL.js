@@ -11,7 +11,7 @@ export class MyComponent {
         this.myFooClass = 'red';
     }
 }
-MyComponent.ɵfac = function MyComponent_Factory(t) { return new (t || MyComponent)(); };
+MyComponent.ɵfac = i0.ɵɵngDeclareFactory({ version: "0.0.0-PLACEHOLDER", ngImport: i0, type: MyComponent, deps: [], target: i0.ɵɵFactoryTarget.Component });
 MyComponent.ɵcmp = i0.ɵɵngDeclareComponent({ version: "0.0.0-PLACEHOLDER", type: MyComponent, selector: "my-component", host: { properties: { "style": "this.myStyle", "class": "this.myClass", "style.color": "this.myColorProp", "class.foo": "this.myFooClass" }, styleAttribute: "width:200px; height:500px", classAttribute: "foo baz" }, ngImport: i0, template: '', isInline: true });
 (function () { (typeof ngDevMode === "undefined" || ngDevMode) && i0.ɵsetClassMetadata(MyComponent, [{
         type: Component,
@@ -35,7 +35,7 @@ MyComponent.ɵcmp = i0.ɵɵngDeclareComponent({ version: "0.0.0-PLACEHOLDER", ty
         }] }); })();
 export class MyModule {
 }
-MyModule.ɵfac = function MyModule_Factory(t) { return new (t || MyModule)(); };
+MyModule.ɵfac = i0.ɵɵngDeclareFactory({ version: "0.0.0-PLACEHOLDER", ngImport: i0, type: MyModule, deps: [], target: i0.ɵɵFactoryTarget.NgModule });
 MyModule.ɵmod = i0.ɵɵngDeclareNgModule({ version: "0.0.0-PLACEHOLDER", ngImport: i0, type: MyModule, declarations: [MyComponent] });
 MyModule.ɵinj = i0.ɵɵngDeclareInjector({ version: "0.0.0-PLACEHOLDER", ngImport: i0, type: MyModule });
 (function () { (typeof ngDevMode === "undefined" || ngDevMode) && i0.ɵsetClassMetadata(MyModule, [{
@@ -56,13 +56,13 @@ export declare class MyComponent {
     };
     myColorProp: string;
     myFooClass: string;
-    static ɵfac: i0.ɵɵFactoryDef<MyComponent, never>;
-    static ɵcmp: i0.ɵɵComponentDefWithMeta<MyComponent, "my-component", never, {}, {}, never, never>;
+    static ɵfac: i0.ɵɵFactoryDeclaration<MyComponent, never>;
+    static ɵcmp: i0.ɵɵComponentDeclaration<MyComponent, "my-component", never, {}, {}, never, never>;
 }
 export declare class MyModule {
-    static ɵfac: i0.ɵɵFactoryDef<MyModule, never>;
-    static ɵmod: i0.ɵɵNgModuleDefWithMeta<MyModule, [typeof MyComponent], never, never>;
-    static ɵinj: i0.ɵɵInjectorDef<MyModule>;
+    static ɵfac: i0.ɵɵFactoryDeclaration<MyModule, never>;
+    static ɵmod: i0.ɵɵNgModuleDeclaration<MyModule, [typeof MyComponent], never, never>;
+    static ɵinj: i0.ɵɵInjectorDeclaration<MyModule>;
 }
 
 /****************************************************************************************************
@@ -80,7 +80,7 @@ export class MyComponent {
         this.myClasses = { a: true, b: true };
     }
 }
-MyComponent.ɵfac = function MyComponent_Factory(t) { return new (t || MyComponent)(); };
+MyComponent.ɵfac = i0.ɵɵngDeclareFactory({ version: "0.0.0-PLACEHOLDER", ngImport: i0, type: MyComponent, deps: [], target: i0.ɵɵFactoryTarget.Component });
 MyComponent.ɵcmp = i0.ɵɵngDeclareComponent({ version: "0.0.0-PLACEHOLDER", type: MyComponent, selector: "my-component", host: { properties: { "style.height.pt": "myHeightProp", "class.bar": "myBarClass", "style": "this.myStyle", "style.width": "this.myWidthProp", "class.foo": "this.myFooClass", "class": "this.myClasses" } }, ngImport: i0, template: '', isInline: true });
 (function () { (typeof ngDevMode === "undefined" || ngDevMode) && i0.ɵsetClassMetadata(MyComponent, [{
         type: Component,
@@ -104,7 +104,7 @@ MyComponent.ɵcmp = i0.ɵɵngDeclareComponent({ version: "0.0.0-PLACEHOLDER", ty
         }] }); })();
 export class MyModule {
 }
-MyModule.ɵfac = function MyModule_Factory(t) { return new (t || MyModule)(); };
+MyModule.ɵfac = i0.ɵɵngDeclareFactory({ version: "0.0.0-PLACEHOLDER", ngImport: i0, type: MyModule, deps: [], target: i0.ɵɵFactoryTarget.NgModule });
 MyModule.ɵmod = i0.ɵɵngDeclareNgModule({ version: "0.0.0-PLACEHOLDER", ngImport: i0, type: MyModule, declarations: [MyComponent] });
 MyModule.ɵinj = i0.ɵɵngDeclareInjector({ version: "0.0.0-PLACEHOLDER", ngImport: i0, type: MyModule });
 (function () { (typeof ngDevMode === "undefined" || ngDevMode) && i0.ɵsetClassMetadata(MyModule, [{
@@ -126,13 +126,13 @@ export declare class MyComponent {
         a: boolean;
         b: boolean;
     };
-    static ɵfac: i0.ɵɵFactoryDef<MyComponent, never>;
-    static ɵcmp: i0.ɵɵComponentDefWithMeta<MyComponent, "my-component", never, {}, {}, never, never>;
+    static ɵfac: i0.ɵɵFactoryDeclaration<MyComponent, never>;
+    static ɵcmp: i0.ɵɵComponentDeclaration<MyComponent, "my-component", never, {}, {}, never, never>;
 }
 export declare class MyModule {
-    static ɵfac: i0.ɵɵFactoryDef<MyModule, never>;
-    static ɵmod: i0.ɵɵNgModuleDefWithMeta<MyModule, [typeof MyComponent], never, never>;
-    static ɵinj: i0.ɵɵInjectorDef<MyModule>;
+    static ɵfac: i0.ɵɵFactoryDeclaration<MyModule, never>;
+    static ɵmod: i0.ɵɵNgModuleDeclaration<MyModule, [typeof MyComponent], never, never>;
+    static ɵinj: i0.ɵɵInjectorDeclaration<MyModule>;
 }
 
 /****************************************************************************************************
@@ -150,7 +150,7 @@ export class MyComponent {
         this.myHeightExp = '200px';
     }
 }
-MyComponent.ɵfac = function MyComponent_Factory(t) { return new (t || MyComponent)(); };
+MyComponent.ɵfac = i0.ɵɵngDeclareFactory({ version: "0.0.0-PLACEHOLDER", ngImport: i0, type: MyComponent, deps: [], target: i0.ɵɵFactoryTarget.Component });
 MyComponent.ɵcmp = i0.ɵɵngDeclareComponent({ version: "0.0.0-PLACEHOLDER", type: MyComponent, selector: "my-component", host: { properties: { "style!important": "myStyleExp", "class!important": "myClassExp", "class.foo!important": "this.myFooClassExp", "style.width!important": "this.myWidthExp" } }, ngImport: i0, template: `
     <div [style.height!important]="myHeightExp"
          [class.bar!important]="myBarClassExp"></div>
@@ -174,7 +174,7 @@ MyComponent.ɵcmp = i0.ɵɵngDeclareComponent({ version: "0.0.0-PLACEHOLDER", ty
         }] }); })();
 export class MyModule {
 }
-MyModule.ɵfac = function MyModule_Factory(t) { return new (t || MyModule)(); };
+MyModule.ɵfac = i0.ɵɵngDeclareFactory({ version: "0.0.0-PLACEHOLDER", ngImport: i0, type: MyModule, deps: [], target: i0.ɵɵFactoryTarget.NgModule });
 MyModule.ɵmod = i0.ɵɵngDeclareNgModule({ version: "0.0.0-PLACEHOLDER", ngImport: i0, type: MyModule, declarations: [MyComponent] });
 MyModule.ɵinj = i0.ɵɵngDeclareInjector({ version: "0.0.0-PLACEHOLDER", ngImport: i0, type: MyModule });
 (function () { (typeof ngDevMode === "undefined" || ngDevMode) && i0.ɵsetClassMetadata(MyModule, [{
@@ -193,13 +193,13 @@ export declare class MyComponent {
     myWidthExp: string;
     myBarClassExp: boolean;
     myHeightExp: string;
-    static ɵfac: i0.ɵɵFactoryDef<MyComponent, never>;
-    static ɵcmp: i0.ɵɵComponentDefWithMeta<MyComponent, "my-component", never, {}, {}, never, never>;
+    static ɵfac: i0.ɵɵFactoryDeclaration<MyComponent, never>;
+    static ɵcmp: i0.ɵɵComponentDeclaration<MyComponent, "my-component", never, {}, {}, never, never>;
 }
 export declare class MyModule {
-    static ɵfac: i0.ɵɵFactoryDef<MyModule, never>;
-    static ɵmod: i0.ɵɵNgModuleDefWithMeta<MyModule, [typeof MyComponent], never, never>;
-    static ɵinj: i0.ɵɵInjectorDef<MyModule>;
+    static ɵfac: i0.ɵɵFactoryDeclaration<MyModule, never>;
+    static ɵmod: i0.ɵɵNgModuleDeclaration<MyModule, [typeof MyComponent], never, never>;
+    static ɵinj: i0.ɵɵInjectorDeclaration<MyModule>;
 }
 
 /****************************************************************************************************
@@ -220,7 +220,7 @@ export class MyComponent {
         this.p9 = 100;
     }
 }
-MyComponent.ɵfac = function MyComponent_Factory(t) { return new (t || MyComponent)(); };
+MyComponent.ɵfac = i0.ɵɵngDeclareFactory({ version: "0.0.0-PLACEHOLDER", ngImport: i0, type: MyComponent, deps: [], target: i0.ɵɵFactoryTarget.Component });
 MyComponent.ɵcmp = i0.ɵɵngDeclareComponent({ version: "0.0.0-PLACEHOLDER", type: MyComponent, selector: "my-component", ngImport: i0, template: `
     <div class="A{{p1}}B"></div>
     <div class="A{{p1}}B{{p2}}C"></div>
@@ -251,7 +251,7 @@ MyComponent.ɵcmp = i0.ɵɵngDeclareComponent({ version: "0.0.0-PLACEHOLDER", ty
     }], null, null); })();
 export class MyModule {
 }
-MyModule.ɵfac = function MyModule_Factory(t) { return new (t || MyModule)(); };
+MyModule.ɵfac = i0.ɵɵngDeclareFactory({ version: "0.0.0-PLACEHOLDER", ngImport: i0, type: MyModule, deps: [], target: i0.ɵɵFactoryTarget.NgModule });
 MyModule.ɵmod = i0.ɵɵngDeclareNgModule({ version: "0.0.0-PLACEHOLDER", ngImport: i0, type: MyModule, declarations: [MyComponent] });
 MyModule.ɵinj = i0.ɵɵngDeclareInjector({ version: "0.0.0-PLACEHOLDER", ngImport: i0, type: MyModule });
 (function () { (typeof ngDevMode === "undefined" || ngDevMode) && i0.ɵsetClassMetadata(MyModule, [{
@@ -273,13 +273,13 @@ export declare class MyComponent {
     p7: number;
     p8: number;
     p9: number;
-    static ɵfac: i0.ɵɵFactoryDef<MyComponent, never>;
-    static ɵcmp: i0.ɵɵComponentDefWithMeta<MyComponent, "my-component", never, {}, {}, never, never>;
+    static ɵfac: i0.ɵɵFactoryDeclaration<MyComponent, never>;
+    static ɵcmp: i0.ɵɵComponentDeclaration<MyComponent, "my-component", never, {}, {}, never, never>;
 }
 export declare class MyModule {
-    static ɵfac: i0.ɵɵFactoryDef<MyModule, never>;
-    static ɵmod: i0.ɵɵNgModuleDefWithMeta<MyModule, [typeof MyComponent], never, never>;
-    static ɵinj: i0.ɵɵInjectorDef<MyModule>;
+    static ɵfac: i0.ɵɵFactoryDeclaration<MyModule, never>;
+    static ɵmod: i0.ɵɵNgModuleDeclaration<MyModule, [typeof MyComponent], never, never>;
+    static ɵinj: i0.ɵɵInjectorDeclaration<MyModule>;
 }
 
 /****************************************************************************************************
@@ -300,7 +300,7 @@ export class MyComponent {
         this.p9 = 100;
     }
 }
-MyComponent.ɵfac = function MyComponent_Factory(t) { return new (t || MyComponent)(); };
+MyComponent.ɵfac = i0.ɵɵngDeclareFactory({ version: "0.0.0-PLACEHOLDER", ngImport: i0, type: MyComponent, deps: [], target: i0.ɵɵFactoryTarget.Component });
 MyComponent.ɵcmp = i0.ɵɵngDeclareComponent({ version: "0.0.0-PLACEHOLDER", type: MyComponent, selector: "my-component", ngImport: i0, template: `
     <div style="p1:{{p1}};"></div>
     <div style="p1:{{p1}};p2:{{p2}};"></div>
@@ -331,7 +331,7 @@ MyComponent.ɵcmp = i0.ɵɵngDeclareComponent({ version: "0.0.0-PLACEHOLDER", ty
     }], null, null); })();
 export class MyModule {
 }
-MyModule.ɵfac = function MyModule_Factory(t) { return new (t || MyModule)(); };
+MyModule.ɵfac = i0.ɵɵngDeclareFactory({ version: "0.0.0-PLACEHOLDER", ngImport: i0, type: MyModule, deps: [], target: i0.ɵɵFactoryTarget.NgModule });
 MyModule.ɵmod = i0.ɵɵngDeclareNgModule({ version: "0.0.0-PLACEHOLDER", ngImport: i0, type: MyModule, declarations: [MyComponent] });
 MyModule.ɵinj = i0.ɵɵngDeclareInjector({ version: "0.0.0-PLACEHOLDER", ngImport: i0, type: MyModule });
 (function () { (typeof ngDevMode === "undefined" || ngDevMode) && i0.ɵsetClassMetadata(MyModule, [{
@@ -353,13 +353,13 @@ export declare class MyComponent {
     p7: number;
     p8: number;
     p9: number;
-    static ɵfac: i0.ɵɵFactoryDef<MyComponent, never>;
-    static ɵcmp: i0.ɵɵComponentDefWithMeta<MyComponent, "my-component", never, {}, {}, never, never>;
+    static ɵfac: i0.ɵɵFactoryDeclaration<MyComponent, never>;
+    static ɵcmp: i0.ɵɵComponentDeclaration<MyComponent, "my-component", never, {}, {}, never, never>;
 }
 export declare class MyModule {
-    static ɵfac: i0.ɵɵFactoryDef<MyModule, never>;
-    static ɵmod: i0.ɵɵNgModuleDefWithMeta<MyModule, [typeof MyComponent], never, never>;
-    static ɵinj: i0.ɵɵInjectorDef<MyModule>;
+    static ɵfac: i0.ɵɵFactoryDeclaration<MyModule, never>;
+    static ɵmod: i0.ɵɵNgModuleDeclaration<MyModule, [typeof MyComponent], never, never>;
+    static ɵinj: i0.ɵɵInjectorDeclaration<MyModule>;
 }
 
 /****************************************************************************************************
@@ -372,7 +372,7 @@ export class ClassDirective {
         this.myClassMap = { red: true };
     }
 }
-ClassDirective.ɵfac = function ClassDirective_Factory(t) { return new (t || ClassDirective)(); };
+ClassDirective.ɵfac = i0.ɵɵngDeclareFactory({ version: "0.0.0-PLACEHOLDER", ngImport: i0, type: ClassDirective, deps: [], target: i0.ɵɵFactoryTarget.Directive });
 ClassDirective.ɵdir = i0.ɵɵngDeclareDirective({ version: "0.0.0-PLACEHOLDER", type: ClassDirective, selector: "[myClassDir]", host: { properties: { "class": "this.myClassMap" } }, ngImport: i0 });
 (function () { (typeof ngDevMode === "undefined" || ngDevMode) && i0.ɵsetClassMetadata(ClassDirective, [{
         type: Directive,
@@ -387,7 +387,7 @@ export class WidthDirective {
         this.myFooClass = true;
     }
 }
-WidthDirective.ɵfac = function WidthDirective_Factory(t) { return new (t || WidthDirective)(); };
+WidthDirective.ɵfac = i0.ɵɵngDeclareFactory({ version: "0.0.0-PLACEHOLDER", ngImport: i0, type: WidthDirective, deps: [], target: i0.ɵɵFactoryTarget.Directive });
 WidthDirective.ɵdir = i0.ɵɵngDeclareDirective({ version: "0.0.0-PLACEHOLDER", type: WidthDirective, selector: "[myWidthDir]", host: { properties: { "style.width": "this.myWidth", "class.foo": "this.myFooClass" } }, ngImport: i0 });
 (function () { (typeof ngDevMode === "undefined" || ngDevMode) && i0.ɵsetClassMetadata(WidthDirective, [{
         type: Directive,
@@ -405,7 +405,7 @@ export class HeightDirective {
         this.myBarClass = true;
     }
 }
-HeightDirective.ɵfac = function HeightDirective_Factory(t) { return new (t || HeightDirective)(); };
+HeightDirective.ɵfac = i0.ɵɵngDeclareFactory({ version: "0.0.0-PLACEHOLDER", ngImport: i0, type: HeightDirective, deps: [], target: i0.ɵɵFactoryTarget.Directive });
 HeightDirective.ɵdir = i0.ɵɵngDeclareDirective({ version: "0.0.0-PLACEHOLDER", type: HeightDirective, selector: "[myHeightDir]", host: { properties: { "style.height": "this.myHeight", "class.bar": "this.myBarClass" } }, ngImport: i0 });
 (function () { (typeof ngDevMode === "undefined" || ngDevMode) && i0.ɵsetClassMetadata(HeightDirective, [{
         type: Directive,
@@ -419,7 +419,7 @@ HeightDirective.ɵdir = i0.ɵɵngDeclareDirective({ version: "0.0.0-PLACEHOLDER"
         }] }); })();
 export class MyComponent {
 }
-MyComponent.ɵfac = function MyComponent_Factory(t) { return new (t || MyComponent)(); };
+MyComponent.ɵfac = i0.ɵɵngDeclareFactory({ version: "0.0.0-PLACEHOLDER", ngImport: i0, type: MyComponent, deps: [], target: i0.ɵɵFactoryTarget.Component });
 MyComponent.ɵcmp = i0.ɵɵngDeclareComponent({ version: "0.0.0-PLACEHOLDER", type: MyComponent, selector: "my-component", ngImport: i0, template: '<div myWidthDir myHeightDir myClassDir></div>', isInline: true, directives: [{ type: WidthDirective, selector: "[myWidthDir]" }, { type: HeightDirective, selector: "[myHeightDir]" }, { type: ClassDirective, selector: "[myClassDir]" }] });
 (function () { (typeof ngDevMode === "undefined" || ngDevMode) && i0.ɵsetClassMetadata(MyComponent, [{
         type: Component,
@@ -430,7 +430,7 @@ MyComponent.ɵcmp = i0.ɵɵngDeclareComponent({ version: "0.0.0-PLACEHOLDER", ty
     }], null, null); })();
 export class MyModule {
 }
-MyModule.ɵfac = function MyModule_Factory(t) { return new (t || MyModule)(); };
+MyModule.ɵfac = i0.ɵɵngDeclareFactory({ version: "0.0.0-PLACEHOLDER", ngImport: i0, type: MyModule, deps: [], target: i0.ɵɵFactoryTarget.NgModule });
 MyModule.ɵmod = i0.ɵɵngDeclareNgModule({ version: "0.0.0-PLACEHOLDER", ngImport: i0, type: MyModule, declarations: [MyComponent, WidthDirective, HeightDirective, ClassDirective] });
 MyModule.ɵinj = i0.ɵɵngDeclareInjector({ version: "0.0.0-PLACEHOLDER", ngImport: i0, type: MyModule });
 (function () { (typeof ngDevMode === "undefined" || ngDevMode) && i0.ɵsetClassMetadata(MyModule, [{
@@ -446,28 +446,28 @@ export declare class ClassDirective {
     myClassMap: {
         red: boolean;
     };
-    static ɵfac: i0.ɵɵFactoryDef<ClassDirective, never>;
-    static ɵdir: i0.ɵɵDirectiveDefWithMeta<ClassDirective, "[myClassDir]", never, {}, {}, never>;
+    static ɵfac: i0.ɵɵFactoryDeclaration<ClassDirective, never>;
+    static ɵdir: i0.ɵɵDirectiveDeclaration<ClassDirective, "[myClassDir]", never, {}, {}, never>;
 }
 export declare class WidthDirective {
     myWidth: number;
     myFooClass: boolean;
-    static ɵfac: i0.ɵɵFactoryDef<WidthDirective, never>;
-    static ɵdir: i0.ɵɵDirectiveDefWithMeta<WidthDirective, "[myWidthDir]", never, {}, {}, never>;
+    static ɵfac: i0.ɵɵFactoryDeclaration<WidthDirective, never>;
+    static ɵdir: i0.ɵɵDirectiveDeclaration<WidthDirective, "[myWidthDir]", never, {}, {}, never>;
 }
 export declare class HeightDirective {
     myHeight: number;
     myBarClass: boolean;
-    static ɵfac: i0.ɵɵFactoryDef<HeightDirective, never>;
-    static ɵdir: i0.ɵɵDirectiveDefWithMeta<HeightDirective, "[myHeightDir]", never, {}, {}, never>;
+    static ɵfac: i0.ɵɵFactoryDeclaration<HeightDirective, never>;
+    static ɵdir: i0.ɵɵDirectiveDeclaration<HeightDirective, "[myHeightDir]", never, {}, {}, never>;
 }
 export declare class MyComponent {
-    static ɵfac: i0.ɵɵFactoryDef<MyComponent, never>;
-    static ɵcmp: i0.ɵɵComponentDefWithMeta<MyComponent, "my-component", never, {}, {}, never, never>;
+    static ɵfac: i0.ɵɵFactoryDeclaration<MyComponent, never>;
+    static ɵcmp: i0.ɵɵComponentDeclaration<MyComponent, "my-component", never, {}, {}, never, never>;
 }
 export declare class MyModule {
-    static ɵfac: i0.ɵɵFactoryDef<MyModule, never>;
-    static ɵmod: i0.ɵɵNgModuleDefWithMeta<MyModule, [typeof MyComponent, typeof WidthDirective, typeof HeightDirective, typeof ClassDirective], never, never>;
-    static ɵinj: i0.ɵɵInjectorDef<MyModule>;
+    static ɵfac: i0.ɵɵFactoryDeclaration<MyModule, never>;
+    static ɵmod: i0.ɵɵNgModuleDeclaration<MyModule, [typeof MyComponent, typeof WidthDirective, typeof HeightDirective, typeof ClassDirective], never, never>;
+    static ɵinj: i0.ɵɵInjectorDeclaration<MyModule>;
 }
 
