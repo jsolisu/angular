@@ -21,7 +21,7 @@ import {InjectionToken} from './injection_token';
 import {Injector} from './injector';
 import {catchInjectorError, injectArgs, NG_TEMP_TOKEN_PATH, setCurrentInjector, THROW_IF_NOT_FOUND, USE_VALUE, ɵɵinject} from './injector_compatibility';
 import {INJECTOR} from './injector_token';
-import {getInheritedInjectableDef, getInjectableDef, getInjectorDef, InjectorType, InjectorTypeWithProviders, ɵɵInjectableDef} from './interface/defs';
+import {getInheritedInjectableDef, getInjectableDef, getInjectorDef, InjectorType, InjectorTypeWithProviders, ɵɵInjectableDeclaration} from './interface/defs';
 import {InjectFlags} from './interface/injector';
 import {ClassProvider, ConstructorProvider, ExistingProvider, FactoryProvider, StaticClassProvider, StaticProvider, TypeProvider, ValueProvider} from './interface/provider';
 import {NullInjector} from './null_injector';
@@ -417,13 +417,15 @@ export class R3Injector {
     return record.value as T;
   }
 
-  private injectableDefInScope(def: ɵɵInjectableDef<any>): boolean {
+  private injectableDefInScope(def: ɵɵInjectableDeclaration<any>): boolean {
     if (!def.providedIn) {
       return false;
-    } else if (typeof def.providedIn === 'string') {
-      return def.providedIn === 'any' || (def.providedIn === this.scope);
+    }
+    const providedIn = resolveForwardRef(def.providedIn);
+    if (typeof providedIn === 'string') {
+      return providedIn === 'any' || (providedIn === this.scope);
     } else {
-      return this.injectorDefTypes.has(def.providedIn);
+      return this.injectorDefTypes.has(providedIn);
     }
   }
 }

@@ -9,12 +9,9 @@
 import {CompilationTicket, freshCompilationTicket, incrementalFromCompilerTicket, NgCompiler, resourceChangeTicket} from '@angular/compiler-cli/src/ngtsc/core';
 import {NgCompilerOptions} from '@angular/compiler-cli/src/ngtsc/core/api';
 import {TrackedIncrementalBuildStrategy} from '@angular/compiler-cli/src/ngtsc/incremental';
-import {ActivePerfRecorder} from '@angular/compiler-cli/src/ngtsc/perf';
-import {TypeCheckingProgramStrategy} from '@angular/compiler-cli/src/ngtsc/typecheck/api';
-import * as ts from 'typescript/lib/tsserverlibrary';
+import {ProgramDriver} from '@angular/compiler-cli/src/ngtsc/program_driver';
 
 import {LanguageServiceAdapter} from './adapters';
-import {isExternalTemplate} from './utils';
 
 /**
  * Manages the `NgCompiler` instance which backs the language service, updating or replacing it as
@@ -28,11 +25,10 @@ import {isExternalTemplate} from './utils';
 export class CompilerFactory {
   private readonly incrementalStrategy = new TrackedIncrementalBuildStrategy();
   private compiler: NgCompiler|null = null;
-  private lastKnownProgram: ts.Program|null = null;
 
   constructor(
       private readonly adapter: LanguageServiceAdapter,
-      private readonly programStrategy: TypeCheckingProgramStrategy,
+      private readonly programStrategy: ProgramDriver,
       private readonly options: NgCompilerOptions,
   ) {}
 
@@ -40,7 +36,7 @@ export class CompilerFactory {
     const program = this.programStrategy.getProgram();
     const modifiedResourceFiles = this.adapter.getModifiedResourceFiles() ?? new Set();
 
-    if (this.compiler !== null && program === this.lastKnownProgram) {
+    if (this.compiler !== null && program === this.compiler.getCurrentProgram()) {
       if (modifiedResourceFiles.size > 0) {
         // Only resource files have changed since the last NgCompiler was created.
         const ticket = resourceChangeTicket(this.compiler, modifiedResourceFiles);
@@ -55,7 +51,7 @@ export class CompilerFactory {
     }
 
     let ticket: CompilationTicket;
-    if (this.compiler === null || this.lastKnownProgram === null) {
+    if (this.compiler === null) {
       ticket = freshCompilationTicket(
           program, this.options, this.incrementalStrategy, this.programStrategy,
           /* perfRecorder */ null, true, true);
@@ -65,11 +61,6 @@ export class CompilerFactory {
           modifiedResourceFiles, /* perfRecorder */ null);
     }
     this.compiler = NgCompiler.fromTicket(ticket, this.adapter);
-    this.lastKnownProgram = program;
     return this.compiler;
-  }
-
-  registerLastKnownProgram() {
-    this.lastKnownProgram = this.programStrategy.getProgram();
   }
 }

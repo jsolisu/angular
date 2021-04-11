@@ -12,18 +12,20 @@ var path = require('path');
 var shelljs = require('shelljs');
 var url = require('url');
 var child_process = require('child_process');
+var semver = require('semver');
 var graphql = require('@octokit/graphql');
 var Octokit = require('@octokit/rest');
 var typedGraphqlify = require('typed-graphqlify');
 var fetch = _interopDefault(require('node-fetch'));
-var semver = require('semver');
 var multimatch = require('multimatch');
 var yaml = require('yaml');
 var conventionalCommitsParser = require('conventional-commits-parser');
+var gitCommits_ = require('git-raw-commits');
 var cliProgress = require('cli-progress');
 var os = require('os');
 var minimatch = require('minimatch');
 var ora = require('ora');
+require('ejs');
 var glob = require('glob');
 var ts = require('typescript');
 
@@ -440,6 +442,31 @@ function addGithubTokenOption(yargs) {
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.io/license
  */
+/** Whether the current environment is in dry run mode. */
+function isDryRun() {
+    return process.env['DRY_RUN'] !== undefined;
+}
+/** Error to be thrown when a function or method is called in dryRun mode and shouldn't be. */
+var DryRunError = /** @class */ (function (_super) {
+    tslib.__extends(DryRunError, _super);
+    function DryRunError() {
+        var _this = _super.call(this, 'Cannot call this function in dryRun mode.') || this;
+        // Set the prototype explicitly because in ES5, the prototype is accidentally lost due to
+        // a limitation in down-leveling.
+        // https://github.com/Microsoft/TypeScript/wiki/FAQ#why-doesnt-extending-built-ins-like-error-array-and-map-work.
+        Object.setPrototypeOf(_this, DryRunError.prototype);
+        return _this;
+    }
+    return DryRunError;
+}(Error));
+
+/**
+ * @license
+ * Copyright Google LLC All Rights Reserved.
+ *
+ * Use of this source code is governed by an MIT-style license that can be
+ * found in the LICENSE file at https://angular.io/license
+ */
 /** Error for failed Github API requests. */
 var GithubApiRequestError = /** @class */ (function (_super) {
     tslib.__extends(GithubApiRequestError, _super);
@@ -603,6 +630,12 @@ var GitClient = /** @class */ (function () {
      */
     GitClient.prototype.runGraceful = function (args, options) {
         if (options === void 0) { options = {}; }
+        /** The git command to be run. */
+        var gitCommand = args[0];
+        if (isDryRun() && gitCommand === 'push') {
+            debug("\"git push\" is not able to be run in dryRun mode.");
+            throw new DryRunError();
+        }
         // To improve the debugging experience in case something fails, we print all executed Git
         // commands to better understand the git actions occuring. Depending on the command being
         // executed, this debugging information should be logged at different logging levels.
@@ -671,6 +704,16 @@ var GitClient = /** @class */ (function () {
             this.runGraceful(['reset', '--hard'], { stdio: 'ignore' });
         }
         return this.runGraceful(['checkout', branchOrRevision], { stdio: 'ignore' }).status === 0;
+    };
+    /** Gets the latest git tag on the current branch that matches SemVer. */
+    GitClient.prototype.getLatestSemverTag = function () {
+        var semVerOptions = { loose: true };
+        var tags = this.runGraceful(['tag', '--sort=-committerdate', '--merged']).stdout.split('\n');
+        var latestTag = tags.find(function (tag) { return semver.parse(tag, semVerOptions); });
+        if (latestTag === undefined) {
+            throw new Error("Unable to find a SemVer matching tag on \"" + this.getCurrentBranchOrRevision() + "\"");
+        }
+        return new semver.SemVer(latestTag, semVerOptions);
     };
     /**
      * Assert the GitClient instance is using a token with permissions for the all of the
@@ -1588,11 +1631,11 @@ function handler$1({ fileEnvVariable, file, source }) {
             restoreCommitMessage(fileFromEnv, sourceFromEnv);
             return;
         }
-        throw new Error('No file path and commit message source provide.  Provide values via positional command ' +
+        throw new Error('No file path and commit message source provide. Provide values via positional command ' +
             'arguments, or via the --file-env-variable flag');
     });
 }
-/** yargs command module describing the command.  */
+/** yargs command module describing the command. */
 const RestoreCommitMessageModule = {
     handler: handler$1,
     builder: builder$1,
@@ -1621,59 +1664,73 @@ function getCommitMessageConfig() {
     assertNoErrors(errors);
     return config;
 }
-/** Scope requirement level to be set for each commit type.  */
+/** Scope requirement level to be set for each commit type. */
 var ScopeRequirement;
 (function (ScopeRequirement) {
     ScopeRequirement[ScopeRequirement["Required"] = 0] = "Required";
     ScopeRequirement[ScopeRequirement["Optional"] = 1] = "Optional";
     ScopeRequirement[ScopeRequirement["Forbidden"] = 2] = "Forbidden";
 })(ScopeRequirement || (ScopeRequirement = {}));
+var ReleaseNotesLevel;
+(function (ReleaseNotesLevel) {
+    ReleaseNotesLevel[ReleaseNotesLevel["Hidden"] = 0] = "Hidden";
+    ReleaseNotesLevel[ReleaseNotesLevel["Visible"] = 1] = "Visible";
+})(ReleaseNotesLevel || (ReleaseNotesLevel = {}));
 /** The valid commit types for Angular commit messages. */
 const COMMIT_TYPES = {
     build: {
         name: 'build',
         description: 'Changes to local repository build system and tooling',
         scope: ScopeRequirement.Optional,
+        releaseNotesLevel: ReleaseNotesLevel.Hidden,
     },
     ci: {
         name: 'ci',
         description: 'Changes to CI configuration and CI specific tooling',
         scope: ScopeRequirement.Forbidden,
+        releaseNotesLevel: ReleaseNotesLevel.Hidden,
     },
     docs: {
         name: 'docs',
         description: 'Changes which exclusively affects documentation.',
         scope: ScopeRequirement.Optional,
+        releaseNotesLevel: ReleaseNotesLevel.Hidden,
     },
     feat: {
         name: 'feat',
         description: 'Creates a new feature',
         scope: ScopeRequirement.Required,
+        releaseNotesLevel: ReleaseNotesLevel.Visible,
     },
     fix: {
         name: 'fix',
         description: 'Fixes a previously discovered failure/bug',
         scope: ScopeRequirement.Required,
+        releaseNotesLevel: ReleaseNotesLevel.Visible,
     },
     perf: {
         name: 'perf',
         description: 'Improves performance without any change in functionality or API',
         scope: ScopeRequirement.Required,
+        releaseNotesLevel: ReleaseNotesLevel.Visible,
     },
     refactor: {
         name: 'refactor',
         description: 'Refactor without any change in functionality or API (includes style changes)',
-        scope: ScopeRequirement.Required,
+        scope: ScopeRequirement.Optional,
+        releaseNotesLevel: ReleaseNotesLevel.Hidden,
     },
     release: {
         name: 'release',
         description: 'A release point in the repository',
         scope: ScopeRequirement.Forbidden,
+        releaseNotesLevel: ReleaseNotesLevel.Hidden,
     },
     test: {
         name: 'test',
         description: 'Improvements or corrections made to the project\'s test suite',
-        scope: ScopeRequirement.Required,
+        scope: ScopeRequirement.Optional,
+        releaseNotesLevel: ReleaseNotesLevel.Hidden,
     },
 };
 
@@ -1684,6 +1741,28 @@ const COMMIT_TYPES = {
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.io/license
  */
+/**
+ * A list of tuples expressing the fields to extract from each commit log entry. The tuple contains
+ * two values, the first is the key for the property and the second is the template shortcut for the
+ * git log command.
+ */
+const commitFields = {
+    hash: '%H',
+    shortHash: '%h',
+    author: '%aN',
+};
+/** The commit fields described as git log format entries for parsing. */
+const commitFieldsAsFormat = (fields) => {
+    return Object.entries(fields).map(([key, value]) => `%n-${key}-%n${value}`).join('');
+};
+/**
+ * The git log format template to create git log entries for parsing.
+ *
+ * The conventional commits parser expects to parse the standard git log raw body (%B) into its
+ * component parts. Additionally it will parse additional fields with keys defined by
+ * `-{key name}-` separated by new lines.
+ * */
+const gitLogFormatForParsing = `%B${commitFieldsAsFormat(commitFields)}`;
 /** Markers used to denote the start of a note section in a commit. */
 var NoteSections;
 (function (NoteSections) {
@@ -1726,8 +1805,13 @@ const parseOptions = {
     noteKeywords: [NoteSections.BREAKING_CHANGE, NoteSections.DEPRECATED],
     notesPattern: (keywords) => new RegExp(`(${keywords})(?:: ?)(.*)`),
 };
-/** Parse a full commit message into its composite parts. */
-function parseCommitMessage(fullText) {
+/** Parse a commit message into its composite parts. */
+const parseCommitMessage = parseInternal;
+/** Parse a commit message from a git log entry into its composite parts. */
+const parseCommitFromGitLog = parseInternal;
+function parseInternal(fullText) {
+    // Ensure the fullText symbol is a `string`, even if a Buffer was provided.
+    fullText = fullText.toString();
     /** The commit message text with the fixup and squash markers stripped out. */
     const strippedCommitMsg = fullText.replace(FIXUP_PREFIX_RE, '')
         .replace(SQUASH_PREFIX_RE, '')
@@ -1762,31 +1846,10 @@ function parseCommitMessage(fullText) {
         isFixup: FIXUP_PREFIX_RE.test(fullText),
         isSquash: SQUASH_PREFIX_RE.test(fullText),
         isRevert: REVERT_PREFIX_RE.test(fullText),
+        author: commit.author || undefined,
+        hash: commit.hash || undefined,
+        shortHash: commit.shortHash || undefined,
     };
-}
-/** Retrieve and parse each commit message in a provide range. */
-function parseCommitMessagesForRange(range) {
-    /** A random number used as a split point in the git log result. */
-    const randomValueSeparator = `${Math.random()}`;
-    /**
-     * Custom git log format that provides the commit header and body, separated as expected with the
-     * custom separator as the trailing value.
-     */
-    const gitLogFormat = `%s%n%n%b${randomValueSeparator}`;
-    // Retrieve the commits in the provided range.
-    const result = exec(`git log --reverse --format=${gitLogFormat} ${range}`);
-    if (result.code) {
-        throw new Error(`Failed to get all commits in the range:\n  ${result.stderr}`);
-    }
-    return result
-        // Separate the commits from a single string into individual commits.
-        .split(randomValueSeparator)
-        // Remove extra space before and after each commit message.
-        .map(l => l.trim())
-        // Remove any superfluous lines which remain from the split.
-        .filter(line => !!line)
-        // Parse each commit message.
-        .map(commit => parseCommitMessage(commit));
 }
 
 /**
@@ -1870,8 +1933,9 @@ function validateCommitMessage(commitMsg, options = {}) {
             errors.push(`Scopes are required for commits with type '${commit.type}', but no scope was provided.`);
             return false;
         }
-        if (commit.scope && !config.scopes.includes(commit.scope)) {
-            errors.push(`'${commit.scope}' is not an allowed scope.\n => SCOPES: ${config.scopes.join(', ')}`);
+        const fullScope = commit.npmScope ? `${commit.npmScope}/${commit.scope}` : commit.scope;
+        if (fullScope && !config.scopes.includes(fullScope)) {
+            errors.push(`'${fullScope}' is not an allowed scope.\n => SCOPES: ${config.scopes.join(', ')}`);
             return false;
         }
         // Commits with the type of `release` do not require a commit body.
@@ -2012,7 +2076,7 @@ function handler$2({ error, file, fileEnvVariable }) {
         validateFile(filePath, error);
     });
 }
-/** yargs command module describing the command.  */
+/** yargs command module describing the command. */
 const ValidateFileModule = {
     handler: handler$2,
     builder: builder$2,
@@ -2027,48 +2091,69 @@ const ValidateFileModule = {
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.io/license
  */
+// Set `gitCommits` as this imported value to address "Cannot call a namespace" error.
+const gitCommits = gitCommits_;
+/**
+ * Find all commits within the given range and return an object describing those.
+ */
+function getCommitsInRange(from, to = 'HEAD') {
+    return new Promise((resolve, reject) => {
+        /** List of parsed commit objects. */
+        const commits = [];
+        /** Stream of raw git commit strings in the range provided. */
+        const commitStream = gitCommits({ from, to, format: gitLogFormatForParsing });
+        // Accumulate the parsed commits for each commit from the Readable stream into an array, then
+        // resolve the promise with the array when the Readable stream ends.
+        commitStream.on('data', (commit) => commits.push(parseCommitFromGitLog(commit)));
+        commitStream.on('error', (err) => reject(err));
+        commitStream.on('end', () => resolve(commits));
+    });
+}
+
 // Whether the provided commit is a fixup commit.
 const isNonFixup = (commit) => !commit.isFixup;
 // Extracts commit header (first line of commit message).
 const extractCommitHeader = (commit) => commit.header;
 /** Validate all commits in a provided git commit range. */
-function validateCommitRange(range) {
-    /** A list of tuples of the commit header string and a list of error messages for the commit. */
-    const errors = [];
-    /** A list of parsed commit messages from the range. */
-    const commits = parseCommitMessagesForRange(range);
-    info(`Examining ${commits.length} commit(s) in the provided range: ${range}`);
-    /**
-     * Whether all commits in the range are valid, commits are allowed to be fixup commits for other
-     * commits in the provided commit range.
-     */
-    const allCommitsInRangeValid = commits.every((commit, i) => {
-        const options = {
-            disallowSquash: true,
-            nonFixupCommitHeaders: isNonFixup(commit) ?
-                undefined :
-                commits.slice(0, i).filter(isNonFixup).map(extractCommitHeader)
-        };
-        const { valid, errors: localErrors } = validateCommitMessage(commit, options);
-        if (localErrors.length) {
-            errors.push([commit.header, localErrors]);
-        }
-        return valid;
-    });
-    if (allCommitsInRangeValid) {
-        info('√  All commit messages in range valid.');
-    }
-    else {
-        error('✘  Invalid commit message');
-        errors.forEach(([header, validationErrors]) => {
-            error.group(header);
-            printValidationErrors(validationErrors);
-            error.groupEnd();
+function validateCommitRange(from, to) {
+    return tslib.__awaiter(this, void 0, void 0, function* () {
+        /** A list of tuples of the commit header string and a list of error messages for the commit. */
+        const errors = [];
+        /** A list of parsed commit messages from the range. */
+        const commits = yield getCommitsInRange(from, to);
+        info(`Examining ${commits.length} commit(s) in the provided range: ${from}..${to}`);
+        /**
+         * Whether all commits in the range are valid, commits are allowed to be fixup commits for other
+         * commits in the provided commit range.
+         */
+        const allCommitsInRangeValid = commits.every((commit, i) => {
+            const options = {
+                disallowSquash: true,
+                nonFixupCommitHeaders: isNonFixup(commit) ?
+                    undefined :
+                    commits.slice(i + 1).filter(isNonFixup).map(extractCommitHeader)
+            };
+            const { valid, errors: localErrors } = validateCommitMessage(commit, options);
+            if (localErrors.length) {
+                errors.push([commit.header, localErrors]);
+            }
+            return valid;
         });
-        // Exit with a non-zero exit code if invalid commit messages have
-        // been discovered.
-        process.exit(1);
-    }
+        if (allCommitsInRangeValid) {
+            info(green('√  All commit messages in range valid.'));
+        }
+        else {
+            error(red('✘  Invalid commit message'));
+            errors.forEach(([header, validationErrors]) => {
+                error.group(header);
+                printValidationErrors(validationErrors);
+                error.groupEnd();
+            });
+            // Exit with a non-zero exit code if invalid commit messages have
+            // been discovered.
+            process.exit(1);
+        }
+    });
 }
 
 /**
@@ -2080,15 +2165,20 @@ function validateCommitRange(range) {
  */
 /** Builds the command. */
 function builder$3(yargs) {
-    return yargs.option('range', {
-        description: 'The range of commits to check, e.g. --range abc123..xyz456',
-        demandOption: '  A range must be provided, e.g. --range abc123..xyz456',
+    return yargs
+        .positional('startingRef', {
+        description: 'The first ref in the range to select',
         type: 'string',
-        requiresArg: true,
+        demandOption: true,
+    })
+        .positional('endingRef', {
+        description: 'The last ref in the range to select',
+        type: 'string',
+        default: 'HEAD',
     });
 }
 /** Handles the command. */
-function handler$3({ range }) {
+function handler$3({ startingRef, endingRef }) {
     return tslib.__awaiter(this, void 0, void 0, function* () {
         // If on CI, and no pull request number is provided, assume the branch
         // being run on is an upstream branch.
@@ -2099,14 +2189,14 @@ function handler$3({ range }) {
             info(`Skipping check of provided commit range`);
             return;
         }
-        validateCommitRange(range);
+        yield validateCommitRange(startingRef, endingRef);
     });
 }
-/** yargs command module describing the command.  */
+/** yargs command module describing the command. */
 const ValidateRangeModule = {
     handler: handler$3,
     builder: builder$3,
-    command: 'validate-range',
+    command: 'validate-range <starting-ref> [ending-ref]',
     describe: 'Validate a range of commit messages',
 };
 
@@ -3264,6 +3354,17 @@ var PullRequestFailure = /** @class */ (function () {
             "your auth token has write access."; }
         return new this(message);
     };
+    PullRequestFailure.hasBreakingChanges = function (label) {
+        var message = "Cannot merge into branch for \"" + label.pattern + "\" as the pull request has " +
+            "breaking changes. Breaking changes can only be merged with the \"target: major\" label.";
+        return new this(message);
+    };
+    PullRequestFailure.hasFeatureCommits = function (label) {
+        var message = "Cannot merge into branch for \"" + label.pattern + "\" as the pull request has " +
+            'commits with the "feat" type. New features can only be merged with the "target: minor" ' +
+            'or "target: major" label.';
+        return new this(message);
+    };
     return PullRequestFailure;
 }());
 
@@ -3298,7 +3399,7 @@ function loadAndValidatePullRequest(_a, prNumber, ignoreNonFatalFailures) {
     var git = _a.git, config = _a.config;
     if (ignoreNonFatalFailures === void 0) { ignoreNonFatalFailures = false; }
     return tslib.__awaiter(this, void 0, void 0, function () {
-        var prData, labels, targetLabel, state, githubTargetBranch, requiredBaseSha, needsCommitMessageFixup, hasCaretakerNote, targetBranches, error_1;
+        var prData, labels, targetLabel, commitMessages, state, githubTargetBranch, requiredBaseSha, needsCommitMessageFixup, hasCaretakerNote, targetBranches, error_1;
         return tslib.__generator(this, function (_b) {
             switch (_b.label) {
                 case 0: return [4 /*yield*/, fetchPullRequestFromGithub(git, prNumber)];
@@ -3307,7 +3408,7 @@ function loadAndValidatePullRequest(_a, prNumber, ignoreNonFatalFailures) {
                     if (prData === null) {
                         return [2 /*return*/, PullRequestFailure.notFound()];
                     }
-                    labels = prData.labels.map(function (l) { return l.name; });
+                    labels = prData.labels.nodes.map(function (l) { return l.name; });
                     if (!labels.some(function (name) { return matchesPattern(name, config.mergeReadyLabel); })) {
                         return [2 /*return*/, PullRequestFailure.notMergeReady()];
                     }
@@ -3323,36 +3424,41 @@ function loadAndValidatePullRequest(_a, prNumber, ignoreNonFatalFailures) {
                         }
                         throw error;
                     }
-                    return [4 /*yield*/, git.github.repos.getCombinedStatusForRef(tslib.__assign(tslib.__assign({}, git.remoteParams), { ref: prData.head.sha }))];
-                case 2:
-                    state = (_b.sent()).data.state;
-                    if (state === 'failure' && !ignoreNonFatalFailures) {
+                    try {
+                        commitMessages = prData.commits.nodes.map(function (n) { return n.commit.message; });
+                        assertChangesAllowForTargetLabel(commitMessages, targetLabel, config);
+                    }
+                    catch (error) {
+                        return [2 /*return*/, error];
+                    }
+                    state = prData.commits.nodes.slice(-1)[0].commit.status.state;
+                    if (state === 'FAILURE' && !ignoreNonFatalFailures) {
                         return [2 /*return*/, PullRequestFailure.failingCiJobs()];
                     }
-                    if (state === 'pending' && !ignoreNonFatalFailures) {
+                    if (state === 'PENDING' && !ignoreNonFatalFailures) {
                         return [2 /*return*/, PullRequestFailure.pendingCiJobs()];
                     }
-                    githubTargetBranch = prData.base.ref;
+                    githubTargetBranch = prData.baseRefName;
                     requiredBaseSha = config.requiredBaseCommits && config.requiredBaseCommits[githubTargetBranch];
                     needsCommitMessageFixup = !!config.commitMessageFixupLabel &&
                         labels.some(function (name) { return matchesPattern(name, config.commitMessageFixupLabel); });
                     hasCaretakerNote = !!config.caretakerNoteLabel &&
                         labels.some(function (name) { return matchesPattern(name, config.caretakerNoteLabel); });
-                    _b.label = 3;
-                case 3:
-                    _b.trys.push([3, 5, , 6]);
+                    _b.label = 2;
+                case 2:
+                    _b.trys.push([2, 4, , 5]);
                     return [4 /*yield*/, getBranchesFromTargetLabel(targetLabel, githubTargetBranch)];
-                case 4:
+                case 3:
                     targetBranches = _b.sent();
-                    return [3 /*break*/, 6];
-                case 5:
+                    return [3 /*break*/, 5];
+                case 4:
                     error_1 = _b.sent();
                     if (error_1 instanceof InvalidTargetBranchError || error_1 instanceof InvalidTargetLabelError) {
                         return [2 /*return*/, new PullRequestFailure(error_1.failureMessage)];
                     }
                     throw error_1;
-                case 6: return [2 /*return*/, {
-                        url: prData.html_url,
+                case 5: return [2 /*return*/, {
+                        url: prData.url,
                         prNumber: prNumber,
                         labels: labels,
                         requiredBaseSha: requiredBaseSha,
@@ -3361,24 +3467,49 @@ function loadAndValidatePullRequest(_a, prNumber, ignoreNonFatalFailures) {
                         hasCaretakerNote: hasCaretakerNote,
                         targetBranches: targetBranches,
                         title: prData.title,
-                        commitCount: prData.commits,
+                        commitCount: prData.commits.totalCount,
                     }];
             }
         });
     });
 }
+/* GraphQL schema for the response body the requested pull request. */
+var PR_SCHEMA$2 = {
+    url: typedGraphqlify.types.string,
+    number: typedGraphqlify.types.number,
+    // Only the last 100 commits from a pull request are obtained as we likely will never see a pull
+    // requests with more than 100 commits.
+    commits: typedGraphqlify.params({ last: 100 }, {
+        totalCount: typedGraphqlify.types.number,
+        nodes: [{
+                commit: {
+                    status: {
+                        state: typedGraphqlify.types.oneOf(['FAILURE', 'PENDING', 'SUCCESS']),
+                    },
+                    message: typedGraphqlify.types.string,
+                },
+            }],
+    }),
+    baseRefName: typedGraphqlify.types.string,
+    title: typedGraphqlify.types.string,
+    labels: typedGraphqlify.params({ first: 100 }, {
+        nodes: [{
+                name: typedGraphqlify.types.string,
+            }]
+    }),
+};
 /** Fetches a pull request from Github. Returns null if an error occurred. */
 function fetchPullRequestFromGithub(git, prNumber) {
     return tslib.__awaiter(this, void 0, void 0, function () {
-        var result, e_1;
+        var x, e_1;
         return tslib.__generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
                     _a.trys.push([0, 2, , 3]);
-                    return [4 /*yield*/, git.github.pulls.get(tslib.__assign(tslib.__assign({}, git.remoteParams), { pull_number: prNumber }))];
+                    return [4 /*yield*/, getPr(PR_SCHEMA$2, prNumber, git)];
                 case 1:
-                    result = _a.sent();
-                    return [2 /*return*/, result.data];
+                    x = _a.sent();
+                    return [2 /*return*/, x];
                 case 2:
                     e_1 = _a.sent();
                     // If the pull request could not be found, we want to return `null` so
@@ -3395,6 +3526,46 @@ function fetchPullRequestFromGithub(git, prNumber) {
 /** Whether the specified value resolves to a pull request. */
 function isPullRequest(v) {
     return v.targetBranches !== undefined;
+}
+/**
+ * Assert the commits provided are allowed to merge to the provided target label, throwing a
+ * PullRequestFailure otherwise.
+ */
+function assertChangesAllowForTargetLabel(rawCommits, label, config) {
+    /**
+     * List of commit scopes which are exempted from target label content requirements. i.e. no `feat`
+     * scopes in patch branches, no breaking changes in minor or patch changes.
+     */
+    var exemptedScopes = config.targetLabelExemptScopes || [];
+    /** List of parsed commits which are subject to content requirements for the target label. */
+    var commits = rawCommits.map(parseCommitMessage).filter(function (commit) {
+        return !exemptedScopes.includes(commit.scope);
+    });
+    switch (label.pattern) {
+        case 'target: major':
+            break;
+        case 'target: minor':
+            // Check if any commits in the pull request contains a breaking change.
+            if (commits.some(function (commit) { return commit.breakingChanges.length !== 0; })) {
+                throw PullRequestFailure.hasBreakingChanges(label);
+            }
+            break;
+        case 'target: patch':
+        case 'target: lts':
+            // Check if any commits in the pull request contains a breaking change.
+            if (commits.some(function (commit) { return commit.breakingChanges.length !== 0; })) {
+                throw PullRequestFailure.hasBreakingChanges(label);
+            }
+            // Check if any commits in the pull request contains a commit type of "feat".
+            if (commits.some(function (commit) { return commit.type === 'feat'; })) {
+                throw PullRequestFailure.hasFeatureCommits(label);
+            }
+            break;
+        default:
+            warn(red('WARNING: Unable to confirm all commits in the pull request are eligible to be'));
+            warn(red("merged into the target branch: " + label.pattern));
+            break;
+    }
 }
 
 /**
@@ -4210,7 +4381,7 @@ function handler$6(_a) {
         });
     });
 }
-/** yargs command module describing the command.  */
+/** yargs command module describing the command. */
 var MergeCommandModule = {
     handler: handler$6,
     builder: builder$6,
@@ -4226,7 +4397,7 @@ var MergeCommandModule = {
  * found in the LICENSE file at https://angular.io/license
  */
 /* GraphQL schema for the response body for each pending PR. */
-const PR_SCHEMA$2 = {
+const PR_SCHEMA$3 = {
     state: typedGraphqlify.types.string,
     maintainerCanModify: typedGraphqlify.types.boolean,
     viewerDidAuthor: typedGraphqlify.types.boolean,
@@ -4264,7 +4435,7 @@ function rebasePr(prNumber, githubToken, config = getConfig()) {
          */
         const previousBranchOrRevision = git.getCurrentBranchOrRevision();
         /* Get the PR information from Github. */
-        const pr = yield getPr(PR_SCHEMA$2, prNumber, git);
+        const pr = yield getPr(PR_SCHEMA$3, prNumber, git);
         const headRefName = pr.headRef.name;
         const baseRefName = pr.baseRef.name;
         const fullHeadRef = `${pr.headRef.repository.nameWithOwner}:${headRefName}`;
@@ -4294,7 +4465,7 @@ function rebasePr(prNumber, githubToken, config = getConfig()) {
             info(`Fetching ${fullBaseRef} to rebase #${prNumber} on`);
             git.run(['fetch', '-q', baseRefUrl, baseRefName]);
             const commonAncestorSha = git.run(['merge-base', 'HEAD', 'FETCH_HEAD']).stdout.trim();
-            const commits = parseCommitMessagesForRange(`${commonAncestorSha}..HEAD`);
+            const commits = yield getCommitsInRange(commonAncestorSha, 'HEAD');
             let squashFixups = commits.filter((commit) => commit.isFixup).length === 0 ?
                 false :
                 yield promptConfirm(`PR #${prNumber} contains fixup commits, would you like to squash them during rebase?`, true);
@@ -5410,6 +5581,11 @@ function isCommitClosingPullRequest(api, sha, id) {
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.io/license
  */
+/** List of types to be included in the release notes. */
+const typesToIncludeInReleaseNotes = Object.values(COMMIT_TYPES)
+    .filter(type => type.releaseNotesLevel === ReleaseNotesLevel.Visible)
+    .map(type => type.name);
+
 /**
  * Gets the default pattern for extracting release notes for the given version.
  * This pattern matches for the conventional-changelog Angular preset.
@@ -6458,9 +6634,21 @@ class ReleaseTool {
      * @returns a boolean indicating whether the user is logged into NPM.
      */
     _verifyNpmLoginState() {
-        var _a;
+        var _a, _b;
         return tslib.__awaiter(this, void 0, void 0, function* () {
             const registry = `NPM at the ${(_a = this._config.publishRegistry) !== null && _a !== void 0 ? _a : 'default NPM'} registry`;
+            // TODO(josephperrott): remove wombat specific block once wombot allows `npm whoami` check to
+            // check the status of the local token in the .npmrc file.
+            if ((_b = this._config.publishRegistry) === null || _b === void 0 ? void 0 : _b.includes('wombat-dressing-room.appspot.com')) {
+                info('Unable to determine NPM login state for wombat proxy, requiring login now.');
+                try {
+                    yield npmLogin(this._config.publishRegistry);
+                }
+                catch (_c) {
+                    return false;
+                }
+                return true;
+            }
             if (yield npmIsLoggedIn(this._config.publishRegistry)) {
                 debug(`Already logged into ${registry}.`);
                 return true;
@@ -6472,7 +6660,7 @@ class ReleaseTool {
                 try {
                     yield npmLogin(this._config.publishRegistry);
                 }
-                catch (_b) {
+                catch (_d) {
                     return false;
                 }
                 return true;
@@ -7028,7 +7216,7 @@ function main(approve, config, printWarnings) {
     const analyzer = new Analyzer(resolveModule);
     const cycles = [];
     const checkedNodes = new WeakSet();
-    glob.sync(glob$1, { absolute: true }).forEach(filePath => {
+    glob.sync(glob$1, { absolute: true, ignore: ['**/node_modules/**'] }).forEach(filePath => {
         const sourceFile = analyzer.getSourceFile(filePath);
         cycles.push(...analyzer.findCycles(sourceFile, checkedNodes));
     });

@@ -8,9 +8,11 @@
 
 import * as Octokit from '@octokit/rest';
 import {spawnSync, SpawnSyncOptions, SpawnSyncReturns} from 'child_process';
+import {Options as SemVerOptions, parse, SemVer} from 'semver';
 
 import {getConfig, getRepoBaseDir, NgDevConfig} from '../config';
 import {debug, info, yellow} from '../console';
+import {DryRunError, isDryRun} from '../dry-run';
 import {GithubClient} from './github';
 import {getRepositoryGitUrl, GITHUB_TOKEN_GENERATE_URL, GITHUB_TOKEN_SETTINGS_URL} from './github-urls';
 
@@ -89,6 +91,14 @@ export class GitClient {
    * info failed commands.
    */
   runGraceful(args: string[], options: SpawnSyncOptions = {}): SpawnSyncReturns<string> {
+    /** The git command to be run. */
+    const gitCommand = args[0];
+
+    if (isDryRun() && gitCommand === 'push') {
+      debug(`"git push" is not able to be run in dryRun mode.`);
+      throw new DryRunError();
+    }
+
     // To improve the debugging experience in case something fails, we print all executed Git
     // commands to better understand the git actions occuring. Depending on the command being
     // executed, this debugging information should be logged at different logging levels.
@@ -170,6 +180,19 @@ export class GitClient {
       this.runGraceful(['reset', '--hard'], {stdio: 'ignore'});
     }
     return this.runGraceful(['checkout', branchOrRevision], {stdio: 'ignore'}).status === 0;
+  }
+
+  /** Gets the latest git tag on the current branch that matches SemVer. */
+  getLatestSemverTag(): SemVer {
+    const semVerOptions: SemVerOptions = {loose: true};
+    const tags = this.runGraceful(['tag', '--sort=-committerdate', '--merged']).stdout.split('\n');
+    const latestTag = tags.find((tag: string) => parse(tag, semVerOptions));
+
+    if (latestTag === undefined) {
+      throw new Error(
+          `Unable to find a SemVer matching tag on "${this.getCurrentBranchOrRevision()}"`);
+    }
+    return new SemVer(latestTag, semVerOptions);
   }
 
   /**

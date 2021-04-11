@@ -11,7 +11,7 @@ import {ListChoiceOptions, prompt} from 'inquirer';
 import {GithubConfig} from '../../utils/config';
 import {debug, error, info, log, promptConfirm, red, yellow} from '../../utils/console';
 import {GitClient} from '../../utils/git/index';
-import {ReleaseConfig} from '../config';
+import {ReleaseConfig} from '../config/index';
 import {ActiveReleaseTrains, fetchActiveReleaseTrains, nextBranchName} from '../versioning/active-release-trains';
 import {npmIsLoggedIn, npmLogin, npmLogout} from '../versioning/npm-publish';
 import {printActiveReleaseTrains} from '../versioning/print-active-trains';
@@ -150,6 +150,17 @@ export class ReleaseTool {
    */
   private async _verifyNpmLoginState(): Promise<boolean> {
     const registry = `NPM at the ${this._config.publishRegistry ?? 'default NPM'} registry`;
+    // TODO(josephperrott): remove wombat specific block once wombot allows `npm whoami` check to
+    // check the status of the local token in the .npmrc file.
+    if (this._config.publishRegistry?.includes('wombat-dressing-room.appspot.com')) {
+      info('Unable to determine NPM login state for wombat proxy, requiring login now.');
+      try {
+        await npmLogin(this._config.publishRegistry);
+      } catch {
+        return false;
+      }
+      return true;
+    }
     if (await npmIsLoggedIn(this._config.publishRegistry)) {
       debug(`Already logged into ${registry}.`);
       return true;
