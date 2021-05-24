@@ -51,7 +51,7 @@ export class PullRequestMergeTask {
   private flags: PullRequestMergeTaskFlags;
 
   constructor(
-      public config: MergeConfigWithRemote, public git: GitClient,
+      public config: MergeConfigWithRemote, public git: GitClient<true>,
       flags: Partial<PullRequestMergeTaskFlags>) {
     // Update flags property with the provided flags values as patches to the default flag values.
     this.flags = {...defaultPullRequestMergeTaskFlags, ...flags};
@@ -73,6 +73,15 @@ export class PullRequestMergeTask {
         } else if (!scopes.includes('public_repo')) {
           missing.push('public_repo');
         }
+      }
+
+      // Pull requests can modify Github action workflow files. In such cases Github requires us to
+      // push with a token that has the `workflow` oauth scope set. To avoid errors when the
+      // caretaker intends to merge such PRs, we ensure the scope is always set on the token before
+      // the merge process starts.
+      // https://docs.github.com/en/developers/apps/scopes-for-oauth-apps#available-scopes
+      if (!scopes.includes('workflow')) {
+        missing.push('workflow');
       }
     });
 

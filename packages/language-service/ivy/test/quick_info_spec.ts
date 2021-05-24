@@ -151,6 +151,15 @@ describe('quick info', () => {
         expect(toText(documentation)).toBe('This Component provides the `test-comp` selector.');
       });
 
+      it('should work for components with bound attributes', () => {
+        const {documentation} = expectQuickInfo({
+          templateOverride: `<t¦est-comp [attr.id]="'1' + '2'" [attr.name]="'myName'"></test-comp>`,
+          expectedSpanText: `<test-comp [attr.id]="'1' + '2'" [attr.name]="'myName'"></test-comp>`,
+          expectedDisplayString: '(component) AppModule.TestComponent'
+        });
+        expect(toText(documentation)).toBe('This Component provides the `test-comp` selector.');
+      });
+
       it('should work for structural directives', () => {
         const {documentation} = expectQuickInfo({
           templateOverride: `<div *¦ngFor="let item of heroes"></div>`,
@@ -550,8 +559,13 @@ describe('quick info', () => {
       // checkTypeOfPipes is set to false when strict templates is false
       project = env.addProject('test', quickInfoSkeleton(), {strictTemplates: false});
       const templateOverride = `<p>The hero's birthday is {{birthday | da¦te: "MM/dd/yy"}}</p>`;
-      expectQuickInfo(
-          {templateOverride, expectedSpanText: 'date', expectedDisplayString: '(pipe) DatePipe'});
+      expectQuickInfo({
+        templateOverride,
+        expectedSpanText: 'date',
+        expectedDisplayString:
+            '(pipe) DatePipe.transform(value: string | number | Date, format?: string | undefined, timezone?: ' +
+            'string | undefined, locale?: string | undefined): string | null (+2 overloads)'
+      });
     });
 
     it('should still get quick info if there is an invalid css resource', () => {

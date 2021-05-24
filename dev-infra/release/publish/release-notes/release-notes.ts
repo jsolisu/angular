@@ -8,62 +8,53 @@
 import {renderFile} from 'ejs';
 import {join} from 'path';
 import * as semver from 'semver';
+import {CommitFromGitLog} from '../../../commit-message/parse';
 
 import {getCommitsInRange} from '../../../commit-message/utils';
-import {getConfig} from '../../../utils/config';
 import {promptInput} from '../../../utils/console';
 import {GitClient} from '../../../utils/git/index';
-import {getReleaseConfig} from '../../config/index';
+import {DevInfraReleaseConfig, getReleaseConfig, ReleaseNotesConfig} from '../../config/index';
 import {changelogPath} from '../constants';
 import {RenderContext} from './context';
-
-
-/**
- * Gets the default pattern for extracting release notes for the given version.
- * This pattern matches for the conventional-changelog Angular preset.
- */
-export function getDefaultExtractReleaseNotesPattern(version: semver.SemVer): RegExp {
-  const escapedVersion = version.format().replace('.', '\\.');
-  // TODO: Change this once we have a canonical changelog generation tool. Also update this
-  // based on the conventional-changelog version. They removed anchors in more recent versions.
-  return new RegExp(`(<a name="${escapedVersion}"></a>.*?)(?:<a name="|$)`, 's');
-}
 
 /** Gets the path for the changelog file in a given project. */
 export function getLocalChangelogFilePath(projectDir: string): string {
   return join(projectDir, changelogPath);
 }
 
-
 /** Release note generation. */
 export class ReleaseNotes {
+  static async fromRange(version: semver.SemVer, startingRef: string, endingRef: string) {
+    return new ReleaseNotes(version, startingRef, endingRef);
+  }
+
   /** An instance of GitClient. */
-  private git = new GitClient();
-  /** The github configuration. */
-  private readonly github = getConfig().github;
-  /** The configuration for the release notes generation. */
-  // TODO(josephperrott): Remove non-null assertion after usage of ReleaseNotes is integrated into
-  // release publish tooling.
-  private readonly config = getReleaseConfig().releaseNotes! || {};
-  /** A promise resolving to a list of Commits since the latest semver tag on the branch. */
-  private commits = getCommitsInRange(this.git.getLatestSemverTag().format(), 'HEAD');
+  private git = GitClient.getInstance();
   /** The RenderContext to be used during rendering. */
   private renderContext: RenderContext|undefined;
   /** The title to use for the release. */
   private title: string|false|undefined;
+  /** A promise resolving to a list of Commits since the latest semver tag on the branch. */
+  private commits: Promise<CommitFromGitLog[]> =
+      this.getCommitsInRange(this.startingRef, this.endingRef);
+  /** The configuration for release notes. */
+  private config: ReleaseNotesConfig = this.getReleaseConfig().releaseNotes;
 
-  constructor(private version: semver.SemVer) {}
+  protected constructor(
+      public version: semver.SemVer, private startingRef: string, private endingRef: string) {}
 
   /** Retrieve the release note generated for a Github Release. */
   async getGithubReleaseEntry(): Promise<string> {
-    return await renderFile(
-        join(__dirname, 'templates/github-release.ejs'), await this.generateRenderContext());
+    return renderFile(
+        join(__dirname, 'templates/github-release.ejs'), await this.generateRenderContext(),
+        {rmWhitespace: true});
   }
 
   /** Retrieve the release note generated for a CHANGELOG entry. */
   async getChangelogEntry() {
-    return await renderFile(
-        join(__dirname, 'templates/changelog.ejs'), await this.generateRenderContext());
+    return renderFile(
+        join(__dirname, 'templates/changelog.ejs'), await this.generateRenderContext(),
+        {rmWhitespace: true});
   }
 
   /**
@@ -86,7 +77,7 @@ export class ReleaseNotes {
     if (!this.renderContext) {
       this.renderContext = new RenderContext({
         commits: await this.commits,
-        github: getConfig().github,
+        github: this.git.remoteConfig,
         version: this.version.format(),
         groupOrder: this.config.groupOrder,
         hiddenScopes: this.config.hiddenScopes,
@@ -94,5 +85,16 @@ export class ReleaseNotes {
       });
     }
     return this.renderContext;
+  }
+
+
+  // These methods are used for access to the utility functions while allowing them to be
+  // overwritten in subclasses during testing.
+  protected async getCommitsInRange(from: string, to?: string) {
+    return getCommitsInRange(from, to);
+  }
+
+  protected getReleaseConfig(config?: Partial<DevInfraReleaseConfig>) {
+    return getReleaseConfig(config);
   }
 }

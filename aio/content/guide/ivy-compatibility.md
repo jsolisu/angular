@@ -10,7 +10,7 @@ That said, some applications will likely need to apply some manual updates.
 
 If you're seeing errors, first temporarily [turn off Ivy](guide/ivy#opting-out-of-angular-ivy) in your `tsconfig.json` and re-start your app.
 
-If you're still seeing the errors, they are not specific to Ivy. In this case, you may want to consult the [general update guide](guide/updating-to-version-11). If you've opted into any of the new, stricter type-checking settings, you may also want to check out the [template type-checking guide](guide/template-typecheck).
+If you're still seeing the errors, they are not specific to Ivy. In this case, you may want to consult the [general update guide](guide/updating-to-version-12). If you've opted into any of the new, stricter type-checking settings, you may also want to check out the [template type-checking guide](guide/template-typecheck).
 
 If the errors are gone, switch back to Ivy by removing the changes to the `tsconfig.json` and review the list of expected changes below.
 
@@ -29,7 +29,7 @@ This will ensure that the libraries will be properly tree-shaken if they are imp
 See more details in the original issue [here](https://github.com/angular/angular-cli/issues/16799#issuecomment-580912090).
 
 1. Projects not using Angular CLI will see a significant size regression unless they update their minifier settings and set compile-time constants `ngDevMode`, `ngI18nClosureMode` and `ngJitMode` to `false` (for Terser, please set these to `false` via [`global_defs` config option](https://terser.org/docs/api-reference.html#conditional-compilation)).
-Please note that these constants are not meant to be used by 3rd party library or application code as they are not part of our public api surface and might change in the future.
+Please note that these constants are not meant to be used by 3rd party library or application code as they are not part of our public API surface and might change in the future.
 
 
 {@a common-changes}

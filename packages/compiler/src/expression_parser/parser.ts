@@ -461,6 +461,19 @@ export class _ParseAST {
     if (artificialEndIndex !== undefined && artificialEndIndex > this.currentEndIndex) {
       endIndex = artificialEndIndex;
     }
+
+    // In some unusual parsing scenarios (like when certain tokens are missing and an `EmptyExpr` is
+    // being created), the current token may already be advanced beyond the `currentEndIndex`. This
+    // appears to be a deep-seated parser bug.
+    //
+    // As a workaround for now, swap the start and end indices to ensure a valid `ParseSpan`.
+    // TODO(alxhub): fix the bug upstream in the parser state, and remove this workaround.
+    if (start > endIndex) {
+      const tmp = endIndex;
+      endIndex = start;
+      start = tmp;
+    }
+
     return new ParseSpan(start, endIndex);
   }
 
@@ -535,7 +548,11 @@ export class _ParseAST {
   expectIdentifierOrKeyword(): string|null {
     const n = this.next;
     if (!n.isIdentifier() && !n.isKeyword()) {
-      this.error(`Unexpected ${this.prettyPrintToken(n)}, expected identifier or keyword`);
+      if (n.isPrivateIdentifier()) {
+        this._reportErrorForPrivateIdentifier(n, 'expected identifier or keyword');
+      } else {
+        this.error(`Unexpected ${this.prettyPrintToken(n)}, expected identifier or keyword`);
+      }
       return null;
     }
     this.advance();
@@ -545,7 +562,12 @@ export class _ParseAST {
   expectIdentifierOrKeywordOrString(): string {
     const n = this.next;
     if (!n.isIdentifier() && !n.isKeyword() && !n.isString()) {
-      this.error(`Unexpected ${this.prettyPrintToken(n)}, expected identifier, keyword, or string`);
+      if (n.isPrivateIdentifier()) {
+        this._reportErrorForPrivateIdentifier(n, 'expected identifier, keyword or string');
+      } else {
+        this.error(
+            `Unexpected ${this.prettyPrintToken(n)}, expected identifier, keyword, or string`);
+      }
       return '';
     }
     this.advance();
@@ -886,6 +908,10 @@ export class _ParseAST {
       this.advance();
       return new LiteralPrimitive(this.span(start), this.sourceSpan(start), literalValue);
 
+    } else if (this.next.isPrivateIdentifier()) {
+      this._reportErrorForPrivateIdentifier(this.next, null);
+      return new EmptyExpr(this.span(start), this.sourceSpan(start));
+
     } else if (this.index >= this.tokens.length) {
       this.error(`Unexpected end of expression: ${this.input}`);
       return new EmptyExpr(this.span(start), this.sourceSpan(start));
@@ -940,14 +966,19 @@ export class _ParseAST {
     const nameSpan = this.sourceSpan(nameStart);
 
     if (this.consumeOptionalCharacter(chars.$LPAREN)) {
+      const argumentStart = this.inputIndex;
       this.rparensExpected++;
       const args = this.parseCallArguments();
+      const argumentSpan =
+          this.span(argumentStart, this.inputIndex).toAbsolute(this.absoluteOffset);
+
       this.expectCharacter(chars.$RPAREN);
       this.rparensExpected--;
       const span = this.span(start);
       const sourceSpan = this.sourceSpan(start);
-      return isSafe ? new SafeMethodCall(span, sourceSpan, nameSpan, receiver, id, args) :
-                      new MethodCall(span, sourceSpan, nameSpan, receiver, id, args);
+      return isSafe ?
+          new SafeMethodCall(span, sourceSpan, nameSpan, receiver, id, args, argumentSpan) :
+          new MethodCall(span, sourceSpan, nameSpan, receiver, id, args, argumentSpan);
 
     } else {
       if (isSafe) {
@@ -1189,6 +1220,20 @@ export class _ParseAST {
     if (index == null) index = this.index;
     return (index < this.tokens.length) ? `at column ${this.tokens[index].index + 1} in` :
                                           `at the end of the expression`;
+  }
+
+  /**
+   * Records an error for an unexpected private identifier being discovered.
+   * @param token Token representing a private identifier.
+   * @param extraMessage Optional additional message being appended to the error.
+   */
+  private _reportErrorForPrivateIdentifier(token: Token, extraMessage: string|null) {
+    let errorMessage =
+        `Private identifiers are not supported. Unexpected private identifier: ${token}`;
+    if (extraMessage !== null) {
+      errorMessage += `, ${extraMessage}`;
+    }
+    this.error(errorMessage);
   }
 
   /**

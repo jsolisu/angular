@@ -4,6 +4,9 @@
   "description": "Angular - bazel build rules",
   "author": "angular",
   "license": "MIT",
+  "engines": {
+    "node": "^12.14.1 || ^14.0.0"
+  },
   "bin": {
     "api-extractor": "./src/api-extractor/index.js",
     "ngc-wrapped": "./src/ngc-wrapped/index.js",
@@ -21,7 +24,7 @@
   },
   "dependencies": {
     "@microsoft/api-extractor": "7.7.11",
-    "shelljs": "0.8.2",
+    "shelljs": "0.8.4",
     "tsickle": "^0.38.0",
     "tslib": "^2.1.0"
   },
@@ -47,8 +50,5 @@
   },
   "ng-update": {
     "packageGroup": "NG_UPDATE_PACKAGE_GROUP"
-  },
-  "publishConfig": {
-    "registry": "https://wombat-dressing-room.appspot.com"
   }
 }

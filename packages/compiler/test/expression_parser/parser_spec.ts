@@ -6,7 +6,7 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
-import {AbsoluteSourceSpan, ASTWithSource, BindingPipe, EmptyExpr, Interpolation, ParserError, TemplateBinding, VariableBinding} from '@angular/compiler/src/expression_parser/ast';
+import {AbsoluteSourceSpan, ASTWithSource, BindingPipe, EmptyExpr, Interpolation, MethodCall, ParserError, TemplateBinding, VariableBinding} from '@angular/compiler/src/expression_parser/ast';
 import {Lexer} from '@angular/compiler/src/expression_parser/lexer';
 import {IvyParser, Parser, SplitInterpolation} from '@angular/compiler/src/expression_parser/parser';
 import {expect} from '@angular/platform-browser/testing/src/matchers';
@@ -120,6 +120,7 @@ describe('parser', () => {
       it('should only allow identifier, string, or keyword as map key', () => {
         expectActionError('{(:0}', 'expected identifier, keyword, or string');
         expectActionError('{1234:0}', 'expected identifier, keyword, or string');
+        expectActionError('{#myField:0}', 'expected identifier, keyword or string');
       });
     });
 
@@ -130,11 +131,20 @@ describe('parser', () => {
         checkAction('a.a');
       });
 
+      it('should error for private identifiers with implicit receiver', () => {
+        checkActionWithError(
+            '#privateField', '',
+            'Private identifiers are not supported. Unexpected private identifier: #privateField at column 1');
+      });
+
       it('should only allow identifier or keyword as member names', () => {
         checkActionWithError('x.', 'x.', 'identifier or keyword');
         checkActionWithError('x.(', 'x.', 'identifier or keyword');
         checkActionWithError('x. 1234', 'x.', 'identifier or keyword');
         checkActionWithError('x."foo"', 'x.', 'identifier or keyword');
+        checkActionWithError(
+            'x.#privateField', 'x.',
+            'Private identifiers are not supported. Unexpected private identifier: #privateField, expected identifier or keyword');
       });
 
       it('should parse safe field access', () => {
@@ -187,6 +197,13 @@ describe('parser', () => {
         checkAction('add(1, 2)');
         checkAction('a.add(1, 2)');
         checkAction('fn().add(1, 2)');
+      });
+
+      it('should parse an EmptyExpr with a correct span for a trailing empty argument', () => {
+        const ast = parseAction('fn(1, )').ast as MethodCall;
+        expect(ast.args[1]).toBeAnInstanceOf(EmptyExpr);
+        const sourceSpan = (ast.args[1] as EmptyExpr).sourceSpan;
+        expect([sourceSpan.start, sourceSpan.end]).toEqual([5, 6]);
       });
     });
 
@@ -350,6 +367,11 @@ describe('parser', () => {
       expect(unparseWithSpan(ast)).toContain(['foo()', '[nameSpan] foo']);
     });
 
+    it('should record method call argument span', () => {
+      const ast = parseAction('foo(1 + 2)');
+      expect(unparseWithSpan(ast)).toContain(['foo(1 + 2)', '[argumentSpan] 1 + 2']);
+    });
+
     it('should record accessed method call span', () => {
       const ast = parseAction('foo.bar()');
       expect(unparseWithSpan(ast)).toContain(['foo.bar()', 'foo.bar()']);
@@ -499,6 +521,7 @@ describe('parser', () => {
         expectBindingError('"Foo"|(', 'identifier or keyword');
         expectBindingError('"Foo"|1234', 'identifier or keyword');
         expectBindingError('"Foo"|"uppercase"', 'identifier or keyword');
+        expectBindingError('"Foo"|#privateIdentifier"', 'identifier or keyword');
       });
 
       it('should parse quoted expressions', () => {

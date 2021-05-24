@@ -55,7 +55,8 @@
       "title": "Getting Started",
       "tooltip": "Set up your environment and learn basic concepts",
       "children": [
-        { "url": "guide/what-is-angular",
+        {
+          "url": "guide/what-is-angular",
           "title": "What is Angular?",
           "tooltip": "A brief description of the Angular platform."
         },
@@ -134,6 +135,11 @@
               "url": "guide/inputs-outputs",
               "title": "Sharing data between child and parent directives and components",
               "tooltip": "Introductory guide to sharing data between parent and child directives or components."
+            },
+            {
+              "url": "guide/content-projection",
+              "title": "Content Projection",
+              "tooltip": "Learn how to create reusable components using Angular's content projection feature."
             },
             {
               "url": "guide/dynamic-component-loader",
@@ -252,9 +258,41 @@
       "tooltip": "Learn more about how to use Angular to build your applications.",
       "children": [
         {
-          "url": "guide/router",
           "title": "Routing & Navigation",
-          "tooltip": "Build in-app navigation among views using the Angular Router."
+          "tooltip": "Build in-app navigation among views using the Angular Router.",
+          "children": [
+            {
+              "url": "guide/routing-overview",
+              "title": "Overview",
+              "tooltip": "Introduces the Angular Router and lists topics that teach you how to add the router to your applications."
+            },
+            {
+              "url": "guide/router",
+              "title": "Common routing tasks",
+              "tooltip": "Task-based content on many of the common tasks associated with Angular routing, such as defining routs, setting up wildcard routes, and redirects."
+            },
+            {
+              "url": "guide/router-tutorial",
+              "title": "Tutorial: Routing in Single-page Applications",
+              "tooltip": "A tutorial that covers many patterns associated with Angular routing."
+            },
+            {
+              "url": "guide/routing-with-urlmatcher",
+              "title": "Tutorial: Creating custom route matches",
+              "tooltip": "Learn how to create a custom URL matcher with the Angular router."
+            },
+            {
+              "url": "guide/router-tutorial-toh",
+              "title": "Tutorial: Adding routing to Tour of Heroes",
+              "tooltip": "Explore how to use Angular's router. Based on the Tour of Heroes example."
+            },
+            {
+              "url": "guide/router-reference",
+              "title": "Router reference",
+              "tooltip": "Describes highlight some core router API concepts."
+            }
+
+          ]
         },
         {
           "title": "Forms",
@@ -458,6 +496,11 @@
           "tooltip": "Use property binding efficiently."
         },
         {
+          "url": "guide/lazy-loading-ngmodules",
+          "title": "Lazy Loading Feature Modules",
+          "tooltip": "Lazy load modules to speed up your apps."
+        },
+        {
           "url": "guide/lightweight-injection-tokens",
           "title": "Lightweight Injection Tokens for Libraries",
           "tooltip": "Optimize client app size by designing library services with lightweight injection tokens."
@@ -524,6 +567,11 @@
           "url": "guide/language-service",
           "title": "Language Service",
           "tooltip": "Use Angular Language Service to speed up dev time."
+        },
+        {
+          "title": "DevTools",
+          "tooltip": "DevTools",
+          "url": "guide/devtools"
         }
       ]
     },
@@ -578,22 +626,6 @@
           ]
         },
         {
-          "title": "Routing",
-          "tooltip": "End-to-end tutorials for learning about Angular's router.",
-          "children": [
-            {
-              "url": "guide/router-tutorial",
-              "title": "Using Angular Routes in a Single-page Application",
-              "tooltip": "A tutorial that covers many patterns associated with Angular routing."
-            },
-            {
-              "url": "guide/router-tutorial-toh",
-              "title": "Router tutorial: tour of heroes",
-              "tooltip": "Explore how to use Angular's router. Based on the Tour of Heroes example."
-            }
-          ]
-        },
-        {
           "url": "guide/forms",
           "title": "Building a Template-driven Form",
           "tooltip": "Create a template-driven form using directives and Angular template syntax."
@@ -641,18 +673,23 @@
           "tooltip": "Roadmap of the Angular team."
         },
         {
-          "title": "Updating to Version 11",
-          "tooltip": "Support for updating your application from version 9 to 10.",
+          "title": "Updating to Version 12",
+          "tooltip": "Support for updating your application from version 11 to 12.",
           "children": [
             {
-              "url": "guide/updating-to-version-11",
+              "url": "guide/updating-to-version-12",
               "title": "Overview",
-              "tooltip": "Everything you need to know for updating your application from version 10 to 11."
+              "tooltip": "Everything you need to know for updating your application from version 11 to 12."
             },
             {
               "url": "guide/ivy-compatibility",
               "title": "Ivy Compatibility Guide",
               "tooltip": "Details to help you make sure your application is compatible with Ivy."
+            },
+            {
+              "url": "guide/migration-legacy-message-id",
+              "title": "Migration: Legacy Localization IDs",
+              "tooltip": "Learn how to migrate legacy IDs for localization to new, more stable ones."
             }
           ]
         },
@@ -780,7 +817,8 @@
                 {
                   "url": "guide/strict-mode",
                   "title": "Strict mode",
-                  "tooltip": "Reference documentation for Angular's strict mode."
+                  "tooltip": "Reference documentation for Angular's strict mode.",
+                  "hidden": true
                 }
               ]
             },
@@ -832,11 +870,6 @@
                   "url": "guide/singleton-services",
                   "title": "Singleton Services",
                   "tooltip": "Creating singleton services."
-                },
-                {
-                  "url": "guide/lazy-loading-ngmodules",
-                  "title": "Lazy Loading Feature Modules",
-                  "tooltip": "Lazy load modules to speed up your apps."
                 },
                 {
                   "url": "guide/sharing-ngmodules",
