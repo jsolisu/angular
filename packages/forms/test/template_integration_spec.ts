@@ -187,6 +187,21 @@ import {NgModelCustomComp, NgModelCustomWrapper} from './value_accessor_integrat
              dispatchEvent(input, 'input');
              fixture.detectChanges();
              expect(sortedClassList(input)).toEqual(['ng-dirty', 'ng-touched', 'ng-valid']);
+
+             const formEl = fixture.debugElement.query(By.css('form')).nativeElement;
+             dispatchEvent(formEl, 'submit');
+             fixture.detectChanges();
+
+             expect(sortedClassList(formEl)).toEqual([
+               'ng-dirty', 'ng-submitted', 'ng-touched', 'ng-valid'
+             ]);
+             expect(sortedClassList(input)).not.toContain('ng-submitted');
+
+             dispatchEvent(formEl, 'reset');
+             fixture.detectChanges();
+
+             expect(sortedClassList(formEl)).toEqual(['ng-pristine', 'ng-untouched', 'ng-valid']);
+             expect(sortedClassList(input)).not.toContain('ng-submitted');
            });
          }));
 
@@ -244,8 +259,51 @@ import {NgModelCustomComp, NgModelCustomWrapper} from './value_accessor_integrat
 
              expect(sortedClassList(modelGroup)).toEqual(['ng-dirty', 'ng-touched', 'ng-valid']);
              expect(sortedClassList(form)).toEqual(['ng-dirty', 'ng-touched', 'ng-valid']);
+
+             const formEl = fixture.debugElement.query(By.css('form')).nativeElement;
+             dispatchEvent(formEl, 'submit');
+             fixture.detectChanges();
+
+             expect(sortedClassList(formEl)).toEqual([
+               'ng-dirty', 'ng-submitted', 'ng-touched', 'ng-valid'
+             ]);
            });
          }));
+
+      it('should set status classes involving nested FormGroups', () => {
+        const fixture = initTest(NgModelNestedForm);
+        fixture.componentInstance.first = '';
+        fixture.componentInstance.other = '';
+        fixture.detectChanges();
+
+        const form = fixture.debugElement.query(By.css('form')).nativeElement;
+        const modelGroup = fixture.debugElement.query(By.css('[ngModelGroup]')).nativeElement;
+        const input = fixture.debugElement.query(By.css('input')).nativeElement;
+
+        fixture.whenStable().then(() => {
+          fixture.detectChanges();
+          expect(sortedClassList(modelGroup)).toEqual(['ng-pristine', 'ng-untouched', 'ng-valid']);
+
+          expect(sortedClassList(form)).toEqual(['ng-pristine', 'ng-untouched', 'ng-valid']);
+
+          const formEl = fixture.debugElement.query(By.css('form')).nativeElement;
+          dispatchEvent(formEl, 'submit');
+          fixture.detectChanges();
+
+          expect(sortedClassList(modelGroup)).toEqual(['ng-pristine', 'ng-untouched', 'ng-valid']);
+          expect(sortedClassList(form)).toEqual([
+            'ng-pristine', 'ng-submitted', 'ng-untouched', 'ng-valid'
+          ]);
+          expect(sortedClassList(input)).not.toContain('ng-submitted');
+
+          dispatchEvent(formEl, 'reset');
+          fixture.detectChanges();
+
+          expect(sortedClassList(modelGroup)).toEqual(['ng-pristine', 'ng-untouched', 'ng-valid']);
+          expect(sortedClassList(form)).toEqual(['ng-pristine', 'ng-untouched', 'ng-valid']);
+          expect(sortedClassList(input)).not.toContain('ng-submitted');
+        });
+      });
 
       it('should not create a template-driven form when ngNoForm is used', () => {
         const fixture = initTest(NgNoFormComp);
@@ -1524,6 +1582,7 @@ import {NgModelCustomComp, NgModelCustomWrapper} from './value_accessor_integrat
            input.value = '';
            dispatchEvent(input, 'input');
            fixture.detectChanges();
+           expect(input.getAttribute('max')).toEqual('10');
            expect(form.valid).toEqual(true);
            expect(form.controls.max.errors).toBeNull();
 
@@ -1534,6 +1593,21 @@ import {NgModelCustomComp, NgModelCustomWrapper} from './value_accessor_integrat
            expect(form.controls.max.errors).toEqual({max: {max: 10, actual: 11}});
 
            input.value = 9;
+           dispatchEvent(input, 'input');
+           fixture.detectChanges();
+           expect(form.valid).toEqual(true);
+           expect(form.controls.max.errors).toBeNull();
+
+           fixture.componentInstance.max = 0;
+           fixture.detectChanges();
+           tick();
+           dispatchEvent(input, 'input');
+           fixture.detectChanges();
+           expect(input.getAttribute('max')).toEqual('0');
+           expect(form.valid).toEqual(false);
+           expect(form.controls.max.errors).toEqual({max: {max: 0, actual: 9}});
+
+           input.value = 0;
            dispatchEvent(input, 'input');
            fixture.detectChanges();
            expect(form.valid).toEqual(true);
@@ -1552,6 +1626,7 @@ import {NgModelCustomComp, NgModelCustomWrapper} from './value_accessor_integrat
            input.value = '';
            dispatchEvent(input, 'input');
            fixture.detectChanges();
+           expect(input.getAttribute('max')).toEqual('10.25');
            expect(form.valid).toEqual(true);
            expect(form.controls.max.errors).toBeNull();
 
@@ -1586,6 +1661,7 @@ import {NgModelCustomComp, NgModelCustomWrapper} from './value_accessor_integrat
            input.value = '11';
            dispatchEvent(input, 'input');
            fixture.detectChanges();
+           expect(input.getAttribute('max')).toEqual('10');
            expect(form.valid).toEqual(false);
            expect(form.controls.max.errors).toEqual({max: {max: 10, actual: 11}});
 
@@ -1635,6 +1711,7 @@ import {NgModelCustomComp, NgModelCustomWrapper} from './value_accessor_integrat
            input.value = '';
            dispatchEvent(input, 'input');
            fixture.detectChanges();
+           expect(input.getAttribute('min')).toEqual('10');
            expect(form.valid).toEqual(true);
            expect(form.controls.min.errors).toBeNull();
 
@@ -1649,6 +1726,22 @@ import {NgModelCustomComp, NgModelCustomWrapper} from './value_accessor_integrat
            fixture.detectChanges();
            expect(form.valid).toEqual(false);
            expect(form.controls.min.errors).toEqual({min: {min: 10, actual: 9}});
+
+           fixture.componentInstance.min = 0;
+           fixture.detectChanges();
+           tick();
+           input.value = -5;
+           dispatchEvent(input, 'input');
+           fixture.detectChanges();
+           expect(input.getAttribute('min')).toEqual('0');
+           expect(form.valid).toEqual(false);
+           expect(form.controls.min.errors).toEqual({min: {min: 0, actual: -5}});
+
+           input.value = 0;
+           dispatchEvent(input, 'input');
+           fixture.detectChanges();
+           expect(form.valid).toEqual(true);
+           expect(form.controls.min.errors).toBeNull();
          }));
 
       it('should validate min for float number', fakeAsync(() => {
@@ -1663,6 +1756,7 @@ import {NgModelCustomComp, NgModelCustomWrapper} from './value_accessor_integrat
            input.value = '';
            dispatchEvent(input, 'input');
            fixture.detectChanges();
+           expect(input.getAttribute('min')).toEqual('10.25');
            expect(form.valid).toEqual(true);
            expect(form.controls.min.errors).toBeNull();
 
@@ -1696,6 +1790,7 @@ import {NgModelCustomComp, NgModelCustomWrapper} from './value_accessor_integrat
            input.value = '11';
            dispatchEvent(input, 'input');
            fixture.detectChanges();
+           expect(input.getAttribute('min')).toEqual('10');
            expect(form.valid).toEqual(true);
            expect(form.controls.min.errors).toBeNull();
 
@@ -2328,6 +2423,24 @@ class NgModelNgIfForm {
   emailShowing = true;
   // TODO(issue/24571): remove '!'.
   email!: string;
+}
+
+@Component({
+  selector: 'ng-model-nested',
+  template: `
+    <form>
+      <div ngModelGroup="contact-info">
+        <input name="first" [(ngModel)]="first">
+        <div ngModelGroup="other-names">
+          <input name="other-names" [(ngModel)]="other">
+        </div>
+      </div>
+    </form>
+  `
+})
+class NgModelNestedForm {
+  first!: string;
+  other!: string;
 }
 
 @Component({

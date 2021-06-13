@@ -7,9 +7,9 @@
  */
 
 import {graphql} from '@octokit/graphql';
-import * as Octokit from '@octokit/rest';
+import {Octokit} from '@octokit/rest';
 import {RequestParameters} from '@octokit/types';
-import {query, types} from 'typed-graphqlify';
+import {query} from 'typed-graphqlify';
 
 /**
  * An object representation of a Graphql Query to be used as a response type and
@@ -32,63 +32,36 @@ export class GithubApiRequestError extends Error {
   }
 }
 
-/** Error for failed Github API requests. */
-export class GithubGraphqlClientError extends Error {}
+/** A Github client for interacting with the Github APIs. */
+export class GithubClient {
+  /** The octokit instance actually performing API requests. */
+  private _octokit = new Octokit(this._octokitOptions);
+
+  readonly pulls = this._octokit.pulls;
+  readonly repos = this._octokit.repos;
+  readonly issues = this._octokit.issues;
+  readonly git = this._octokit.git;
+  readonly paginate = this._octokit.paginate;
+  readonly rateLimit = this._octokit.rateLimit;
+
+  constructor(private _octokitOptions?: Octokit.Options) {}
+}
 
 /**
- * A Github client for interacting with the Github APIs.
- *
- * Additionally, provides convenience methods for actions which require multiple requests, or
- * would provide value from memoized style responses.
- **/
-export class GithubClient extends Octokit {
-  /** The current user based on checking against the Github API. */
-  private _currentUser: string|null = null;
+ * Extension of the `GithubClient` that provides utilities which are specific
+ * to authenticated instances.
+ */
+export class AuthenticatedGithubClient extends GithubClient {
   /** The graphql instance with authentication set during construction. */
-  private _graphql = graphql.defaults({headers: {authorization: `token ${this.token}`}});
+  private _graphql = graphql.defaults({headers: {authorization: `token ${this._token}`}});
 
-  /**
-   * @param token The github authentication token for Github Rest and Graphql API requests.
-   */
-  constructor(private token?: string) {
-    // Pass in authentication token to base Octokit class.
-    super({auth: token});
-
-    this.hook.error('request', error => {
-      // Wrap API errors in a known error class. This allows us to
-      // expect Github API errors better and in a non-ambiguous way.
-      throw new GithubApiRequestError(error.status, error.message);
-    });
-
-    // Note: The prototype must be set explictly as Github's Octokit class is a non-standard class
-    // definition which adjusts the prototype chain.
-    // See:
-    //    https://github.com/Microsoft/TypeScript/wiki/FAQ#why-doesnt-extending-built-ins-like-error-array-and-map-work
-    //    https://github.com/octokit/rest.js/blob/7b51cee4a22b6e52adcdca011f93efdffa5df998/lib/constructor.js
-    Object.setPrototypeOf(this, GithubClient.prototype);
+  constructor(private _token: string) {
+    // Set the token for the octokit instance.
+    super({auth: _token});
   }
 
   /** Perform a query using Github's Graphql API. */
   async graphql<T extends GraphqlQueryObject>(queryObject: T, params: RequestParameters = {}) {
-    if (this.token === undefined) {
-      throw new GithubGraphqlClientError(
-          'Cannot query via graphql without an authentication token set, use the authenticated ' +
-          '`GitClient` by calling `GitClient.getAuthenticatedInstance()`.');
-    }
     return (await this._graphql(query(queryObject).toString(), params)) as T;
-  }
-
-  /** Retrieve the login of the current user from Github. */
-  async getCurrentUser() {
-    // If the current user has already been retrieved return the current user value again.
-    if (this._currentUser !== null) {
-      return this._currentUser;
-    }
-    const result = await this.graphql({
-      viewer: {
-        login: types.string,
-      }
-    });
-    return this._currentUser = result.viewer.login;
   }
 }

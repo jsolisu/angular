@@ -12,7 +12,7 @@ var path = require('path');
 var child_process = require('child_process');
 var semver = require('semver');
 var graphql = require('@octokit/graphql');
-var Octokit = require('@octokit/rest');
+var rest = require('@octokit/rest');
 var typedGraphqlify = require('typed-graphqlify');
 var url = require('url');
 var fetch = _interopDefault(require('node-fetch'));
@@ -71,7 +71,7 @@ var userConfig = null;
 function getConfig(baseDir) {
     // If the global config is not defined, load it from the file system.
     if (cachedConfig === null) {
-        baseDir = baseDir || GitClient.getInstance().baseDir;
+        baseDir = baseDir || GitClient.get().baseDir;
         // The full path to the configuration file.
         var configPath = path.join(baseDir, CONFIG_FILE_PATH);
         // Read the configuration and validate it before caching it for the future.
@@ -164,7 +164,7 @@ function assertNoErrors(errors) {
 function getUserConfig() {
     // If the global config is not defined, load it from the file system.
     if (userConfig === null) {
-        var git = GitClient.getInstance();
+        var git = GitClient.get();
         // The full path to the configuration file.
         var configPath = path.join(git.baseDir, USER_CONFIG_FILE_PATH);
         // Set the global config object.
@@ -217,89 +217,50 @@ var GithubApiRequestError = /** @class */ (function (_super) {
     }
     return GithubApiRequestError;
 }(Error));
-/** Error for failed Github API requests. */
-var GithubGraphqlClientError = /** @class */ (function (_super) {
-    tslib.__extends(GithubGraphqlClientError, _super);
-    function GithubGraphqlClientError() {
-        return _super !== null && _super.apply(this, arguments) || this;
+/** A Github client for interacting with the Github APIs. */
+var GithubClient = /** @class */ (function () {
+    function GithubClient(_octokitOptions) {
+        this._octokitOptions = _octokitOptions;
+        /** The octokit instance actually performing API requests. */
+        this._octokit = new rest.Octokit(this._octokitOptions);
+        this.pulls = this._octokit.pulls;
+        this.repos = this._octokit.repos;
+        this.issues = this._octokit.issues;
+        this.git = this._octokit.git;
+        this.paginate = this._octokit.paginate;
+        this.rateLimit = this._octokit.rateLimit;
     }
-    return GithubGraphqlClientError;
-}(Error));
+    return GithubClient;
+}());
 /**
- * A Github client for interacting with the Github APIs.
- *
- * Additionally, provides convenience methods for actions which require multiple requests, or
- * would provide value from memoized style responses.
- **/
-var GithubClient = /** @class */ (function (_super) {
-    tslib.__extends(GithubClient, _super);
-    /**
-     * @param token The github authentication token for Github Rest and Graphql API requests.
-     */
-    function GithubClient(token) {
+ * Extension of the `GithubClient` that provides utilities which are specific
+ * to authenticated instances.
+ */
+var AuthenticatedGithubClient = /** @class */ (function (_super) {
+    tslib.__extends(AuthenticatedGithubClient, _super);
+    function AuthenticatedGithubClient(_token) {
         var _this = 
-        // Pass in authentication token to base Octokit class.
-        _super.call(this, { auth: token }) || this;
-        _this.token = token;
-        /** The current user based on checking against the Github API. */
-        _this._currentUser = null;
+        // Set the token for the octokit instance.
+        _super.call(this, { auth: _token }) || this;
+        _this._token = _token;
         /** The graphql instance with authentication set during construction. */
-        _this._graphql = graphql.graphql.defaults({ headers: { authorization: "token " + _this.token } });
-        _this.hook.error('request', function (error) {
-            // Wrap API errors in a known error class. This allows us to
-            // expect Github API errors better and in a non-ambiguous way.
-            throw new GithubApiRequestError(error.status, error.message);
-        });
-        // Note: The prototype must be set explictly as Github's Octokit class is a non-standard class
-        // definition which adjusts the prototype chain.
-        // See:
-        //    https://github.com/Microsoft/TypeScript/wiki/FAQ#why-doesnt-extending-built-ins-like-error-array-and-map-work
-        //    https://github.com/octokit/rest.js/blob/7b51cee4a22b6e52adcdca011f93efdffa5df998/lib/constructor.js
-        Object.setPrototypeOf(_this, GithubClient.prototype);
+        _this._graphql = graphql.graphql.defaults({ headers: { authorization: "token " + _this._token } });
         return _this;
     }
     /** Perform a query using Github's Graphql API. */
-    GithubClient.prototype.graphql = function (queryObject, params) {
+    AuthenticatedGithubClient.prototype.graphql = function (queryObject, params) {
         if (params === void 0) { params = {}; }
         return tslib.__awaiter(this, void 0, void 0, function () {
             return tslib.__generator(this, function (_a) {
                 switch (_a.label) {
-                    case 0:
-                        if (this.token === undefined) {
-                            throw new GithubGraphqlClientError('Cannot query via graphql without an authentication token set, use the authenticated ' +
-                                '`GitClient` by calling `GitClient.getAuthenticatedInstance()`.');
-                        }
-                        return [4 /*yield*/, this._graphql(typedGraphqlify.query(queryObject).toString(), params)];
+                    case 0: return [4 /*yield*/, this._graphql(typedGraphqlify.query(queryObject).toString(), params)];
                     case 1: return [2 /*return*/, (_a.sent())];
                 }
             });
         });
     };
-    /** Retrieve the login of the current user from Github. */
-    GithubClient.prototype.getCurrentUser = function () {
-        return tslib.__awaiter(this, void 0, void 0, function () {
-            var result;
-            return tslib.__generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0:
-                        // If the current user has already been retrieved return the current user value again.
-                        if (this._currentUser !== null) {
-                            return [2 /*return*/, this._currentUser];
-                        }
-                        return [4 /*yield*/, this.graphql({
-                                viewer: {
-                                    login: typedGraphqlify.types.string,
-                                }
-                            })];
-                    case 1:
-                        result = _a.sent();
-                        return [2 /*return*/, this._currentUser = result.viewer.login];
-                }
-            });
-        });
-    };
-    return GithubClient;
-}(Octokit));
+    return AuthenticatedGithubClient;
+}(GithubClient));
 
 /**
  * @license
@@ -350,80 +311,30 @@ var GitCommandError = /** @class */ (function (_super) {
         // Errors are not guaranteed to be caught. To ensure that we don't
         // accidentally leak the Github token that might be used in a command,
         // we sanitize the command that will be part of the error message.
-        _super.call(this, "Command failed: git " + client.omitGithubTokenFromMessage(args.join(' '))) || this;
+        _super.call(this, "Command failed: git " + client.sanitizeConsoleOutput(args.join(' '))) || this;
         _this.args = args;
         return _this;
     }
     return GitCommandError;
 }(Error));
-/**
- * Common client for performing Git interactions with a given remote.
- *
- * Takes in two optional arguments:
- *   `githubToken`: the token used for authentication in Github interactions, by default empty
- *     allowing readonly actions.
- *   `config`: The dev-infra configuration containing information about the remote. By default
- *     the dev-infra configuration is loaded with its Github configuration.
- **/
+/** Class that can be used to perform Git interactions with a given remote. **/
 var GitClient = /** @class */ (function () {
-    /**
-     * @param githubToken The github token used for authentication, if provided.
-     * @param _config The configuration, containing the github specific configuration.
-     * @param baseDir The full path to the root of the repository base.
-     */
-    function GitClient(githubToken, config, baseDir) {
-        this.githubToken = githubToken;
-        /** The OAuth scopes available for the provided Github token. */
-        this._cachedOauthScopes = null;
-        /**
-         * Regular expression that matches the provided Github token. Used for
-         * sanitizing the token from Git child process output.
-         */
-        this._githubTokenRegex = null;
-        /** Instance of the Github octokit API. */
-        this.github = new GithubClient(this.githubToken);
-        this.baseDir = baseDir || this.determineBaseDir();
-        this.config = config || getConfig(this.baseDir);
+    function GitClient(
+    /** The full path to the root of the repository base. */
+    baseDir, 
+    /** The configuration, containing the github specific configuration. */
+    config) {
+        if (baseDir === void 0) { baseDir = determineRepoBaseDirFromCwd(); }
+        if (config === void 0) { config = getConfig(baseDir); }
+        this.baseDir = baseDir;
+        this.config = config;
+        /** Short-hand for accessing the default remote configuration. */
         this.remoteConfig = this.config.github;
+        /** Octokit request parameters object for targeting the configured remote. */
         this.remoteParams = { owner: this.remoteConfig.owner, repo: this.remoteConfig.name };
-        // If a token has been specified (and is not empty), pass it to the Octokit API and
-        // also create a regular expression that can be used for sanitizing Git command output
-        // so that it does not print the token accidentally.
-        if (typeof githubToken === 'string') {
-            this._githubTokenRegex = new RegExp(githubToken, 'g');
-        }
+        /** Instance of the Github client. */
+        this.github = new GithubClient();
     }
-    /**
-     * Static method to get the singleton instance of the unauthorized GitClient, creating it if it
-     * has not yet been created.
-     */
-    GitClient.getInstance = function () {
-        if (!GitClient.unauthenticated) {
-            GitClient.unauthenticated = new GitClient(undefined);
-        }
-        return GitClient.unauthenticated;
-    };
-    /**
-     * Static method to get the singleton instance of the authenticated GitClient if it has been
-     * generated.
-     */
-    GitClient.getAuthenticatedInstance = function () {
-        if (!GitClient.authenticated) {
-            throw Error('The authenticated GitClient has not yet been generated.');
-        }
-        return GitClient.authenticated;
-    };
-    /** Build the authenticated GitClient instance. */
-    GitClient.authenticateWithToken = function (token) {
-        if (GitClient.authenticated) {
-            throw Error('Cannot generate new authenticated GitClient after one has already been generated.');
-        }
-        GitClient.authenticated = new GitClient(token);
-    };
-    /** Set the verbose logging state of the GitClient class. */
-    GitClient.setVerboseLoggingState = function (verbose) {
-        this.verboseLogging = verbose;
-    };
     /** Executes the given git command. Throws if the command fails. */
     GitClient.prototype.run = function (args, options) {
         var result = this.runGraceful(args, options);
@@ -448,13 +359,14 @@ var GitClient = /** @class */ (function () {
             throw new DryRunError();
         }
         // To improve the debugging experience in case something fails, we print all executed Git
-        // commands at the DEBUG level to better understand the git actions occuring. Verbose logging,
+        // commands at the DEBUG level to better understand the git actions occurring. Verbose logging,
         // always logging at the INFO level, can be enabled either by setting the verboseLogging
         // property on the GitClient class or the options object provided to the method.
         var printFn = (GitClient.verboseLogging || options.verboseLogging) ? info : debug;
-        // Note that we do not want to print the token if it is contained in the command. It's common
-        // to share errors with others if the tool failed, and we do not want to leak tokens.
-        printFn('Executing: git', this.omitGithubTokenFromMessage(args.join(' ')));
+        // Note that we sanitize the command before printing it to the console. We do not want to
+        // print an access token if it is contained in the command. It's common to share errors with
+        // others if the tool failed, and we do not want to leak tokens.
+        printFn('Executing: git', this.sanitizeConsoleOutput(args.join(' ')));
         var result = child_process.spawnSync('git', args, tslib.__assign(tslib.__assign({ cwd: this.baseDir, stdio: 'pipe' }, options), { 
             // Encoding is always `utf8` and not overridable. This ensures that this method
             // always returns `string` as output instead of buffers.
@@ -463,13 +375,13 @@ var GitClient = /** @class */ (function () {
             // Git sometimes prints the command if it failed. This means that it could
             // potentially leak the Github token used for accessing the remote. To avoid
             // printing a token, we sanitize the string before printing the stderr output.
-            process.stderr.write(this.omitGithubTokenFromMessage(result.stderr));
+            process.stderr.write(this.sanitizeConsoleOutput(result.stderr));
         }
         return result;
     };
     /** Git URL that resolves to the configured repository. */
     GitClient.prototype.getRepoGitUrl = function () {
-        return getRepositoryGitUrl(this.remoteConfig, this.githubToken);
+        return getRepositoryGitUrl(this.remoteConfig);
     };
     /** Whether the given branch contains the specified SHA. */
     GitClient.prototype.hasCommit = function (branchName, sha) {
@@ -489,19 +401,6 @@ var GitClient = /** @class */ (function () {
     /** Gets whether the current Git repository has uncommitted changes. */
     GitClient.prototype.hasUncommittedChanges = function () {
         return this.runGraceful(['diff-index', '--quiet', 'HEAD']).status !== 0;
-    };
-    /** Whether the repo has any local changes. */
-    GitClient.prototype.hasLocalChanges = function () {
-        return this.runGraceful(['diff-index', '--quiet', 'HEAD']).status !== 0;
-    };
-    /** Sanitizes a given message by omitting the provided Github token if present. */
-    GitClient.prototype.omitGithubTokenFromMessage = function (value) {
-        // If no token has been defined (i.e. no token regex), we just return the
-        // value as is. There is no secret value that needs to be omitted.
-        if (this._githubTokenRegex === null) {
-            return value;
-        }
-        return value.replace(this._githubTokenRegex, '<TOKEN>');
     };
     /**
      * Checks out a requested branch or revision, optionally cleaning the state of the repository
@@ -531,7 +430,7 @@ var GitClient = /** @class */ (function () {
         }
         return new semver.SemVer(latestTag, semVerOptions);
     };
-    /** Retrieve a list of all files in the repostitory changed since the provided shaOrRef. */
+    /** Retrieve a list of all files in the repository changed since the provided shaOrRef. */
     GitClient.prototype.allChangesFilesSince = function (shaOrRef) {
         if (shaOrRef === void 0) { shaOrRef = 'HEAD'; }
         return Array.from(new Set(tslib.__spreadArray(tslib.__spreadArray([], tslib.__read(gitOutputAsArray(this.runGraceful(['diff', '--name-only', '--diff-filter=d', shaOrRef])))), tslib.__read(gitOutputAsArray(this.runGraceful(['ls-files', '--others', '--exclude-standard']))))));
@@ -540,71 +439,38 @@ var GitClient = /** @class */ (function () {
     GitClient.prototype.allStagedFiles = function () {
         return gitOutputAsArray(this.runGraceful(['diff', '--name-only', '--diff-filter=ACM', '--staged']));
     };
-    /** Retrieve a list of all files tracked in the repostitory. */
+    /** Retrieve a list of all files tracked in the repository. */
     GitClient.prototype.allFiles = function () {
         return gitOutputAsArray(this.runGraceful(['ls-files']));
     };
     /**
-     * Assert the GitClient instance is using a token with permissions for the all of the
-     * provided OAuth scopes.
+     * Sanitizes the given console message. This method can be overridden by
+     * derived classes. e.g. to sanitize access tokens from Git commands.
      */
-    GitClient.prototype.hasOauthScopes = function (testFn) {
-        return tslib.__awaiter(this, void 0, void 0, function () {
-            var scopes, missingScopes, error;
-            return tslib.__generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0: return [4 /*yield*/, this.getAuthScopesForToken()];
-                    case 1:
-                        scopes = _a.sent();
-                        missingScopes = [];
-                        // Test Github OAuth scopes and collect missing ones.
-                        testFn(scopes, missingScopes);
-                        // If no missing scopes are found, return true to indicate all OAuth Scopes are available.
-                        if (missingScopes.length === 0) {
-                            return [2 /*return*/, true];
-                        }
-                        error = "The provided <TOKEN> does not have required permissions due to missing scope(s): " +
-                            (yellow(missingScopes.join(', ')) + "\n\n") +
-                            "Update the token in use at:\n" +
-                            ("  " + GITHUB_TOKEN_SETTINGS_URL + "\n\n") +
-                            ("Alternatively, a new token can be created at: " + GITHUB_TOKEN_GENERATE_URL + "\n");
-                        return [2 /*return*/, { error: error }];
-                }
-            });
-        });
+    GitClient.prototype.sanitizeConsoleOutput = function (value) {
+        return value;
+    };
+    /** Set the verbose logging state of all git client instances. */
+    GitClient.setVerboseLoggingState = function (verbose) {
+        GitClient.verboseLogging = verbose;
     };
     /**
-     * Retrieve the OAuth scopes for the loaded Github token.
-     **/
-    GitClient.prototype.getAuthScopesForToken = function () {
-        // If the OAuth scopes have already been loaded, return the Promise containing them.
-        if (this._cachedOauthScopes !== null) {
-            return this._cachedOauthScopes;
+     * Static method to get the singleton instance of the `GitClient`, creating it
+     * if it has not yet been created.
+     */
+    GitClient.get = function () {
+        if (!this._unauthenticatedInstance) {
+            GitClient._unauthenticatedInstance = new GitClient();
         }
-        // OAuth scopes are loaded via the /rate_limit endpoint to prevent
-        // usage of a request against that rate_limit for this lookup.
-        return this._cachedOauthScopes = this.github.rateLimit.get().then(function (_response) {
-            var response = _response;
-            var scopes = response.headers['x-oauth-scopes'] || '';
-            return scopes.split(',').map(function (scope) { return scope.trim(); });
-        });
-    };
-    GitClient.prototype.determineBaseDir = function () {
-        var _a = this.runGraceful(['rev-parse', '--show-toplevel']), stdout = _a.stdout, stderr = _a.stderr, status = _a.status;
-        if (status !== 0) {
-            throw Error("Unable to find the path to the base directory of the repository.\n" +
-                "Was the command run from inside of the repo?\n\n" +
-                ("ERROR:\n " + stderr));
-        }
-        return stdout.trim();
+        return GitClient._unauthenticatedInstance;
     };
     /** Whether verbose logging of Git actions should be used. */
     GitClient.verboseLogging = false;
     return GitClient;
 }());
 /**
- * Takes the output from `GitClient.run` and `GitClient.runGraceful` and returns an array of strings
- * for each new line. Git commands typically return multiple output values for a command a set of
+ * Takes the output from `run` and `runGraceful` and returns an array of strings for each
+ * new line. Git commands typically return multiple output values for a command a set of
  * strings separated by new lines.
  *
  * Note: This is specifically created as a locally available function for usage as convenience
@@ -612,6 +478,17 @@ var GitClient = /** @class */ (function () {
  */
 function gitOutputAsArray(gitCommandResult) {
     return gitCommandResult.stdout.split('\n').map(function (x) { return x.trim(); }).filter(function (x) { return !!x; });
+}
+/** Determines the repository base directory from the current working directory. */
+function determineRepoBaseDirFromCwd() {
+    // TODO(devversion): Replace with common spawn sync utility once available.
+    var _a = child_process.spawnSync('git', ['rev-parse --show-toplevel'], { shell: true, stdio: 'pipe', encoding: 'utf8' }), stdout = _a.stdout, stderr = _a.stderr, status = _a.status;
+    if (status !== 0) {
+        throw Error("Unable to find the path to the base directory of the repository.\n" +
+            "Was the command run from inside of the repo?\n\n" +
+            ("" + stderr));
+    }
+    return stdout.trim();
 }
 
 /**
@@ -758,7 +635,7 @@ function captureLogOutputForCommand(argv) {
     if (FILE_LOGGING_ENABLED) {
         throw Error('`captureLogOutputForCommand` cannot be called multiple times');
     }
-    var git = GitClient.getInstance();
+    var git = GitClient.get();
     /** The date time used for timestamping when the command was invoked. */
     var now = new Date();
     /** Header line to separate command runs in log files. */
@@ -796,6 +673,103 @@ function printToLogFile(logLevel) {
 }
 
 /**
+ * Extension of the `GitClient` with additional utilities which are useful for
+ * authenticated Git client instances.
+ */
+var AuthenticatedGitClient = /** @class */ (function (_super) {
+    tslib.__extends(AuthenticatedGitClient, _super);
+    function AuthenticatedGitClient(githubToken, baseDir, config) {
+        var _this = _super.call(this, baseDir, config) || this;
+        _this.githubToken = githubToken;
+        /**
+         * Regular expression that matches the provided Github token. Used for
+         * sanitizing the token from Git child process output.
+         */
+        _this._githubTokenRegex = new RegExp(_this.githubToken, 'g');
+        /** The OAuth scopes available for the provided Github token. */
+        _this._cachedOauthScopes = null;
+        /** Instance of an authenticated github client. */
+        _this.github = new AuthenticatedGithubClient(_this.githubToken);
+        return _this;
+    }
+    /** Sanitizes a given message by omitting the provided Github token if present. */
+    AuthenticatedGitClient.prototype.sanitizeConsoleOutput = function (value) {
+        return value.replace(this._githubTokenRegex, '<TOKEN>');
+    };
+    /** Git URL that resolves to the configured repository. */
+    AuthenticatedGitClient.prototype.getRepoGitUrl = function () {
+        return getRepositoryGitUrl(this.remoteConfig, this.githubToken);
+    };
+    /**
+     * Assert the GitClient instance is using a token with permissions for the all of the
+     * provided OAuth scopes.
+     */
+    AuthenticatedGitClient.prototype.hasOauthScopes = function (testFn) {
+        return tslib.__awaiter(this, void 0, void 0, function () {
+            var scopes, missingScopes, error;
+            return tslib.__generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, this._fetchAuthScopesForToken()];
+                    case 1:
+                        scopes = _a.sent();
+                        missingScopes = [];
+                        // Test Github OAuth scopes and collect missing ones.
+                        testFn(scopes, missingScopes);
+                        // If no missing scopes are found, return true to indicate all OAuth Scopes are available.
+                        if (missingScopes.length === 0) {
+                            return [2 /*return*/, true];
+                        }
+                        error = "The provided <TOKEN> does not have required permissions due to missing scope(s): " +
+                            (yellow(missingScopes.join(', ')) + "\n\n") +
+                            "Update the token in use at:\n" +
+                            ("  " + GITHUB_TOKEN_SETTINGS_URL + "\n\n") +
+                            ("Alternatively, a new token can be created at: " + GITHUB_TOKEN_GENERATE_URL + "\n");
+                        return [2 /*return*/, { error: error }];
+                }
+            });
+        });
+    };
+    /** Fetch the OAuth scopes for the loaded Github token. */
+    AuthenticatedGitClient.prototype._fetchAuthScopesForToken = function () {
+        // If the OAuth scopes have already been loaded, return the Promise containing them.
+        if (this._cachedOauthScopes !== null) {
+            return this._cachedOauthScopes;
+        }
+        // OAuth scopes are loaded via the /rate_limit endpoint to prevent
+        // usage of a request against that rate_limit for this lookup.
+        return this._cachedOauthScopes = this.github.rateLimit.get().then(function (_response) {
+            var response = _response;
+            var scopes = response.headers['x-oauth-scopes'];
+            // If no token is provided, or if the Github client is authenticated incorrectly,
+            // the `x-oauth-scopes` response header is not set. We error in such cases as it
+            // signifies a faulty  of the
+            if (scopes === undefined) {
+                throw Error('Unable to retrieve OAuth scopes for token provided to Git client.');
+            }
+            return scopes.split(',').map(function (scope) { return scope.trim(); }).filter(function (scope) { return scope !== ''; });
+        });
+    };
+    /**
+     * Static method to get the singleton instance of the `AuthenticatedGitClient`,
+     * creating it if it has not yet been created.
+     */
+    AuthenticatedGitClient.get = function () {
+        if (!AuthenticatedGitClient._authenticatedInstance) {
+            throw new Error('No instance of `AuthenticatedGitClient` has been set up yet.');
+        }
+        return AuthenticatedGitClient._authenticatedInstance;
+    };
+    /** Configures an authenticated git client. */
+    AuthenticatedGitClient.configure = function (token) {
+        if (AuthenticatedGitClient._authenticatedInstance) {
+            throw Error('Unable to configure `AuthenticatedGitClient` as it has been configured already.');
+        }
+        AuthenticatedGitClient._authenticatedInstance = new AuthenticatedGitClient(token);
+    };
+    return AuthenticatedGitClient;
+}(GitClient));
+
+/**
  * @license
  * Copyright Google LLC All Rights Reserved.
  *
@@ -806,7 +780,7 @@ function printToLogFile(logLevel) {
 function addGithubTokenOption(yargs) {
     return yargs
         // 'github-token' is casted to 'githubToken' to properly set up typings to reflect the key in
-        // the Argv object being camelCase rather than kebob case due to the `camel-case-expansion`
+        // the Argv object being camelCase rather than kebab case due to the `camel-case-expansion`
         // config: https://github.com/yargs/yargs-parser#camel-case-expansion
         .option('github-token', {
         type: 'string',
@@ -820,10 +794,10 @@ function addGithubTokenOption(yargs) {
                 process.exit(1);
             }
             try {
-                GitClient.getAuthenticatedInstance();
+                AuthenticatedGitClient.get();
             }
             catch (_a) {
-                GitClient.authenticateWithToken(githubToken);
+                AuthenticatedGitClient.configure(githubToken);
             }
             return githubToken;
         },
@@ -882,7 +856,8 @@ const versionBranchNameRegex = /^(\d+)\.(\d+)\.x$/;
 function getVersionOfBranch(repo, branchName) {
     return tslib.__awaiter(this, void 0, void 0, function* () {
         const { data } = yield repo.api.repos.getContents({ owner: repo.owner, repo: repo.name, path: '/package.json', ref: branchName });
-        const { version } = JSON.parse(Buffer.from(data.content, 'base64').toString());
+        const content = Array.isArray(data) ? '' : data.content || '';
+        const { version } = JSON.parse(Buffer.from(content, 'base64').toString());
         const parsedVersion = semver.parse(version);
         if (parsedVersion === null) {
             throw Error(`Invalid version detected in following branch: ${branchName}.`);
@@ -1159,12 +1134,19 @@ function getLtsNpmDistTagOfMajor(major) {
     return `v${major}-lts`;
 }
 
+/**
+ * @license
+ * Copyright Google LLC All Rights Reserved.
+ *
+ * Use of this source code is governed by an MIT-style license that can be
+ * found in the LICENSE file at https://angular.io/license
+ */
 /** The BaseModule to extend modules for caretaker checks from. */
 class BaseModule {
     constructor(config) {
         this.config = config;
-        /** The singleton instance of the GitClient. */
-        this.git = GitClient.getAuthenticatedInstance();
+        /** The singleton instance of the authenticated git client. */
+        this.git = AuthenticatedGitClient.get();
         /** The data for the module. */
         this.data = this.retrieveData();
     }
@@ -1870,7 +1852,7 @@ const parseOptions = {
     headerPattern,
     headerCorrespondence,
     noteKeywords: [NoteSections.BREAKING_CHANGE, NoteSections.DEPRECATED],
-    notesPattern: (keywords) => new RegExp(`(${keywords})(?:: ?)(.*)`),
+    notesPattern: (keywords) => new RegExp(`^\s*(${keywords}): ?(.*)`),
 };
 /** Parse a commit message into its composite parts. */
 const parseCommitMessage = parseInternal;
@@ -1929,15 +1911,25 @@ function parseInternal(fullText) {
 /** Regex matching a URL for an entire commit body line. */
 const COMMIT_BODY_URL_LINE_RE = /^https?:\/\/.*$/;
 /**
- * Regex matching a breaking change.
+ * Regular expression matching potential misuse of the `BREAKING CHANGE:` marker in a
+ * commit message. Commit messages containing one of the following snippets will fail:
  *
- * - Starts with BREAKING CHANGE
- * - Followed by a colon
- * - Followed by a single space or two consecutive new lines
- *
- * NB: Anything after `BREAKING CHANGE` is optional to facilitate the validation.
+ *   - `BREAKING CHANGE <some-content>` | Here we assume the colon is missing by accident.
+ *   - `BREAKING-CHANGE: <some-content>` | The wrong keyword is used here.
+ *   - `BREAKING CHANGES: <some-content>` | The wrong keyword is used here.
+ *   - `BREAKING-CHANGES: <some-content>` | The wrong keyword is used here.
  */
-const COMMIT_BODY_BREAKING_CHANGE_RE = /^BREAKING CHANGE(:( |\n{2}))?/m;
+const INCORRECT_BREAKING_CHANGE_BODY_RE = /^(BREAKING CHANGE[^:]|BREAKING-CHANGE|BREAKING[ -]CHANGES)/m;
+/**
+ * Regular expression matching potential misuse of the `DEPRECATED:` marker in a commit
+ * message. Commit messages containing one of the following snippets will fail:
+ *
+ *   - `DEPRECATED <some-content>` | Here we assume the colon is missing by accident.
+ *   - `DEPRECATIONS: <some-content>` | The wrong keyword is used here.
+ *   - `DEPRECATE: <some-content>` | The wrong keyword is used here.
+ *   - `DEPRECATES: <some-content>` | The wrong keyword is used here.
+ */
+const INCORRECT_DEPRECATION_BODY_RE = /^(DEPRECATED[^:]|DEPRECATIONS|DEPRECATE:|DEPRECATES)/m;
 /** Validate a commit message against using the local repo's config. */
 function validateCommitMessage(commitMsg, options = {}) {
     const config = getCommitMessageConfig().commitMessage;
@@ -2035,14 +2027,13 @@ function validateCommitMessage(commitMsg, options = {}) {
         // Breaking change
         // Check if the commit message contains a valid break change description.
         // https://github.com/angular/angular/blob/88fbc066775ab1a2f6a8c75f933375b46d8fa9a4/CONTRIBUTING.md#commit-message-footer
-        const hasBreakingChange = COMMIT_BODY_BREAKING_CHANGE_RE.exec(commit.fullText);
-        if (hasBreakingChange !== null) {
-            const [, breakingChangeDescription] = hasBreakingChange;
-            if (!breakingChangeDescription) {
-                // Not followed by :, space or two consecutive new lines,
-                errors.push(`The commit message body contains an invalid breaking change description.`);
-                return false;
-            }
+        if (INCORRECT_BREAKING_CHANGE_BODY_RE.test(commit.fullText)) {
+            errors.push(`The commit message body contains an invalid breaking change note.`);
+            return false;
+        }
+        if (INCORRECT_DEPRECATION_BODY_RE.test(commit.fullText)) {
+            errors.push(`The commit message body contains an invalid deprecation note.`);
+            return false;
         }
         return true;
     }
@@ -2075,7 +2066,7 @@ function printValidationErrors(errors, print = error) {
  */
 /** Validate commit message at the provided file path. */
 function validateFile(filePath, isErrorMode) {
-    const git = GitClient.getInstance();
+    const git = GitClient.get();
     const commitMessage = fs.readFileSync(path.resolve(git.baseDir, filePath), 'utf8');
     const { valid, errors } = validateCommitMessage(commitMessage);
     if (valid) {
@@ -2330,7 +2321,7 @@ function checkFormatterConfig(key, config, errors) {
 class Formatter {
     constructor(config) {
         this.config = config;
-        this.git = GitClient.getInstance();
+        this.git = GitClient.get();
     }
     /**
      * Retrieve the command to execute the provided action, including both the binary
@@ -2706,18 +2697,18 @@ function buildFormatParser(localYargs) {
     })
         .command('all', 'Run the formatter on all files in the repository', args => args, ({ check }) => {
         const executionCmd = check ? checkFiles : formatFiles;
-        const allFiles = GitClient.getInstance().allFiles();
+        const allFiles = GitClient.get().allFiles();
         executionCmd(allFiles);
     })
         .command('changed [shaOrRef]', 'Run the formatter on files changed since the provided sha/ref', args => args.positional('shaOrRef', { type: 'string' }), ({ shaOrRef, check }) => {
         const sha = shaOrRef || 'master';
         const executionCmd = check ? checkFiles : formatFiles;
-        const allChangedFilesSince = GitClient.getInstance().allChangesFilesSince(sha);
+        const allChangedFilesSince = GitClient.get().allChangesFilesSince(sha);
         executionCmd(allChangedFilesSince);
     })
         .command('staged', 'Run the formatter on all staged files', args => args, ({ check }) => {
         const executionCmd = check ? checkFiles : formatFiles;
-        const allStagedFiles = GitClient.getInstance().allStagedFiles();
+        const allStagedFiles = GitClient.get().allStagedFiles();
         executionCmd(allStagedFiles);
     })
         .command('files <files..>', 'Run the formatter on provided files', args => args.positional('files', { array: true, type: 'string' }), ({ check, files }) => {
@@ -2734,7 +2725,7 @@ function buildFormatParser(localYargs) {
  * found in the LICENSE file at https://angular.io/license
  */
 function verify() {
-    const git = GitClient.getInstance();
+    const git = GitClient.get();
     /** Full path to NgBot config file */
     const NGBOT_CONFIG_YAML_PATH = path.resolve(git.baseDir, '.github/angular-robot.yml');
     /** The NgBot config file */
@@ -2924,7 +2915,7 @@ function getTargetBranchesForPr(prNumber) {
         /** Repo owner and name for the github repository. */
         const { owner, name: repo } = config.github;
         /** The singleton instance of the GitClient. */
-        const git = GitClient.getInstance();
+        const git = GitClient.get();
         /** The validated merge config. */
         const { config: mergeConfig, errors } = yield loadAndValidateConfig(config, git.github);
         if (errors !== undefined) {
@@ -3124,11 +3115,11 @@ class MaintainerModifyAccessError extends Error {
  */
 function checkOutPullRequestLocally(prNumber, githubToken, opts = {}) {
     return tslib.__awaiter(this, void 0, void 0, function* () {
-        /** The singleton instance of the GitClient. */
-        const git = GitClient.getAuthenticatedInstance();
+        /** The singleton instance of the authenticated git client. */
+        const git = AuthenticatedGitClient.get();
         // In order to preserve local changes, checkouts cannot occur if local changes are present in the
         // git environment. Checked before retrieving the PR to fail fast.
-        if (git.hasLocalChanges()) {
+        if (git.hasUncommittedChanges()) {
             throw new UnexpectedLocalChangesError('Unable to checkout PR due to uncommitted changes.');
         }
         /**
@@ -3264,11 +3255,11 @@ const tempWorkingBranch = '__NgDevRepoBaseAfterChange__';
 /** Checks if the provided PR will cause new conflicts in other pending PRs. */
 function discoverNewConflictsForPr(newPrNumber, updatedAfter) {
     return tslib.__awaiter(this, void 0, void 0, function* () {
-        /** The singleton instance of the GitClient. */
-        const git = GitClient.getAuthenticatedInstance();
+        /** The singleton instance of the authenticated git client. */
+        const git = AuthenticatedGitClient.get();
         // If there are any local changes in the current repository state, the
         // check cannot run as it needs to move between branches.
-        if (git.hasLocalChanges()) {
+        if (git.hasUncommittedChanges()) {
             error('Cannot run with local changes. Please make sure there are no local changes.');
             process.exit(1);
         }
@@ -3471,6 +3462,12 @@ var PullRequestFailure = /** @class */ (function () {
             "breaking changes. Breaking changes can only be merged with the \"target: major\" label.";
         return new this(message);
     };
+    PullRequestFailure.hasDeprecations = function (label) {
+        var message = "Cannot merge into branch for \"" + label.pattern + "\" as the pull request " +
+            "contains deprecations. Deprecations can only be merged with the \"target: minor\" or " +
+            "\"target: major\" label.";
+        return new this(message);
+    };
     PullRequestFailure.hasFeatureCommits = function (label) {
         var message = "Cannot merge into branch for \"" + label.pattern + "\" as the pull request has " +
             'commits with the "feat" type. New features can only be merged with the "target: minor" ' +
@@ -3629,15 +3626,13 @@ var PR_SCHEMA$2 = {
 /** Fetches a pull request from Github. Returns null if an error occurred. */
 function fetchPullRequestFromGithub(git, prNumber) {
     return tslib.__awaiter(this, void 0, void 0, function () {
-        var x, e_1;
+        var e_1;
         return tslib.__generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
                     _a.trys.push([0, 2, , 3]);
                     return [4 /*yield*/, getPr(PR_SCHEMA$2, prNumber, git)];
-                case 1:
-                    x = _a.sent();
-                    return [2 /*return*/, x];
+                case 1: return [2 /*return*/, _a.sent()];
                 case 2:
                     e_1 = _a.sent();
                     // If the pull request could not be found, we want to return `null` so
@@ -3656,8 +3651,9 @@ function isPullRequest(v) {
     return v.targetBranches !== undefined;
 }
 /**
- * Assert the commits provided are allowed to merge to the provided target label, throwing a
- * PullRequestFailure otherwise.
+ * Assert the commits provided are allowed to merge to the provided target label,
+ * throwing an error otherwise.
+ * @throws {PullRequestFailure}
  */
 function assertChangesAllowForTargetLabel(commits, label, config) {
     /**
@@ -3668,6 +3664,7 @@ function assertChangesAllowForTargetLabel(commits, label, config) {
     /** List of commits which are subject to content requirements for the target label. */
     commits = commits.filter(function (commit) { return !exemptedScopes.includes(commit.scope); });
     var hasBreakingChanges = commits.some(function (commit) { return commit.breakingChanges.length !== 0; });
+    var hasDeprecations = commits.some(function (commit) { return commit.deprecations.length !== 0; });
     var hasFeatureCommits = commits.some(function (commit) { return commit.type === 'feat'; });
     switch (label.pattern) {
         case 'target: major':
@@ -3686,6 +3683,12 @@ function assertChangesAllowForTargetLabel(commits, label, config) {
             if (hasFeatureCommits) {
                 throw PullRequestFailure.hasFeatureCommits(label);
             }
+            // Deprecations should not be merged into RC, patch or LTS branches.
+            // https://semver.org/#spec-item-7. Deprecations should be part of
+            // minor releases, or major releases according to SemVer.
+            if (hasDeprecations) {
+                throw PullRequestFailure.hasDeprecations(label);
+            }
             break;
         default:
             warn(red('WARNING: Unable to confirm all commits in the pull request are eligible to be'));
@@ -3696,6 +3699,7 @@ function assertChangesAllowForTargetLabel(commits, label, config) {
 /**
  * Assert the pull request has the proper label for breaking changes if there are breaking change
  * commits, and only has the label if there are breaking change commits.
+ * @throws {PullRequestFailure}
  */
 function assertCorrectBreakingChangeLabeling(commits, labels, config) {
     /** Whether the PR has a label noting a breaking change. */
@@ -3709,7 +3713,10 @@ function assertCorrectBreakingChangeLabeling(commits, labels, config) {
         throw PullRequestFailure.missingBreakingChangeCommit();
     }
 }
-/** Assert the pull request is pending, not closed, merged or in draft. */
+/**
+ * Assert the pull request is pending, not closed, merged or in draft.
+ * @throws {PullRequestFailure} if the pull request is not pending.
+ */
 function assertPendingState(pr) {
     if (pr.isDraft) {
         throw PullRequestFailure.isDraft();
@@ -4483,7 +4490,7 @@ function createPullRequestMergeTask(flags) {
             switch (_b.label) {
                 case 0:
                     devInfraConfig = getConfig();
-                    git = GitClient.getAuthenticatedInstance();
+                    git = AuthenticatedGitClient.get();
                     return [4 /*yield*/, loadAndValidateConfig(devInfraConfig, git.github)];
                 case 1:
                     _a = _b.sent(), config = _a.config, errors = _a.errors;
@@ -4582,10 +4589,9 @@ const PR_SCHEMA$3 = {
  */
 function rebasePr(prNumber, githubToken, config = getConfig()) {
     return tslib.__awaiter(this, void 0, void 0, function* () {
-        /** The singleton instance of the GitClient. */
-        const git = GitClient.getAuthenticatedInstance();
-        // TODO: Rely on a common assertNoLocalChanges function.
-        if (git.hasLocalChanges()) {
+        /** The singleton instance of the authenticated git client. */
+        const git = AuthenticatedGitClient.get();
+        if (git.hasUncommittedChanges()) {
             error('Cannot perform rebase of PR with local changes.');
             process.exit(1);
         }
@@ -5022,7 +5028,7 @@ function getGroupsFromYaml(pullApproveYamlRaw) {
  * found in the LICENSE file at https://angular.io/license
  */
 function verify$1() {
-    const git = GitClient.getInstance();
+    const git = GitClient.get();
     /** Full path to PullApprove config file */
     const PULL_APPROVE_YAML_PATH = path.resolve(git.baseDir, '.pullapprove.yml');
     /** All tracked files in the repository. */
@@ -5531,7 +5537,7 @@ class ReleaseNotes {
         this.startingRef = startingRef;
         this.endingRef = endingRef;
         /** An instance of GitClient. */
-        this.git = GitClient.getInstance();
+        this.git = GitClient.get();
         /** A promise resolving to a list of Commits since the latest semver tag on the branch. */
         this.commits = this.getCommitsInRange(this.startingRef, this.endingRef);
         /** The configuration for release notes. */
@@ -5637,7 +5643,7 @@ function handler$8({ releaseVersion, from, to, outFile, type }) {
     return tslib.__awaiter(this, void 0, void 0, function* () {
         // Since `yargs` evaluates defaults even if a value as been provided, if no value is provided to
         // the handler, the latest semver tag on the branch is used.
-        from = from || GitClient.getInstance().getLatestSemverTag().format();
+        from = from || GitClient.get().getLatestSemverTag().format();
         /** The ReleaseNotes instance to generate release notes. */
         const releaseNotes = yield ReleaseNotes.fromRange(releaseVersion, from, to);
         /** The requested release notes entry. */
@@ -7092,8 +7098,8 @@ class ReleaseTool {
         this._config = _config;
         this._github = _github;
         this._projectRoot = _projectRoot;
-        /** The singleton instance of the GitClient. */
-        this._git = GitClient.getAuthenticatedInstance();
+        /** The singleton instance of the authenticated git client. */
+        this._git = AuthenticatedGitClient.get();
         /** The previous git commit to return back to after the release tool runs. */
         this.previousGitBranchOrRevision = this._git.getCurrentBranchOrRevision();
     }
@@ -7286,7 +7292,7 @@ function builder$9(argv) {
 /** Yargs command handler for staging a release. */
 function handler$9() {
     return tslib.__awaiter(this, void 0, void 0, function* () {
-        const git = GitClient.getInstance();
+        const git = GitClient.get();
         const config = getConfig();
         const releaseConfig = getReleaseConfig(config);
         const projectDir = git.baseDir;
@@ -7416,7 +7422,7 @@ function hasLocalChanges() {
  */
 function getSCMVersion(mode) {
     if (mode === 'release') {
-        const git = GitClient.getInstance();
+        const git = GitClient.get();
         const packageJsonPath = path.join(git.baseDir, 'package.json');
         const { version } = require(packageJsonPath);
         return version;

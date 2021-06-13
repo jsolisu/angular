@@ -154,6 +154,27 @@ export interface ContentChildrenDecorator {
    *   removed in future versions of Angular.
    * * **read** - Used to read a different token from the queried elements.
    *
+   * The following selectors are supported.
+   *   * Any class with the `@Component` or `@Directive` decorator
+   *   * A template reference variable as a string (e.g. query `<my-component #cmp></my-component>`
+   * with `@ContentChildren('cmp')`)
+   *   * Any provider defined in the child component tree of the current component (e.g.
+   * `@ContentChildren(SomeService) someService: SomeService`)
+   *   * Any provider defined through a string token (e.g. `@ContentChildren('someToken')
+   * someTokenVal: any`)
+   *   * A `TemplateRef` (e.g. query `<ng-template></ng-template>` with
+   * `@ContentChildren(TemplateRef) template;`)
+   *
+   * In addition, multiple string selectors can be separated with a comma (e.g.
+   * `@ContentChildren('cmp1,cmp2')`)
+   *
+   * The following values are supported by `read`:
+   *   * Any class with the `@Component` or `@Directive` decorator
+   *   * Any provider defined on the injector of the component that is matched by the `selector` of
+   * this query
+   *   * Any provider defined through a string token (e.g. `{provide: 'token', useValue: 'val'}`)
+   *   * `TemplateRef`, `ElementRef`, and `ViewContainerRef`
+   *
    * @usageNotes
    *
    * Here is a simple demonstration of how the `ContentChildren` decorator can be used.
@@ -230,6 +251,24 @@ export interface ContentChildDecorator {
    * * **static** - True to resolve query results before change detection runs,
    * false to resolve after change detection. Defaults to false.
    *
+   * The following selectors are supported.
+   *   * Any class with the `@Component` or `@Directive` decorator
+   *   * A template reference variable as a string (e.g. query `<my-component #cmp></my-component>`
+   * with `@ContentChild('cmp')`)
+   *   * Any provider defined in the child component tree of the current component (e.g.
+   * `@ContentChild(SomeService) someService: SomeService`)
+   *   * Any provider defined through a string token (e.g. `@ContentChild('someToken') someTokenVal:
+   * any`)
+   *   * A `TemplateRef` (e.g. query `<ng-template></ng-template>` with `@ContentChild(TemplateRef)
+   * template;`)
+   *
+   * The following values are supported by `read`:
+   *   * Any class with the `@Component` or `@Directive` decorator
+   *   * Any provider defined on the injector of the component that is matched by the `selector` of
+   * this query
+   *   * Any provider defined through a string token (e.g. `{provide: 'token', useValue: 'val'}`)
+   *   * `TemplateRef`, `ElementRef`, and `ViewContainerRef`
+   *
    * @usageNotes
    *
    * {@example core/di/ts/contentChild/content_child_howto.ts region='HowTo'}
@@ -292,6 +331,27 @@ export interface ViewChildrenDecorator {
    *   if the QueryList has not changed.
    *   ** Note: *** This config option is **deprecated**, it will be permanently set to `true` and
    * removed in future versions of Angular.
+   *
+   * The following selectors are supported.
+   *   * Any class with the `@Component` or `@Directive` decorator
+   *   * A template reference variable as a string (e.g. query `<my-component #cmp></my-component>`
+   * with `@ViewChildren('cmp')`)
+   *   * Any provider defined in the child component tree of the current component (e.g.
+   * `@ViewChildren(SomeService) someService: SomeService`)
+   *   * Any provider defined through a string token (e.g. `@ViewChildren('someToken') someTokenVal:
+   * any`)
+   *   * A `TemplateRef` (e.g. query `<ng-template></ng-template>` with `@ViewChildren(TemplateRef)
+   * template;`)
+   *
+   * In addition, multiple string selectors can be separated with a comma (e.g.
+   * `@ViewChildren('cmp1,cmp2')`)
+   *
+   * The following values are supported by `read`:
+   *   * Any class with the `@Component` or `@Directive` decorator
+   *   * Any provider defined on the injector of the component that is matched by the `selector` of
+   * this query
+   *   * Any provider defined through a string token (e.g. `{provide: 'token', useValue: 'val'}`)
+   *   * `TemplateRef`, `ElementRef`, and `ViewContainerRef`
    *
    * @usageNotes
    *
@@ -367,6 +427,13 @@ export interface ViewChildDecorator {
    * any`)
    *   * A `TemplateRef` (e.g. query `<ng-template></ng-template>` with `@ViewChild(TemplateRef)
    * template;`)
+   *
+   * The following values are supported by `read`:
+   *   * Any class with the `@Component` or `@Directive` decorator
+   *   * Any provider defined on the injector of the component that is matched by the `selector` of
+   * this query
+   *   * Any provider defined through a string token (e.g. `{provide: 'token', useValue: 'val'}`)
+   *   * `TemplateRef`, `ElementRef`, and `ViewContainerRef`
    *
    * @usageNotes
    *

@@ -1278,9 +1278,9 @@ function allTests(os: string) {
           .toContain(
               'TestModule.ɵfac = function TestModule_Factory(t) { return new (t || TestModule)(); }');
       expect(jsContents)
-          .toContain(
-              'i0.ɵɵdefineInjector({ imports: [[OtherModule, RouterModule.forRoot()],' +
-              ' OtherModule, RouterModule] });');
+          .toContain(`i0.ɵɵdefineInjector({ imports: [[OtherModule, RouterModule.forRoot()],
+            OtherModule,
+            RouterModule] });`);
     });
 
     it('should compile NgModules with services without errors', () => {
@@ -4846,6 +4846,41 @@ function allTests(os: string) {
         expect(jsContents).not.toContain('setComponentScope');
       });
 
+      it('should not consider type-only imports during cycle detection', () => {
+        env.write('test.ts', `
+        import {NgModule} from '@angular/core';
+        import {ACmp} from './a';
+        import {BCmp} from './b';
+
+        @NgModule({declarations: [ACmp, BCmp]})
+        export class Module {}
+      `);
+        env.write('a.ts', `
+        import {Component} from '@angular/core';
+
+        @Component({
+          selector: 'a-cmp',
+          template: '<b-cmp></b-cmp>',
+        })
+        export class ACmp {}
+      `);
+        env.write('b.ts', `
+        import {Component} from '@angular/core';
+        import type {ACmp} from './a';
+
+        @Component({
+          selector: 'b-cmp',
+          template: 'does not use a-cmp',
+        })
+        export class BCmp {
+          a: ACmp;
+        }
+      `);
+        env.driveMain();
+        const jsContents = env.getContents('test.js');
+        expect(jsContents).not.toContain('setComponentScope');
+      });
+
       it('should only pass components actually used to setComponentScope', () => {
         env.write('test.ts', `
           import {Component, NgModule} from '@angular/core';
@@ -7405,6 +7440,24 @@ export const Foo = Foo__PRE_R3__;
         expect(jsContents).not.toContain('defineNgModule(');
         expect(jsContents).toContain('NgModule({');
       });
+
+      it('should still compile a class that is indirectly exported', () => {
+        env.write('test.ts', `
+          import {Component} from '@angular/core';
+
+          @Component({
+            selector: 'test-cmp',
+            template: 'Test Cmp',
+          })
+          class TestCmp {}
+
+          export {TestCmp};
+        `);
+        env.driveMain();
+        const jsContents = env.getContents('test.js');
+
+        expect(jsContents).toContain('defineComponent');
+      });
     });
 
     describe('undecorated providers', () => {
@@ -7808,6 +7861,111 @@ export const Foo = Foo__PRE_R3__;
           expect(diags[1].messageText)
               .toContain(
                   'Parser Error: Bindings cannot contain assignments at column 5 in [ {{x = 2}}]');
+        });
+      });
+
+      describe('shadow DOM selector diagnostics', () => {
+        it('should emit a diagnostic when a selector does not include a hyphen', () => {
+          env.write('test.ts', `
+            import {Component, ViewEncapsulation} from '@angular/core';
+            @Component({
+              template: '',
+              selector: 'cmp',
+              encapsulation: ViewEncapsulation.ShadowDom
+            })
+            export class TestCmp {}
+          `);
+          const diags = env.driveDiagnostics();
+
+          expect(diags.length).toBe(1);
+          expect(diags[0].messageText)
+              .toBe(
+                  'Selector of a component that uses ViewEncapsulation.ShadowDom must contain a hyphen.');
+          expect(getDiagnosticSourceCode(diags[0])).toBe(`'cmp'`);
+        });
+
+        it('should emit a diagnostic when a selector includes uppercase letters', () => {
+          env.write('test.ts', `
+            import {Component, ViewEncapsulation} from '@angular/core';
+            @Component({
+              template: '',
+              selector: 'my-Comp',
+              encapsulation: ViewEncapsulation.ShadowDom
+            })
+            export class TestCmp {}
+          `);
+          const diags = env.driveDiagnostics();
+
+          expect(diags.length).toBe(1);
+          expect(diags[0].messageText)
+              .toBe('Selector of a ShadowDom-encapsulated component must all be in lower case.');
+          expect(getDiagnosticSourceCode(diags[0])).toBe(`'my-Comp'`);
+        });
+
+        it('should emit a diagnostic when a selector starts with a digit', () => {
+          env.write('test.ts', `
+            import {Component, ViewEncapsulation} from '@angular/core';
+            @Component({
+              template: '',
+              selector: '123-comp',
+              encapsulation: ViewEncapsulation.ShadowDom
+            })
+            export class TestCmp {}
+          `);
+          const diags = env.driveDiagnostics();
+
+          expect(diags.length).toBe(1);
+          expect(diags[0].messageText)
+              .toBe(
+                  'Selector of a ShadowDom-encapsulated component must start with a lower case letter.');
+          expect(getDiagnosticSourceCode(diags[0])).toBe(`'123-comp'`);
+        });
+
+        it('should emit a diagnostic when a selector starts with a hyphen', () => {
+          env.write('test.ts', `
+            import {Component, ViewEncapsulation} from '@angular/core';
+            @Component({
+              template: '',
+              selector: '-comp',
+              encapsulation: ViewEncapsulation.ShadowDom
+            })
+            export class TestCmp {}
+          `);
+          const diags = env.driveDiagnostics();
+
+          expect(diags.length).toBe(1);
+          expect(diags[0].messageText)
+              .toBe(
+                  'Selector of a ShadowDom-encapsulated component must start with a lower case letter.');
+          expect(getDiagnosticSourceCode(diags[0])).toBe(`'-comp'`);
+        });
+
+        it('should not emit a diagnostic for a component using an attribute selector', () => {
+          env.write('test.ts', `
+            import {Component, ViewEncapsulation} from '@angular/core';
+            @Component({
+              template: '',
+              selector: '[button]',
+              encapsulation: ViewEncapsulation.ShadowDom
+            })
+            export class TestCmp {}
+          `);
+          const diags = env.driveDiagnostics();
+          expect(diags.length).toBe(0);
+        });
+
+        it('should not emit a diagnostic for a component using a class selector', () => {
+          env.write('test.ts', `
+            import {Component, ViewEncapsulation} from '@angular/core';
+            @Component({
+              template: '',
+              selector: '.button',
+              encapsulation: ViewEncapsulation.ShadowDom
+            })
+            export class TestCmp {}
+          `);
+          const diags = env.driveDiagnostics();
+          expect(diags.length).toBe(0);
         });
       });
 

@@ -82,9 +82,11 @@ export class CompletionBuilder<N extends TmplAstNode|AST> {
    */
   getCompletionEntryDetails(
       entryName: string, formatOptions: ts.FormatCodeOptions|ts.FormatCodeSettings|undefined,
-      preferences: ts.UserPreferences|undefined): ts.CompletionEntryDetails|undefined {
+      preferences: ts.UserPreferences|undefined,
+      data: ts.CompletionEntryData|undefined): ts.CompletionEntryDetails|undefined {
     if (this.isPropertyExpressionCompletion()) {
-      return this.getPropertyExpressionCompletionDetails(entryName, formatOptions, preferences);
+      return this.getPropertyExpressionCompletionDetails(
+          entryName, formatOptions, preferences, data);
     } else if (this.isElementTagCompletion()) {
       return this.getElementTagCompletionDetails(entryName);
     } else if (this.isElementAttributeCompletion()) {
@@ -167,12 +169,13 @@ export class CompletionBuilder<N extends TmplAstNode|AST> {
   private getPropertyExpressionCompletionDetails(
       this: PropertyExpressionCompletionBuilder, entryName: string,
       formatOptions: ts.FormatCodeOptions|ts.FormatCodeSettings|undefined,
-      preferences: ts.UserPreferences|undefined): ts.CompletionEntryDetails|undefined {
+      preferences: ts.UserPreferences|undefined,
+      data: ts.CompletionEntryData|undefined): ts.CompletionEntryDetails|undefined {
     let details: ts.CompletionEntryDetails|undefined = undefined;
     if (this.node instanceof EmptyExpr || this.node instanceof BoundEvent ||
         this.node.receiver instanceof ImplicitReceiver) {
-      details =
-          this.getGlobalPropertyExpressionCompletionDetails(entryName, formatOptions, preferences);
+      details = this.getGlobalPropertyExpressionCompletionDetails(
+          entryName, formatOptions, preferences, data);
     } else {
       const location = this.compiler.getTemplateTypeChecker().getExpressionCompletionLocation(
           this.node, this.component);
@@ -181,7 +184,7 @@ export class CompletionBuilder<N extends TmplAstNode|AST> {
       }
       details = this.tsLS.getCompletionEntryDetails(
           location.shimPath, location.positionInShimFile, entryName, formatOptions,
-          /* source */ undefined, preferences);
+          /* source */ undefined, preferences, data);
     }
     if (details !== undefined) {
       details.displayParts = filterAliasImports(details.displayParts);
@@ -292,7 +295,8 @@ export class CompletionBuilder<N extends TmplAstNode|AST> {
   private getGlobalPropertyExpressionCompletionDetails(
       this: PropertyExpressionCompletionBuilder, entryName: string,
       formatOptions: ts.FormatCodeOptions|ts.FormatCodeSettings|undefined,
-      preferences: ts.UserPreferences|undefined): ts.CompletionEntryDetails|undefined {
+      preferences: ts.UserPreferences|undefined,
+      data: ts.CompletionEntryData|undefined): ts.CompletionEntryDetails|undefined {
     const completions =
         this.templateTypeChecker.getGlobalCompletions(this.template, this.component, this.node);
     if (completions === null) {
@@ -323,7 +327,7 @@ export class CompletionBuilder<N extends TmplAstNode|AST> {
     } else {
       return this.tsLS.getCompletionEntryDetails(
           componentContext.shimPath, componentContext.positionInShimFile, entryName, formatOptions,
-          /* source */ undefined, preferences);
+          /* source */ undefined, preferences, data);
     }
   }
 
@@ -575,6 +579,7 @@ export class CompletionBuilder<N extends TmplAstNode|AST> {
         displayParts = info.displayParts;
         documentation = info.documentation;
         break;
+      case AttributeCompletionKind.StructuralDirectiveAttribute:
       case AttributeCompletionKind.DirectiveInput:
       case AttributeCompletionKind.DirectiveOutput:
         const propertySymbol = getAttributeCompletionSymbol(completion, this.typeChecker);
@@ -582,11 +587,17 @@ export class CompletionBuilder<N extends TmplAstNode|AST> {
           return undefined;
         }
 
+        let kind: DisplayInfoKind;
+        if (completion.kind === AttributeCompletionKind.DirectiveInput) {
+          kind = DisplayInfoKind.PROPERTY;
+        } else if (completion.kind === AttributeCompletionKind.DirectiveOutput) {
+          kind = DisplayInfoKind.EVENT;
+        } else {
+          kind = DisplayInfoKind.DIRECTIVE;
+        }
+
         info = getTsSymbolDisplayInfo(
-            this.tsLS, this.typeChecker, propertySymbol,
-            completion.kind === AttributeCompletionKind.DirectiveInput ? DisplayInfoKind.PROPERTY :
-                                                                         DisplayInfoKind.EVENT,
-            completion.directive.tsSymbol.name);
+            this.tsLS, this.typeChecker, propertySymbol, kind, completion.directive.tsSymbol.name);
         if (info === null) {
           return undefined;
         }
@@ -598,7 +609,7 @@ export class CompletionBuilder<N extends TmplAstNode|AST> {
       name: entryName,
       kind: unsafeCastDisplayInfoKindToScriptElementKind(kind),
       kindModifiers: ts.ScriptElementKindModifier.none,
-      displayParts: [],
+      displayParts,
       documentation,
     };
   }
