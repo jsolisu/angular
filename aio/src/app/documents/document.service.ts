@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 
-import { AsyncSubject, Observable, of, throwError } from 'rxjs';
+import { AsyncSubject, Observable, of } from 'rxjs';
 import { catchError, switchMap, tap } from 'rxjs/operators';
 
 import { DocumentContents } from './document-contents';
@@ -18,10 +18,11 @@ export const DOC_CONTENT_URL_PREFIX = CONTENT_URL_PREFIX + 'docs/';
 const FETCHING_ERROR_CONTENTS = (path: string) => `
   <div class="nf-container l-flex-wrap flex-center">
     <div class="nf-icon material-icons">error_outline</div>
-    <div class="nf-response l-flex-wrap">
-      <h1 class="no-toc">Request for document failed.</h1>
+    <div class="nf-response l-flex-wrap center">
+      <h1 class="no-toc">Request for document failed</h1>
       <p>
         We are unable to retrieve the "${path}" page at this time.
+        <br/>
         Please check your connection and try again later.
       </p>
     </div>
@@ -53,7 +54,7 @@ export class DocumentService {
   }
 
   private fetchDocument(id: string): Observable<DocumentContents> {
-    const requestPath = `${DOC_CONTENT_URL_PREFIX}${id}.json`;
+    const requestPath = `${DOC_CONTENT_URL_PREFIX}${encodeToLowercase(id)}.json`;
     const subject = new AsyncSubject<DocumentContents>();
 
     this.logger.log('fetching document from', requestPath);
@@ -66,23 +67,9 @@ export class DocumentService {
             throw Error('Invalid data');
           }
         }),
-        // HACK: PREPARE FOR CHANGING TO CASE-INSENSITIVE URLS
-        catchError((error: HttpErrorResponse) => {
-          const encodedPath = encodeToLowercase(requestPath);
-          return error.status === 404 && encodedPath !== requestPath ?
-              this.http.get<DocumentContents>(encodedPath) :
-              throwError(error);
-        }),
-        catchError((error: HttpErrorResponse) => {
-          const disambiguatedPath = convertDisambiguatedPath(requestPath);
-          return error.status === 404 && disambiguatedPath !== requestPath ?
-              this.http.get<DocumentContents>(disambiguatedPath) :
-              throwError(error);
-        }),
-        // END HACK: PREPARE FOR CHANGING TO CASE-INSENSITIVE URLS
-        catchError((error: HttpErrorResponse) => {
-          return error.status === 404 ? this.getFileNotFoundDoc(id) : this.getErrorDoc(id, error);
-        }),
+        catchError((error: HttpErrorResponse) =>
+          error.status === 404 ? this.getFileNotFoundDoc(id) : this.getErrorDoc(id, error)
+        ),
       )
       .subscribe(subject);
 
@@ -122,19 +109,4 @@ export class DocumentService {
  */
 function encodeToLowercase(str: string): string {
   return str.replace(/[A-Z_]/g, char => char.toLowerCase() + '_');
-}
-
-/**
- * A temporary function to deal with a future change to URL disambiguation.
- *
- * Currently there are disambiguated URLs such as `INJECTOR-0` and `Injector-1`, which
- * will attempt to load their document contents from `injector-0.json` and `injector-1.json`
- * respectively. In a future version of the AIO app, the disambiguation will be changed to
- * escape the upper-case characters instead.
- *
- * This function will be called if the current AIO is trying to request documents from a
- * server that has been updated to use the new disambiguated URLs.
- */
-function convertDisambiguatedPath(str: string): string {
-  return encodeToLowercase(str.replace(/-\d+\.json$/, '.json'));
 }

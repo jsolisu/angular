@@ -6,7 +6,7 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
-import {AST, ASTWithSource, BindingPipe, MethodCall, PropertyWrite, SafeMethodCall, SafePropertyRead, TmplAstBoundAttribute, TmplAstBoundEvent, TmplAstElement, TmplAstNode, TmplAstReference, TmplAstTemplate, TmplAstTextAttribute, TmplAstVariable} from '@angular/compiler';
+import {AST, ASTWithSource, BindingPipe, MethodCall, ParseSourceSpan, PropertyRead, PropertyWrite, SafeMethodCall, SafePropertyRead, TmplAstBoundAttribute, TmplAstBoundEvent, TmplAstElement, TmplAstNode, TmplAstReference, TmplAstTemplate, TmplAstTextAttribute, TmplAstVariable} from '@angular/compiler';
 import * as ts from 'typescript';
 
 import {AbsoluteFsPath} from '../../file_system';
@@ -150,7 +150,24 @@ export class SymbolBuilder {
   private getDirectiveMeta(
       host: TmplAstTemplate|TmplAstElement,
       directiveDeclaration: ts.Declaration): TypeCheckableDirectiveMeta|null {
-    const directives = this.templateData.boundTarget.getDirectivesOfNode(host);
+    let directives = this.templateData.boundTarget.getDirectivesOfNode(host);
+
+    // `getDirectivesOfNode` will not return the directives intended for an element
+    // on a microsyntax template, for example `<div *ngFor="let user of users;" dir>`,
+    // the `dir` will be skipped, but it's needed in language service.
+    const firstChild = host.children[0];
+    if (firstChild instanceof TmplAstElement) {
+      const isMicrosyntaxTemplate = host instanceof TmplAstTemplate &&
+          sourceSpanEqual(firstChild.sourceSpan, host.sourceSpan);
+      if (isMicrosyntaxTemplate) {
+        const firstChildDirectives = this.templateData.boundTarget.getDirectivesOfNode(firstChild);
+        if (firstChildDirectives !== null && directives !== null) {
+          directives = directives.concat(firstChildDirectives);
+        } else {
+          directives = directives ?? firstChildDirectives;
+        }
+      }
+    }
     if (directives === null) {
       return null;
     }
@@ -482,8 +499,20 @@ export class SymbolBuilder {
         expression.nameSpan :
         expression.sourceSpan;
 
-    let node = findFirstMatchingNode(
-        this.typeCheckBlock, {withSpan, filter: (n: ts.Node): n is ts.Node => true});
+    let node: ts.Node|null = null;
+
+    // Property reads in templates usually map to a `PropertyAccessExpression`
+    // (e.g. `ctx.foo`) so try looking for one first.
+    if (expression instanceof PropertyRead) {
+      node = findFirstMatchingNode(
+          this.typeCheckBlock, {withSpan, filter: ts.isPropertyAccessExpression});
+    }
+
+    // Otherwise fall back to searching for any AST node.
+    if (node === null) {
+      node = findFirstMatchingNode(this.typeCheckBlock, {withSpan, filter: anyNodeFilter});
+    }
+
     if (node === null) {
       return null;
     }
@@ -559,4 +588,13 @@ export class SymbolBuilder {
       return node.getStart();
     }
   }
+}
+
+/** Filter predicate function that matches any AST node. */
+function anyNodeFilter(n: ts.Node): n is ts.Node {
+  return true;
+}
+
+function sourceSpanEqual(a: ParseSourceSpan, b: ParseSourceSpan) {
+  return a.start.offset === b.start.offset && a.end.offset === b.end.offset;
 }

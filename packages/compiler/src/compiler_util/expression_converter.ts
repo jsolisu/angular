@@ -19,6 +19,7 @@ export interface LocalResolver {
   getLocal(name: string): o.Expression|null;
   notifyImplicitReceiverUse(): void;
   globals?: Set<string>;
+  maybeRestoreView(): void;
 }
 
 export class ConvertActionBindingResult {
@@ -299,19 +300,19 @@ class _BuiltinAstConverter extends cdAst.AstTransformer {
   constructor(private _converterFactory: BuiltinConverterFactory) {
     super();
   }
-  visitPipe(ast: cdAst.BindingPipe, context: any): any {
+  override visitPipe(ast: cdAst.BindingPipe, context: any): any {
     const args = [ast.exp, ...ast.args].map(ast => ast.visit(this, context));
     return new BuiltinFunctionCall(
         ast.span, ast.sourceSpan, args,
         this._converterFactory.createPipeConverter(ast.name, args.length));
   }
-  visitLiteralArray(ast: cdAst.LiteralArray, context: any): any {
+  override visitLiteralArray(ast: cdAst.LiteralArray, context: any): any {
     const args = ast.expressions.map(ast => ast.visit(this, context));
     return new BuiltinFunctionCall(
         ast.span, ast.sourceSpan, args,
         this._converterFactory.createLiteralArrayConverter(ast.expressions.length));
   }
-  visitLiteralMap(ast: cdAst.LiteralMap, context: any): any {
+  override visitLiteralMap(ast: cdAst.LiteralMap, context: any): any {
     const args = ast.values.map(ast => ast.visit(this, context));
 
     return new BuiltinFunctionCall(
@@ -487,6 +488,11 @@ class _AstToIrVisitor implements cdAst.AstVisitor {
     const obj: o.Expression = this._visit(ast.receiver, _Mode.Expression);
     const key: o.Expression = this._visit(ast.key, _Mode.Expression);
     const value: o.Expression = this._visit(ast.value, _Mode.Expression);
+
+    if (obj === this._implicitReceiver) {
+      this._localResolver.maybeRestoreView();
+    }
+
     return convertToStatementIfNeeded(mode, obj.key(key).set(value));
   }
 
@@ -982,6 +988,7 @@ function flattenStatements(arg: any, output: o.Statement[]) {
 class DefaultLocalResolver implements LocalResolver {
   constructor(public globals?: Set<string>) {}
   notifyImplicitReceiverUse(): void {}
+  maybeRestoreView(): void {}
   getLocal(name: string): o.Expression|null {
     if (name === EventHandlerVars.event.name) {
       return EventHandlerVars.event;
@@ -1009,7 +1016,7 @@ function convertStmtIntoExpression(stmt: o.Statement): o.Expression|null {
 
 export class BuiltinFunctionCall extends cdAst.FunctionCall {
   constructor(
-      span: cdAst.ParseSpan, sourceSpan: cdAst.AbsoluteSourceSpan, public args: cdAst.AST[],
+      span: cdAst.ParseSpan, sourceSpan: cdAst.AbsoluteSourceSpan, args: cdAst.AST[],
       public converter: BuiltinConverter) {
     super(span, sourceSpan, null, args);
   }

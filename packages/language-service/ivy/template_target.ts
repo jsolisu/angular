@@ -143,10 +143,21 @@ export interface TwoWayBindingContext {
 }
 
 /**
+ * Special marker AST that can be used when the cursor is within the `sourceSpan` but not
+ * the key or value span of a node with key/value spans.
+ */
+class OutsideKeyValueMarkerAst extends e.AST {
+  override visit(): null {
+    return null;
+  }
+}
+
+/**
  * This special marker is added to the path when the cursor is within the sourceSpan but not the key
  * or value span of a node with key/value spans.
  */
-const OUTSIDE_K_V_MARKER = new e.AST(new ParseSpan(-1, -1), new e.AbsoluteSourceSpan(-1, -1));
+const OUTSIDE_K_V_MARKER =
+    new OutsideKeyValueMarkerAst(new ParseSpan(-1, -1), new e.AbsoluteSourceSpan(-1, -1));
 
 /**
  * Return the template AST node or expression AST node that most accurately
@@ -286,7 +297,7 @@ class TemplateTargetVisitor implements t.Visitor {
 
   visit(node: t.Node) {
     const {start, end} = getSpanIncludingEndTag(node);
-    if (!isWithin(this.position, {start, end})) {
+    if (end !== null && !isWithin(this.position, {start, end})) {
       return;
     }
 
@@ -415,7 +426,7 @@ class ExpressionVisitor extends e.RecursiveAstVisitor {
     super();
   }
 
-  visit(node: e.AST, path: Array<t.Node|e.AST>) {
+  override visit(node: e.AST, path: Array<t.Node|e.AST>) {
     if (node instanceof e.ASTWithSource) {
       // In order to reduce noise, do not include `ASTWithSource` in the path.
       // For the purpose of source spans, there is no difference between
@@ -441,8 +452,16 @@ function getSpanIncludingEndTag(ast: t.Node) {
   // the end of the closing tag. Otherwise, for situation like
   // <my-component></my-comp¦onent> where the cursor is in the closing tag
   // we will not be able to return any information.
-  if ((ast instanceof t.Element || ast instanceof t.Template) && ast.endSourceSpan) {
-    result.end = ast.endSourceSpan.end.offset;
+  if (ast instanceof t.Element || ast instanceof t.Template) {
+    if (ast.endSourceSpan) {
+      result.end = ast.endSourceSpan.end.offset;
+    } else if (ast.children.length > 0) {
+      // If the AST has children but no end source span, then it is an unclosed element with an end
+      // that should be the end of the last child.
+      result.end = getSpanIncludingEndTag(ast.children[ast.children.length - 1]).end;
+    } else {
+      // This is likely a self-closing tag with no children so the `sourceSpan.end` is correct.
+    }
   }
   return result;
 }

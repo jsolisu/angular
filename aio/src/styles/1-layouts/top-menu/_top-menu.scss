@@ -1,7 +1,7 @@
 @use '../../mixins';
 
 // VARIABLES
-$showTopMenuWidth: 1048px;
+$showTopMenuWidth: 1150px;
 $hideTopMenuWidth: $showTopMenuWidth - 1;
 $hamburgerShownMargin: 0 8px 0 0;
 $hamburgerHiddenMargin: 0 16px 0 -64px;
@@ -132,7 +132,10 @@ mat-toolbar.app-toolbar {
 
           .nav-link-inner {
             border-radius: 4px;
+            font-size: 1.3rem;
+            font-size: clamp(10px, 1.6rem, 20px);
             padding: 8px 16px;
+            padding: 8px clamp(5px, 0.7vw, 16px);
           }
 
           &:focus {
@@ -183,7 +186,7 @@ mat-toolbar.app-toolbar {
         }
       }
 
-      @media (max-width: 480px) {
+      @media (max-width: 515px) {
         width: 150px;
       }
     }
@@ -198,28 +201,9 @@ mat-toolbar.app-toolbar {
 
   // EXTERNAL LINK ICONS
   .toolbar-external-icons-container {
-    display: flex;
-    flex-direction: row;
-    flex-shrink: 0; // This is required for the icons to be displayed correctly in IE11.
-    height: 100%;
-
     a {
-      display: flex;
-      align-items: center;
-      padding: 0;
-      margin: 24px 8px;
-
-      &:hover {
-        opacity: 0.8;
-      }
-
-      &:focus {
-        outline-offset: 8px;
-      }
-
       @media screen and (max-width: 480px) {
-        margin: 0 0 0 8px;
-        padding: 0;
+        margin: 0 -8px 0 0;
       }
 
       @media screen and (max-width: 420px) {
@@ -232,10 +216,6 @@ mat-toolbar.app-toolbar {
         &[title="GitHub"] {
           display: none;
         }
-      }
-
-      img {
-        height: 24px;
       }
     }
   }

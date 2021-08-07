@@ -9,7 +9,6 @@
 import {spawnSync, SpawnSyncOptions, SpawnSyncReturns} from 'child_process';
 import {Options as SemVerOptions, parse, SemVer} from 'semver';
 
-import {spawnWithDebugOutput} from '../child-process';
 import {getConfig, GithubConfig, NgDevConfig} from '../config';
 import {debug, info} from '../console';
 import {DryRunError, isDryRun} from '../dry-run';
@@ -24,6 +23,11 @@ export class GitCommandError extends Error {
     // accidentally leak the Github token that might be used in a command,
     // we sanitize the command that will be part of the error message.
     super(`Command failed: git ${client.sanitizeConsoleOutput(args.join(' '))}`);
+
+    // Set the prototype explicitly because in ES5, the prototype is accidentally lost due to
+    // a limitation in down-leveling.
+    // https://github.com/Microsoft/TypeScript/wiki/FAQ#why-doesnt-extending-built-ins-like-error-array-and-map-work.
+    Object.setPrototypeOf(this, GitCommandError.prototype);
   }
 }
 
@@ -160,6 +164,19 @@ export class GitClient {
           `Unable to find a SemVer matching tag on "${this.getCurrentBranchOrRevision()}"`);
     }
     return new SemVer(latestTag, semVerOptions);
+  }
+
+  /** Retrieves the git tag matching the provided SemVer, if it exists. */
+  getMatchingTagForSemver(semver: SemVer): string {
+    const semVerOptions: SemVerOptions = {loose: true};
+    const tags = this.runGraceful(['tag', '--sort=-committerdate', '--merged']).stdout.split('\n');
+    const matchingTag =
+        tags.find((tag: string) => parse(tag, semVerOptions)?.compare(semver) === 0);
+
+    if (matchingTag === undefined) {
+      throw new Error(`Unable to find a tag for the version: "${semver.format()}"`);
+    }
+    return matchingTag;
   }
 
   /** Retrieve a list of all files in the repository changed since the provided shaOrRef. */

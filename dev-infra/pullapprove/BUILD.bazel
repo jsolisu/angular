@@ -1,5 +1,4 @@
-load("@npm//@bazel/typescript:index.bzl", "ts_library")
-load("//tools:defaults.bzl", "jasmine_node_test")
+load("//dev-infra:defaults.bzl", "jasmine_node_test", "ts_library")
 
 ts_library(
     name = "pullapprove",
@@ -13,17 +12,14 @@ ts_library(
         "utils.ts",
         "verify.ts",
     ],
-    module_name = "@angular/dev-infra-private/pullapprove",
     visibility = ["//dev-infra:__subpackages__"],
     deps = [
         "//dev-infra/utils",
         "@npm//@types/minimatch",
         "@npm//@types/node",
-        "@npm//@types/shelljs",
         "@npm//@types/yaml",
         "@npm//@types/yargs",
         "@npm//minimatch",
-        "@npm//shelljs",
         "@npm//yaml",
         "@npm//yargs",
     ],

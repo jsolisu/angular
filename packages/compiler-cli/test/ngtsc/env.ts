@@ -11,6 +11,7 @@ import * as api from '@angular/compiler-cli/src/transformers/api';
 import * as ts from 'typescript';
 
 import {createCompilerHost, createProgram} from '../../index';
+import {mainXi18n} from '../../src/extract_i18n';
 import {main, mainDiagnosticsForTest, readNgcCommandLineAndConfiguration} from '../../src/main';
 import {absoluteFrom, AbsoluteFsPath, FileSystem, getFileSystem, relativeFrom} from '../../src/ngtsc/file_system';
 import {Folder, MockFileSystem} from '../../src/ngtsc/file_system/testing';
@@ -275,6 +276,21 @@ export class NgtscTestEnvironment {
     const program = createProgram({rootNames, host, options});
     return (program as NgtscProgram).getIndexedComponents();
   }
+
+  driveXi18n(format: string, outputFileName: string, locale: string|null = null): void {
+    const errorSpy = jasmine.createSpy('consoleError').and.callFake(console.error);
+    const args = [
+      ...this.commandLineArgs,
+      `--i18nFormat=${format}`,
+      `--outFile=${outputFileName}`,
+    ];
+    if (locale !== null) {
+      args.push(`--locale=${locale}`);
+    }
+    const exitCode = mainXi18n(args, errorSpy);
+    expect(errorSpy).not.toHaveBeenCalled();
+    expect(exitCode).toEqual(0);
+  }
 }
 
 class AugmentedCompilerHost extends NgtscTestCompilerHost {
@@ -313,7 +329,7 @@ class MultiCompileHostExt extends AugmentedCompilerHost implements Partial<ts.Co
   private cache = new Map<string, ts.SourceFile>();
   private writtenFiles = new Set<string>();
 
-  getSourceFile(
+  override getSourceFile(
       fileName: string, languageVersion: ts.ScriptTarget, onError?: (message: string) => void,
       shouldCreateNewSourceFile?: boolean): ts.SourceFile|undefined {
     if (this.cache.has(fileName)) {
@@ -330,7 +346,7 @@ class MultiCompileHostExt extends AugmentedCompilerHost implements Partial<ts.Co
     this.writtenFiles.clear();
   }
 
-  writeFile(
+  override writeFile(
       fileName: string, data: string, writeByteOrderMark: boolean,
       onError: ((message: string) => void)|undefined,
       sourceFiles?: ReadonlyArray<ts.SourceFile>): void {

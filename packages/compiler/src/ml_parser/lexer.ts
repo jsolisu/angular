@@ -8,9 +8,10 @@
 
 import * as chars from '../chars';
 import {ParseError, ParseLocation, ParseSourceFile, ParseSourceSpan} from '../parse_util';
+import {NAMED_ENTITIES} from './entities';
 
 import {DEFAULT_INTERPOLATION_CONFIG, InterpolationConfig} from './interpolation_config';
-import {NAMED_ENTITIES, TagContentType, TagDefinition} from './tags';
+import {TagContentType, TagDefinition} from './tags';
 
 export enum TokenType {
   TAG_OPEN_START,
@@ -713,11 +714,15 @@ class _Tokenizer {
       }
     } while (!this._isTextEnd());
 
+    // It is possible that an interpolation was started but not ended inside this text token.
+    // Make sure that we reset the state of the lexer correctly.
+    this._inInterpolation = false;
+
     this._endToken([this._processCarriageReturns(parts.join(''))]);
   }
 
   private _isTextEnd(): boolean {
-    if (this._cursor.peek() === chars.$LT || this._cursor.peek() === chars.$EOF) {
+    if (this._isTagStart() || this._cursor.peek() === chars.$EOF) {
       return true;
     }
 
@@ -733,6 +738,25 @@ class _Tokenizer {
       }
     }
 
+    return false;
+  }
+
+  /**
+   * Returns true if the current cursor is pointing to the start of a tag
+   * (opening/closing/comments/cdata/etc).
+   */
+  private _isTagStart(): boolean {
+    if (this._cursor.peek() === chars.$LT) {
+      // We assume that `<` followed by whitespace is not the start of an HTML element.
+      const tmp = this._cursor.clone();
+      tmp.advance();
+      // If the next character is alphabetic, ! nor / then it is a tag start
+      const code = tmp.peek();
+      if ((chars.$a <= code && code <= chars.$z) || (chars.$A <= code && code <= chars.$Z) ||
+          code === chars.$SLASH || code === chars.$BANG) {
+        return true;
+      }
+    }
     return false;
   }
 
@@ -983,22 +1007,22 @@ class EscapedCharacterCursor extends PlainCharacterCursor {
     }
   }
 
-  advance(): void {
+  override advance(): void {
     this.state = this.internalState;
     super.advance();
     this.processEscapeSequence();
   }
 
-  init(): void {
+  override init(): void {
     super.init();
     this.processEscapeSequence();
   }
 
-  clone(): EscapedCharacterCursor {
+  override clone(): EscapedCharacterCursor {
     return new EscapedCharacterCursor(this);
   }
 
-  getChars(start: this): string {
+  override getChars(start: this): string {
     const cursor = start.clone();
     let chars = '';
     while (cursor.internalState.offset < this.internalState.offset) {

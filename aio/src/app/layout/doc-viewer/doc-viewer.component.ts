@@ -62,12 +62,12 @@ export class DocViewerComponent implements OnDestroy {
   @Output() docRendered = new EventEmitter<void>();
 
   constructor(
-      elementRef: ElementRef,
-      private logger: Logger,
-      private titleService: Title,
-      private metaService: Meta,
-      private tocService: TocService,
-      private elementsLoader: ElementsLoader) {
+    elementRef: ElementRef,
+    private logger: Logger,
+    private titleService: Title,
+    private metaService: Meta,
+    private tocService: TocService,
+    private elementsLoader: ElementsLoader) {
     this.hostElement = elementRef.nativeElement;
     // Security: the initialDocViewerContent comes from the prerendered DOM and is considered to be secure
     this.hostElement.innerHTML = initialDocViewerContent;
@@ -260,10 +260,13 @@ export class DocViewerComponent implements OnDestroy {
  * (See https://github.com/angular/angular/issues/28114.)
  */
 async function printSwDebugInfo(): Promise<void> {
-  console.log(`\nServiceWorker: ${navigator.serviceWorker?.controller?.state ?? 'N/A'}`);
+  const sep = '\n----------';
+  const swState = navigator.serviceWorker?.controller?.state ?? 'N/A';
+
+  console.log(`\nServiceWorker: ${swState}`);
 
   if (typeof caches === 'undefined') {
-    console.log('\nCaches: N/A');
+    console.log(`${sep}\nCaches: N/A`);
   } else {
     const allCacheNames = await caches.keys();
     const swCacheNames = allCacheNames.filter(name => name.startsWith('ngsw:/:'));
@@ -273,11 +276,28 @@ async function printSwDebugInfo(): Promise<void> {
     await findCachesAndPrintEntries(swCacheNames, 'assets:app-shell:meta', true);
   }
 
+  if (swState === 'activated') {
+    console.log(sep);
+    await fetchAndPrintSwInternalDebugInfo();
+  }
+
   console.warn(
-      '\nIf you see this error, please report an issue at ' +
+      `${sep}\nIf you see this error, please report an issue at ` +
       'https://github.com/angular/angular/issues/new?template=3-docs-bug.md including the above logs.');
 
   // Internal helpers
+  async function fetchAndPrintSwInternalDebugInfo() {
+    try {
+      const res = await fetch('/ngsw/state');
+      if (!res.ok) {
+        throw new Error(`Response ${res.status} ${res.statusText}`);
+      }
+      console.log(await res.text());
+    } catch (err) {
+      console.log(`Failed to retrieve debug info from '/ngsw/state': ${err.message || err}`);
+    }
+  }
+
   async function findCachesAndPrintEntries(
       swCacheNames: string[], nameSuffix: string, includeValues: boolean,
       ignoredKeys: string[] = []): Promise<void> {
@@ -291,7 +311,7 @@ async function printSwDebugInfo(): Promise<void> {
 
   async function getCacheEntries(
       name: string, includeValues: boolean,
-      ignoredKeys: string[] = []): Promise<{key: string, value?: object}[]> {
+      ignoredKeys: string[] = []): Promise<{key: string, value?: unknown}[]> {
     const ignoredUrls = new Set(ignoredKeys.map(key => new Request(key).url));
 
     const cache = await caches.open(name);
@@ -304,7 +324,7 @@ async function printSwDebugInfo(): Promise<void> {
     return entries;
   }
 
-  function printCacheEntries(name: string, entries: {key: string, value?: object}[]): void {
+  function printCacheEntries(name: string, entries: {key: string, value?: unknown}[]): void {
     const entriesStr = entries
         .map(({key, value}) => `  - ${key}${!value ? '' : `: ${JSON.stringify(value)}`}`)
         .join('\n');

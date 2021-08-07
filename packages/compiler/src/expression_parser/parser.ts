@@ -367,7 +367,7 @@ export class Parser {
 }
 
 export class IvyParser extends Parser {
-  simpleExpressionChecker = IvySimpleExpressionChecker;
+  override simpleExpressionChecker = IvySimpleExpressionChecker;
 }
 
 /** Describes a stateful context an expression parser is in. */
@@ -929,11 +929,23 @@ export class _ParseAST {
     if (!this.consumeOptionalCharacter(chars.$RBRACE)) {
       this.rbracesExpected++;
       do {
+        const keyStart = this.inputIndex;
         const quoted = this.next.isString();
         const key = this.expectIdentifierOrKeywordOrString();
         keys.push({key, quoted});
-        this.expectCharacter(chars.$COLON);
-        values.push(this.parsePipe());
+
+        // Properties with quoted keys can't use the shorthand syntax.
+        if (quoted) {
+          this.expectCharacter(chars.$COLON);
+          values.push(this.parsePipe());
+        } else if (this.consumeOptionalCharacter(chars.$COLON)) {
+          values.push(this.parsePipe());
+        } else {
+          const span = this.span(keyStart);
+          const sourceSpan = this.sourceSpan(keyStart);
+          values.push(new PropertyRead(
+              span, sourceSpan, sourceSpan, new ImplicitReceiver(span, sourceSpan), key));
+        }
       } while (this.consumeOptionalCharacter(chars.$COMMA));
       this.rbracesExpected--;
       this.expectCharacter(chars.$RBRACE);
@@ -1359,7 +1371,7 @@ class SimpleExpressionChecker implements AstVisitor {
 class IvySimpleExpressionChecker extends RecursiveAstVisitor implements SimpleExpressionChecker {
   errors: string[] = [];
 
-  visitPipe() {
+  override visitPipe() {
     this.errors.push('pipes');
   }
 }

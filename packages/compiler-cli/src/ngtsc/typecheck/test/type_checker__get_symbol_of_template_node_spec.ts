@@ -223,8 +223,9 @@ runInEachFileSystem(() => {
 
         beforeEach(() => {
           const fileName = absoluteFrom('/main.ts');
+          const dirFile = absoluteFrom('/dir.ts');
           const templateString = `
-              <div *ngFor="let user of users; let i = index;">
+              <div *ngFor="let user of users; let i = index;" dir>
                 {{user.name}} {{user.streetNumber}}
                 <div [tabIndex]="i"></div>
               </div>`;
@@ -239,15 +240,36 @@ runInEachFileSystem(() => {
             }
             export class Cmp { users: User[]; }
             `,
-              declarations: [ngForDeclaration()],
+              declarations: [
+                ngForDeclaration(),
+                {
+                  name: 'TestDir',
+                  selector: '[dir]',
+                  file: dirFile,
+                  type: 'directive',
+                  inputs: {name: 'name'}
+                },
+              ],
             },
             ngForTypeCheckTarget(),
+            {
+              fileName: dirFile,
+              source: `export class TestDir {name:string}`,
+              templates: {},
+            },
           ]);
           templateTypeChecker = testValues.templateTypeChecker;
           program = testValues.program;
           const sf = getSourceFileOrError(testValues.program, fileName);
           cmp = getClass(sf, 'Cmp');
           templateNode = getAstTemplates(templateTypeChecker, cmp)[0];
+        });
+
+        it('should retrieve a symbol for a directive on a microsyntax template', () => {
+          const symbol = templateTypeChecker.getSymbolOfNode(templateNode, cmp);
+          const testDir = symbol?.directives.find(dir => dir.selector === '[dir]');
+          expect(testDir).toBeDefined();
+          expect(program.getTypeChecker().symbolToString(testDir!.tsSymbol)).toEqual('TestDir');
         });
 
         it('should retrieve a symbol for an expression inside structural binding', () => {
@@ -394,6 +416,7 @@ runInEachFileSystem(() => {
         <div [inputA]="person?.address?.street"></div>
         <div [inputA]="person ? person.address : noPersonError"></div>
         <div [inputA]="person?.speak()"></div>
+        <div [inputA]="person?.cars?.[1].engine"></div>
       `;
           const testValues = setup(
               [
@@ -405,9 +428,14 @@ runInEachFileSystem(() => {
                 street: string;
               }
 
+              interface Car {
+                engine: string;
+              }
+
               interface Person {
                 address: Address;
                 speak(): string;
+                cars?: Car[];
               }
               export class Cmp {person?: Person; noPersonError = 'no person'}
             `,
@@ -446,6 +474,19 @@ runInEachFileSystem(() => {
               .toEqual('Person');
           expect(program.getTypeChecker().typeToString(methodCallSymbol.tsType))
               .toEqual('string | undefined');
+        });
+
+        it('safe keyed reads', () => {
+          const nodes = getAstElements(templateTypeChecker, cmp);
+          const safeKeyedRead = nodes[3].inputs[0].value as ASTWithSource;
+          const keyedReadSymbol = templateTypeChecker.getSymbolOfNode(safeKeyedRead, cmp)!;
+          assertExpressionSymbol(keyedReadSymbol);
+          expect(program.getTypeChecker().symbolToString(keyedReadSymbol.tsSymbol!))
+              .toEqual('engine');
+          expect((keyedReadSymbol.tsSymbol!.declarations![0] as ts.PropertyDeclaration)
+                     .parent.name!.getText())
+              .toEqual('Car');
+          expect(program.getTypeChecker().typeToString(keyedReadSymbol.tsType)).toEqual('string');
         });
 
         it('ternary expressions', () => {
@@ -649,12 +690,16 @@ runInEachFileSystem(() => {
           const fileName = absoluteFrom('/main.ts');
           const templateString = `
           {{ [1, 2, 3] }}
-          {{ { hello: "world" } }}`;
+          {{ { hello: "world" } }}
+          {{ { foo } }}`;
           const testValues = setup([
             {
               fileName,
               templates: {'Cmp': templateString},
-              source: `export class Cmp {}`,
+              source: `
+                type Foo {name: string;}
+                export class Cmp {foo: Foo;}
+              `,
             },
           ]);
           templateTypeChecker = testValues.templateTypeChecker;
@@ -681,6 +726,15 @@ runInEachFileSystem(() => {
           expect(program.getTypeChecker().symbolToString(symbol.tsSymbol!)).toEqual('__object');
           expect(program.getTypeChecker().typeToString(symbol.tsType))
               .toEqual('{ hello: string; }');
+        });
+
+        it('literal map shorthand property', () => {
+          const shorthandProp =
+              (interpolation.expressions[2] as LiteralMap).values[0] as PropertyRead;
+          const symbol = templateTypeChecker.getSymbolOfNode(shorthandProp, cmp)!;
+          assertExpressionSymbol(symbol);
+          expect(program.getTypeChecker().symbolToString(symbol.tsSymbol!)).toEqual('foo');
+          expect(program.getTypeChecker().typeToString(symbol.tsType)).toEqual('Foo');
         });
       });
 

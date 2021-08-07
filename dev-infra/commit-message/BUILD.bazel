@@ -1,5 +1,4 @@
-load("//tools:defaults.bzl", "jasmine_node_test")
-load("@npm//@bazel/typescript:index.bzl", "ts_library")
+load("//dev-infra:defaults.bzl", "jasmine_node_test", "ts_library")
 
 ts_library(
     name = "commit-message",
@@ -7,7 +6,6 @@ ts_library(
         ["**/*.ts"],
         exclude = ["**/*.spec.ts"],
     ),
-    module_name = "@angular/dev-infra-private/commit-message",
     visibility = ["//dev-infra:__subpackages__"],
     deps = [
         "//dev-infra/utils",
@@ -15,12 +13,10 @@ ts_library(
         "@npm//@types/git-raw-commits",
         "@npm//@types/inquirer",
         "@npm//@types/node",
-        "@npm//@types/shelljs",
         "@npm//@types/yargs",
         "@npm//conventional-commits-parser",
         "@npm//git-raw-commits",
         "@npm//inquirer",
-        "@npm//shelljs",
         "@npm//yargs",
     ],
 )
@@ -41,7 +37,6 @@ ts_library(
 
 jasmine_node_test(
     name = "test",
-    bootstrap = ["//tools/testing:node_no_angular_es5"],
     deps = [
         ":test_lib",
     ],

@@ -140,7 +140,7 @@ See [Build target](#build-target) below for more information.
 
 * The `architect/test` section overrides build-option defaults for test builds and supplies additional test-running defaults for the `ng test` command.
 
-* The `architect/lint` section configures defaults for options of the `ng lint` command, which performs code analysis on project source files. The default linting tool for Angular is [TSLint](https://palantir.github.io/tslint/).
+* The `architect/lint` section configures defaults for options of the `ng lint` command, which performs code analysis on project source files.
 
 * The `architect/extract-i18n` section configures defaults for options of the `ng extract-i18n` command, which extracts marked message strings from source code and outputs translation files.
 
@@ -439,7 +439,7 @@ There are several options that can be used to fine-tune the optimization of an a
 <tbody>
 <tr>
 <td><code>inline</code></td>
-<td>Reduce <a href="https://web.dev/render-blocking-resources/">render blocking requests</a> by inlining external Google fonts and icons CSS definitions in the application's HTML index file.<br><strong>Note:</strong>This requires internet access.</td>
+<td>Reduce <a href="https://web.dev/render-blocking-resources/">render blocking requests</a> by inlining external Google Fonts and Adobe Fonts CSS definitions in the application's HTML index file.<br><strong>Note:</strong>This requires internet access.</td>
 <td><code class="no-auto-link">boolean</code></td>
 <td><code>true</code></td>
 </tr>

@@ -2041,6 +2041,39 @@ describe('acceptance integration tests', () => {
     expect(fixture.nativeElement.innerHTML).toContain('<text>Hello</text>');
   });
 
+  it('should handle shorthand property declarations in templates', () => {
+    @Directive({selector: '[my-dir]'})
+    class Dir {
+      @Input('my-dir') value: any;
+    }
+
+    @Component({template: `<div [my-dir]="{a, b: 2, someProp}"></div>`})
+    class App {
+      @ViewChild(Dir) directive!: Dir;
+      a = 1;
+      someProp = 3;
+    }
+
+    TestBed.configureTestingModule({declarations: [App, Dir]});
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.directive.value).toEqual({a: 1, b: 2, someProp: 3});
+  });
+
+  it('should handle numeric separators in templates', () => {
+    @Component({template: 'Balance: ${{ 1_000_000 * multiplier }}'})
+    class App {
+      multiplier = 5;
+    }
+
+    TestBed.configureTestingModule({declarations: [App]});
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toBe('Balance: $5000000');
+  });
+
   describe('tView.firstUpdatePass', () => {
     function isFirstUpdatePass() {
       const lView = getLView();

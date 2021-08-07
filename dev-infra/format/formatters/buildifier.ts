@@ -16,24 +16,24 @@ import {Formatter} from './base-formatter';
  * Formatter for running buildifier against bazel related files.
  */
 export class Buildifier extends Formatter {
-  name = 'buildifier';
+  override name = 'buildifier';
 
-  binaryFilePath = join(this.git.baseDir, 'node_modules/.bin/buildifier');
+  override binaryFilePath = join(this.git.baseDir, 'node_modules/.bin/buildifier');
 
-  defaultFileMatcher = ['**/*.bzl', '**/BUILD.bazel', '**/WORKSPACE', '**/BUILD'];
+  override defaultFileMatcher = ['**/*.bzl', '**/BUILD.bazel', '**/WORKSPACE', '**/BUILD'];
 
-  actions = {
+  override actions = {
     check: {
       commandFlags: `${BAZEL_WARNING_FLAG} --lint=warn --mode=check --format=json`,
       callback:
-          (_: string, code: number, stdout: string) => {
+          (_: string, code: number|NodeJS.Signals, stdout: string) => {
             return code !== 0 || !(JSON.parse(stdout) as {success: string}).success;
           },
     },
     format: {
       commandFlags: `${BAZEL_WARNING_FLAG} --lint=fix --mode=fix`,
       callback:
-          (file: string, code: number, _: string, stderr: string) => {
+          (file: string, code: number|NodeJS.Signals, _: string, stderr: string) => {
             if (code !== 0) {
               error(`Error running buildifier on: ${file}`);
               error(stderr);

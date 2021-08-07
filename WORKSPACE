@@ -8,8 +8,8 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 # Fetch rules_nodejs so we can install our npm dependencies
 http_archive(
     name = "build_bazel_rules_nodejs",
-    sha256 = "4a5d654a4ccd4a4c24eca5d319d85a88a650edf119601550c95bf400c8cc897e",
-    urls = ["https://github.com/bazelbuild/rules_nodejs/releases/download/3.5.1/rules_nodejs-3.5.1.tar.gz"],
+    sha256 = "4681ca88d512d57196d064d1441549080d8d17d119174a1229d1717a16a4a489",
+    urls = ["https://github.com/bazelbuild/rules_nodejs/releases/download/4.0.0-beta.1/rules_nodejs-4.0.0-beta.1.tar.gz"],
 )
 
 # Check the rules_nodejs version and download npm dependencies
@@ -34,11 +34,6 @@ yarn_install(
     yarn_lock = "//:yarn.lock",
 )
 
-# Load angular dependencies
-load("//packages/bazel:package.bzl", "rules_angular_dev_dependencies")
-
-rules_angular_dev_dependencies()
-
 # Load protractor dependencies
 load("@npm//@bazel/protractor:package.bzl", "npm_bazel_protractor_dependencies")
 
@@ -53,12 +48,17 @@ load("//dev-infra/bazel/browsers:browser_repositories.bzl", "browser_repositorie
 
 browser_repositories()
 
-# Setup the rules_sass toolchain
-load("@io_bazel_rules_sass//:defs.bzl", "sass_repositories")
+load("//packages/common/locales/generate-locales-tool:cldr-data.bzl", "cldr_data_repository")
 
-sass_repositories()
-
-# Setup the skydoc toolchain
-load("@io_bazel_skydoc//skylark:skylark.bzl", "skydoc_repositories")
-
-skydoc_repositories()
+cldr_data_repository(
+    name = "cldr_data",
+    # Since we use the Github archives for CLDR 37, we need to specify a path
+    # to the available locales. This wouldn't be needed with CLDR 39 as that
+    # comes with an official JSON archive not containing a version suffix.
+    available_locales_path = "cldr-core-37.0.0/availableLocales.json",
+    urls = {
+        "https://github.com/unicode-cldr/cldr-core/archive/37.0.0.zip": "32b5c49c3874aa342b90412c207b42e7aefb2435295891fb714c34ce58b3c706",
+        "https://github.com/unicode-cldr/cldr-dates-full/archive/37.0.0.zip": "e1c410dd8ad7d75df4a5393efaf5d28f0d56c0fa126c5d66e171a3f21a988a1e",
+        "https://github.com/unicode-cldr/cldr-numbers-full/archive/37.0.0.zip": "a921b90cf7f436e63fbdd55880f96e39a203acd9e174b0ceafa20a02c242a12e",
+    },
+)

@@ -20,7 +20,7 @@ import {generateAnalysis, IndexedComponent, IndexingContext} from '../../indexer
 import {ComponentResources, CompoundMetadataReader, CompoundMetadataRegistry, DirectiveMeta, DtsMetadataReader, InjectableClassRegistry, LocalMetadataRegistry, MetadataReader, PipeMeta, ResourceRegistry} from '../../metadata';
 import {PartialEvaluator} from '../../partial_evaluator';
 import {ActivePerfRecorder, DelegatingPerfRecorder, PerfCheckpoint, PerfEvent, PerfPhase} from '../../perf';
-import {ProgramDriver, UpdateMode} from '../../program_driver';
+import {FileUpdate, ProgramDriver, UpdateMode} from '../../program_driver';
 import {DeclarationNode, isNamedClassDeclaration, TypeScriptReflectionHost} from '../../reflection';
 import {AdapterResourceLoader} from '../../resource';
 import {entryPointKeyFor, NgModuleRouteAnalyzer} from '../../routing';
@@ -31,6 +31,7 @@ import {aliasTransformFactory, CompilationMode, declarationTransformFactory, Dec
 import {TemplateTypeCheckerImpl} from '../../typecheck';
 import {OptimizeFor, TemplateTypeChecker, TypeCheckingConfig} from '../../typecheck/api';
 import {getSourceFileOrNull, isDtsPath, resolveModuleName, toUnredirectedSourceFile} from '../../util/src/typescript';
+import {Xi18nContext} from '../../xi18n';
 import {LazyRoute, NgCompilerAdapter, NgCompilerOptions} from '../api';
 
 import {compileUndecoratedClassesWithAngularFeatures} from './config';
@@ -674,6 +675,16 @@ export class NgCompiler {
     return generateAnalysis(context);
   }
 
+  /**
+   * Collect i18n messages into the `Xi18nContext`.
+   */
+  xi18n(ctx: Xi18nContext): void {
+    // Note that the 'resolve' phase is not strictly necessary for xi18n, but this is not currently
+    // optimized.
+    const compilation = this.ensureAnalyzed();
+    compilation.traitCompiler.xi18n(ctx);
+  }
+
   private ensureAnalyzed(this: NgCompiler): LazyCompilationState {
     if (this.compilation === null) {
       this.analyzeSync();
@@ -1169,7 +1180,7 @@ class NotifyingProgramDriverWrapper implements ProgramDriver {
     return this.delegate.getProgram();
   }
 
-  updateFiles(contents: Map<AbsoluteFsPath, string>, updateMode: UpdateMode): void {
+  updateFiles(contents: Map<AbsoluteFsPath, FileUpdate>, updateMode: UpdateMode): void {
     this.delegate.updateFiles(contents, updateMode);
     this.notifyNewProgram(this.delegate.getProgram());
   }
