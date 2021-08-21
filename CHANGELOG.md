@@ -1,3 +1,87 @@
+<a name="13.0.0-next.2"></a>
+# 13.0.0-next.2 (2021-08-18)
+### animations
+| Commit | Description |
+| -- | -- |
+| [3cb1f18f97](https://github.com/angular/angular/commit/3cb1f18f976190189440e281581e712aaf0250e4) | fix: add pure annotations to static property initializers ([#43064](https://github.com/angular/angular/pull/43064)) |
+### core
+| Commit | Description |
+| -- | -- |
+| [27a89a9298](https://github.com/angular/angular/commit/27a89a929818dc2d249c2833c4a75582a7dc1349) | fix: add pure annotations to static property initializers ([#43064](https://github.com/angular/angular/pull/43064)) |
+### language-service
+| Commit | Description |
+| -- | -- |
+| [d5f9890c92](https://github.com/angular/angular/commit/d5f9890c9205b4a121275ace84b26776aedd0478) | feat: auto-apply optional chaining on nullable symbol ([#42995](https://github.com/angular/angular/pull/42995)) |
+### platform-browser
+| Commit | Description |
+| -- | -- |
+| [7e71370fe6](https://github.com/angular/angular/commit/7e71370fe6a9e802f68f7d3dbbfd0194ecde2d4f) | perf: avoid intermediate arrays in server transition ([#43145](https://github.com/angular/angular/pull/43145)) |
+### router
+| Commit | Description |
+| -- | -- |
+| [286b2807de](https://github.com/angular/angular/commit/286b2807de61dcd6e24ced5c142fbc6eda9dfbec) | fix: eagerly update internal state on browser-triggered navigations ([#43102](https://github.com/angular/angular/pull/43102)) |
+## Special Thanks:
+Alan Agius, Andrew Scott, Aristeidis Bampakos, Charles Lyding, Dylan Hunn, Edoardo Dusi, Erik Slack, George Kalpakas, Joe Martin (Crowdstaffing), Joey Perrott, Kirk Larkin, Kristiyan Kostadinov, Paul Gschwendtner, Pete Bacon Darwin, TIffany Davis, Theoklitos Bampouris, ali, dario-piotrowicz, ivanwonder and pichuser
+
+
+<a name="12.2.2"></a>
+# 12.2.2 (2021-08-18)
+### animations
+| Commit | Description |
+| -- | -- |
+| [bb6555979d](https://github.com/angular/angular/commit/bb6555979dd02e706f7e98022b9c37a4f54db1ba) | fix: add pure annotations to static property initializers ([#43064](https://github.com/angular/angular/pull/43064)) |
+### core
+| Commit | Description |
+| -- | -- |
+| [738b23347e](https://github.com/angular/angular/commit/738b23347e5eeadfa0321d1429537837dba5e4c1) | fix: add pure annotations to static property initializers ([#43064](https://github.com/angular/angular/pull/43064)) |
+### platform-browser
+| Commit | Description |
+| -- | -- |
+| [535837e617](https://github.com/angular/angular/commit/535837e617a0434f8e7bd9071cc4d8c27fd9f373) | perf: avoid intermediate arrays in server transition ([#43145](https://github.com/angular/angular/pull/43145)) |
+### router
+| Commit | Description |
+| -- | -- |
+| [6449590ec8](https://github.com/angular/angular/commit/6449590ec81eff0873af911fb65679b5a77db27b) | fix: eagerly update internal state on browser-triggered navigations ([#43102](https://github.com/angular/angular/pull/43102)) |
+## Special Thanks:
+Andrew Scott, Aristeidis Bampakos, Charles Lyding, Edoardo Dusi, George Kalpakas, Joe Martin (Crowdstaffing), Joey Perrott, Kirk Larkin, Kristiyan Kostadinov, Pete Bacon Darwin, TIffany Davis, Theoklitos Bampouris, ali, dario-piotrowicz and pichuser
+
+
+<a name="13.0.0-next.1"></a>
+# 13.0.0-next.1 (2021-08-11)
+### forms
+| Commit | Description |
+| -- | -- |
+| [e49fc96ed3](https://github.com/angular/angular/commit/e49fc96ed33c26434a14b80487dd912d8c76cace) | feat(forms): Make Form Statuses use stricter types. ([#42952](https://github.com/angular/angular/pull/42952)) |
+### router
+| Commit | Description |
+| -- | -- |
+| [bbad42310b](https://github.com/angular/angular/commit/bbad42310b6ba4df803917fa9b32e1e702eca531) | fix(router): ensure check for match options is compatible with property renaming ([#43086](https://github.com/angular/angular/pull/43086)) |
+| [784671597e](https://github.com/angular/angular/commit/784671597e0b28d9696bdc325b426a6c7be0cd8e) | fix(router): Allow question marks in query param values ([#31187](https://github.com/angular/angular/pull/31187)) |
+## Breaking Changes
+### forms
+A new type called `FormControlStatus` has been introduced, which is a union of all possible status strings for form controls. `AbstractControl.status` has been narrowed from `string` to `FormControlStatus`, and `statusChanges` has been narrowed from `Observable<any>` to `Observable<FormControlStatus>`. Most applications should consume the new types seamlessly. Any breakage caused by this change is likely due to one of the following two problems: (1) the app is comparing `AbstractControl.status` against a string which is not a valid status; or, (2) the app is using `statusChanges` events as if they were something other than strings.
+### router
+The default url serializer would previously drop
+everything after and including a question mark in query parameters. That
+is, for a navigation to `/path?q=hello?&other=123`, the query
+params would be parsed to just `{q: 'hello'}`. This is
+incorrect because the URI spec allows for question mark characers in
+query data. This change will now correctly parse the params for the
+above example to be `{v: 'hello?', other: '123'}`.
+## Special Thanks:
+Amadou Sall, Andrew Kushnir, Andrew Scott, Daniel Trevino, Dylan Hunn, Erik Slack, Fabien BERNARD, George Kalpakas, Jeroen van Warmerdam, Joey Perrott, Jon Rimmer, Tim Gates and Vugar_Abdullayev
+
+
+<a name="12.2.1"></a>
+# 12.2.1 (2021-08-11)
+### router
+| Commit | Description |
+| -- | -- |
+| [dd3abdb9d9](https://github.com/angular/angular/commit/dd3abdb9d9b2c4363fb1f468a05bf449b55f55a5) | fix(router): ensure check for match options is compatible with property renaming ([#43086](https://github.com/angular/angular/pull/43086)) |
+## Special Thanks:
+Amadou Sall, Andrew Kushnir, Andrew Scott, Daniel Trevino, Erik Slack, Fabien BERNARD, George Kalpakas, Jeroen van Warmerdam, Joey Perrott, Tim Gates and Vugar_Abdullayev
+
+
 <a name="13.0.0-next.0"></a>
 # 13.0.0-next.0 (2021-08-04)
 ### compiler-cli
