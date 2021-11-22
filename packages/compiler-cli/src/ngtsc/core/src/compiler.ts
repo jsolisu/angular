@@ -6,7 +6,7 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
-import * as ts from 'typescript';
+import ts from 'typescript';
 
 import {ComponentDecoratorHandler, DirectiveDecoratorHandler, InjectableDecoratorHandler, NgModuleDecoratorHandler, NoopReferencesRegistry, PipeDecoratorHandler, ReferencesRegistry} from '../../annotations';
 import {CycleAnalyzer, CycleHandlingStrategy, ImportGraph} from '../../cycles';
@@ -23,7 +23,6 @@ import {ActivePerfRecorder, DelegatingPerfRecorder, PerfCheckpoint, PerfEvent, P
 import {FileUpdate, ProgramDriver, UpdateMode} from '../../program_driver';
 import {DeclarationNode, isNamedClassDeclaration, TypeScriptReflectionHost} from '../../reflection';
 import {AdapterResourceLoader} from '../../resource';
-import {entryPointKeyFor, NgModuleRouteAnalyzer} from '../../routing';
 import {ComponentScopeReader, LocalModuleScopeRegistry, MetadataDtsModuleScopeResolver, TypeCheckScopeRegistry} from '../../scope';
 import {generatedFactoryTransform} from '../../shims';
 import {ivySwitchTransform} from '../../switch';
@@ -31,10 +30,12 @@ import {aliasTransformFactory, CompilationMode, declarationTransformFactory, Dec
 import {TemplateTypeCheckerImpl} from '../../typecheck';
 import {OptimizeFor, TemplateTypeChecker, TypeCheckingConfig} from '../../typecheck/api';
 import {ExtendedTemplateCheckerImpl} from '../../typecheck/extended';
-import {InvalidBananaInBoxCheck} from '../../typecheck/extended/src/template_checks/invalid_banana_in_box';
-import {getSourceFileOrNull, isDtsPath, resolveModuleName, toUnredirectedSourceFile} from '../../util/src/typescript';
+import {ExtendedTemplateChecker, TemplateCheck} from '../../typecheck/extended/api';
+import {InvalidBananaInBoxCheck} from '../../typecheck/extended/checks/invalid_banana_in_box';
+import {NullishCoalescingNotNullableCheck} from '../../typecheck/extended/checks/nullish_coalescing_not_nullable';
+import {getSourceFileOrNull, isDtsPath, toUnredirectedSourceFile} from '../../util/src/typescript';
 import {Xi18nContext} from '../../xi18n';
-import {LazyRoute, NgCompilerAdapter, NgCompilerOptions} from '../api';
+import {NgCompilerAdapter, NgCompilerOptions} from '../api';
 
 /**
  * State information about a compilation which is only generated once some data is requested from
@@ -48,12 +49,12 @@ interface LazyCompilationState {
   scopeRegistry: LocalModuleScopeRegistry;
   typeCheckScopeRegistry: TypeCheckScopeRegistry;
   exportReferenceGraph: ReferenceGraph|null;
-  routeAnalyzer: NgModuleRouteAnalyzer;
   dtsTransforms: DtsTransformRegistry;
   aliasingHost: AliasingHost|null;
   refEmitter: ReferenceEmitter;
   templateTypeChecker: TemplateTypeChecker;
   resourceRegistry: ResourceRegistry;
+  extendedTemplateChecker: ExtendedTemplateChecker;
 }
 
 
@@ -458,6 +459,21 @@ export class NgCompiler {
   }
 
   /**
+   * Get all `ts.Diagnostic`s currently available that pertain to the given component.
+   */
+  getDiagnosticsForComponent(component: ts.ClassDeclaration): ts.Diagnostic[] {
+    const compilation = this.ensureAnalyzed();
+    const ttc = compilation.templateTypeChecker;
+    const diagnostics: ts.Diagnostic[] = [];
+    diagnostics.push(...ttc.getDiagnosticsForComponent(component));
+    if (this.options._extendedTemplateDiagnostics) {
+      const extendedTemplateChecker = compilation.extendedTemplateChecker;
+      diagnostics.push(...extendedTemplateChecker.getDiagnosticsForComponent(component));
+    }
+    return this.addMessageTextDetails(diagnostics);
+  }
+
+  /**
    * Add Angular.io error guide links to diagnostics for this compilation.
    */
   private addMessageTextDetails(diagnostics: ts.Diagnostic[]): ts.Diagnostic[] {
@@ -587,47 +603,6 @@ export class NgCompiler {
       this.perfRecorder.memory(PerfCheckpoint.Analysis);
       this.resolveCompilation(this.compilation.traitCompiler);
     });
-  }
-
-  /**
-   * List lazy routes detected during analysis.
-   *
-   * This can be called for one specific route, or to retrieve all top-level routes.
-   */
-  listLazyRoutes(entryRoute?: string): LazyRoute[] {
-    if (entryRoute) {
-      // htts://github.com/angular/angular/blob/50732e156/packages/compiler-cli/src/transformers/compiler_host.ts#L175-L188).
-      //
-      // `@angular/cli` will always call this API with an absolute path, so the resolution step is
-      // not necessary, but keeping it backwards compatible in case someone else is using the API.
-
-      // Relative entry paths are disallowed.
-      if (entryRoute.startsWith('.')) {
-        throw new Error(`Failed to list lazy routes: Resolution of relative paths (${
-            entryRoute}) is not supported.`);
-      }
-
-      // Non-relative entry paths fall into one of the following categories:
-      // - Absolute system paths (e.g. `/foo/bar/my-project/my-module`), which are unaffected by the
-      //   logic below.
-      // - Paths to enternal modules (e.g. `some-lib`).
-      // - Paths mapped to directories in `tsconfig.json` (e.g. `shared/my-module`).
-      //   (See https://www.typescriptlang.org/docs/handbook/module-resolution.html#path-mapping.)
-      //
-      // In all cases above, the `containingFile` argument is ignored, so we can just take the first
-      // of the root files.
-      const containingFile = this.inputProgram.getRootFileNames()[0];
-      const [entryPath, moduleName] = entryRoute.split('#');
-      const resolvedModule =
-          resolveModuleName(entryPath, containingFile, this.options, this.adapter, null);
-
-      if (resolvedModule) {
-        entryRoute = entryPointKeyFor(resolvedModule.resolvedFileName, moduleName);
-      }
-    }
-
-    const compilation = this.ensureAnalyzed();
-    return compilation.routeAnalyzer.listLazyRoutes(entryRoute);
   }
 
   /**
@@ -917,10 +892,7 @@ export class NgCompiler {
   private getExtendedTemplateDiagnostics(sf?: ts.SourceFile): ts.Diagnostic[] {
     const diagnostics: ts.Diagnostic[] = [];
     const compilation = this.ensureAnalyzed();
-    const typeChecker = this.inputProgram.getTypeChecker();
-    const templateChecks = [new InvalidBananaInBoxCheck()];
-    const extendedTemplateChecker = new ExtendedTemplateCheckerImpl(
-        compilation.templateTypeChecker, typeChecker, templateChecks);
+    const extendedTemplateChecker = compilation.extendedTemplateChecker;
     if (sf !== undefined) {
       return compilation.traitCompiler.extendedTemplateCheck(sf, extendedTemplateChecker);
     }
@@ -1022,16 +994,18 @@ export class NgCompiler {
       referencesRegistry = new NoopReferencesRegistry();
     }
 
-    const routeAnalyzer = new NgModuleRouteAnalyzer(this.moduleResolver, evaluator);
-
     const dtsTransforms = new DtsTransformRegistry();
 
     const isCore = isAngularCorePackage(this.inputProgram);
 
     const resourceRegistry = new ResourceRegistry();
 
-    const compilationMode =
-        this.options.compilationMode === 'partial' ? CompilationMode.PARTIAL : CompilationMode.FULL;
+    // Note: If this compilation builds `@angular/core`, we always build in full compilation
+    // mode. Code inside the core package is always compatible with itself, so it does not
+    // make sense to go through the indirection of partial compilation
+    const compilationMode = this.options.compilationMode === 'partial' && !isCore ?
+        CompilationMode.PARTIAL :
+        CompilationMode.FULL;
 
     // Cycles are handled in full compilation mode by "remote scoping".
     // "Remote scoping" does not work well with tree shaking for libraries.
@@ -1073,8 +1047,8 @@ export class NgCompiler {
           this.delegatingPerfRecorder),
       new NgModuleDecoratorHandler(
           reflector, evaluator, metaReader, metaRegistry, scopeRegistry, referencesRegistry, isCore,
-          routeAnalyzer, refEmitter, this.adapter.factoryTracker, this.closureCompilerEnabled,
-          injectableRegistry, this.delegatingPerfRecorder, this.options.i18nInLocale),
+          refEmitter, this.adapter.factoryTracker, this.closureCompilerEnabled, injectableRegistry,
+          this.delegatingPerfRecorder),
     ];
 
     const traitCompiler = new TraitCompiler(
@@ -1095,6 +1069,13 @@ export class NgCompiler {
         reflector, this.adapter, this.incrementalCompilation, scopeRegistry, typeCheckScopeRegistry,
         this.delegatingPerfRecorder);
 
+    const templateChecks: TemplateCheck<ErrorCode>[] = [new InvalidBananaInBoxCheck()];
+    if (this.options.strictNullChecks) {
+      templateChecks.push(new NullishCoalescingNotNullableCheck());
+    }
+    const extendedTemplateChecker =
+        new ExtendedTemplateCheckerImpl(templateTypeChecker, checker, templateChecks);
+
     return {
       isCore,
       traitCompiler,
@@ -1102,13 +1083,13 @@ export class NgCompiler {
       scopeRegistry,
       dtsTransforms,
       exportReferenceGraph,
-      routeAnalyzer,
       metaReader,
       typeCheckScopeRegistry,
       aliasingHost,
       refEmitter,
       templateTypeChecker,
       resourceRegistry,
+      extendedTemplateChecker
     };
   }
 }

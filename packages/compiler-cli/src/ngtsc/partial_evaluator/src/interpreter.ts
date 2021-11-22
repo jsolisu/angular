@@ -6,7 +6,7 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
-import * as ts from 'typescript';
+import ts from 'typescript';
 
 import {Reference} from '../../imports';
 import {OwningModule} from '../../imports/src/references';
@@ -14,7 +14,7 @@ import {DependencyTracker} from '../../incremental/api';
 import {Declaration, DeclarationKind, DeclarationNode, EnumMember, FunctionDefinition, isConcreteDeclaration, ReflectionHost, SpecialDeclarationKind} from '../../reflection';
 import {isDeclaration} from '../../util/src/typescript';
 
-import {ArrayConcatBuiltinFn, ArraySliceBuiltinFn} from './builtin';
+import {ArrayConcatBuiltinFn, ArraySliceBuiltinFn, StringConcatBuiltinFn} from './builtin';
 import {DynamicValue} from './dynamic';
 import {ForeignFunctionResolver} from './interface';
 import {resolveKnownDeclaration} from './known_declaration';
@@ -399,6 +399,8 @@ export class StaticInterpreter {
         return DynamicValue.fromInvalidExpressionType(node, rhs);
       }
       return lhs[rhs];
+    } else if (typeof lhs === 'string' && rhs === 'concat') {
+      return new StringConcatBuiltinFn(lhs);
     } else if (lhs instanceof Reference) {
       const ref = lhs.node;
       if (this.host.isClass(ref)) {

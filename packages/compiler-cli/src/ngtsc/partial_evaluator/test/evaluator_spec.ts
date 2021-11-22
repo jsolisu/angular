@@ -5,7 +5,7 @@
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.io/license
  */
-import * as ts from 'typescript';
+import ts from 'typescript';
 
 import {absoluteFrom, getSourceFileOrError} from '../../file_system';
 import {runInEachFileSystem} from '../../file_system/testing';
@@ -533,6 +533,17 @@ runInEachFileSystem(() => {
           .toBe('a.test.b');
     });
 
+    it('string `concat` function works', () => {
+      expect(evaluate(`const a = '12', b = '34';`, 'a[\'concat\'](b)')).toBe('1234');
+      expect(evaluate(`const a = '12', b = '3';`, 'a[\'concat\'](b)')).toBe('123');
+      expect(evaluate(`const a = '12', b = '3', c = '45';`, 'a[\'concat\'](b,c)')).toBe('12345');
+      expect(
+          evaluate(`const a = '1', b = 2, c = '3', d = true, e = null;`, 'a[\'concat\'](b,c,d,e)'))
+          .toBe('123truenull');
+      expect(evaluate('enum Test { VALUE = "test" };', '"a."[\'concat\'](Test.VALUE, ".b")'))
+          .toBe('a.test.b');
+    });
+
     it('should resolve non-literals as dynamic string', () => {
       const value = evaluate(`const a: any = [];`, '`a.${a}.b`');
 
@@ -760,7 +771,7 @@ runInEachFileSystem(() => {
               export declare function __assign(t: any, ...sources: any[]): any;
               export declare function __spread(...args: any[][]): any[];
               export declare function __spreadArrays(...args: any[][]): any[];
-              export declare function __spreadArray(to: any[], from: any[]): any[];
+              export declare function __spreadArray(to: any[], from: any[], pack?: boolean): any[];
               export declare function __read(o: any, n?: number): any[];
             `,
           },
@@ -870,6 +881,18 @@ runInEachFileSystem(() => {
               const b = [5, 6];
             `,
             'tslib.__spreadArray(a, b)');
+
+        expect(arr).toEqual([4, 5, 6]);
+      });
+
+      it('should evaluate `__spreadArray()` with three arguments', () => {
+        const arr: number[] = evaluateExpression(
+            `
+              import {__spreadArray} from 'tslib';
+              const a = [4];
+              const b = [5, 6];
+            `,
+            '__spreadArray(a, b, false)');
 
         expect(arr).toEqual([4, 5, 6]);
       });

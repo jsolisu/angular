@@ -38,7 +38,6 @@ import {setJitOptions} from './render3/jit/jit_options';
 import {NgModuleFactory as R3NgModuleFactory} from './render3/ng_module_ref';
 import {publishDefaultGlobalUtils as _publishDefaultGlobalUtils} from './render3/util/global_utils';
 import {Testability, TestabilityRegistry} from './testability/testability';
-import {isDevMode} from './util/is_dev_mode';
 import {isPromise} from './util/lang';
 import {scheduleMicroTask} from './util/microtask';
 import {stringify} from './util/stringify';
@@ -330,6 +329,9 @@ export class PlatformRef {
    *
    * let moduleRef = platformBrowser().bootstrapModuleFactory(MyModuleNgFactory);
    * ```
+   *
+   * @deprecated Passing NgModule factories as the `PlatformRef.bootstrapModuleFactory` function
+   *     argument is deprecated. Use the `PlatformRef.bootstrapModule` API instead.
    */
   bootstrapModuleFactory<M>(moduleFactory: NgModuleFactory<M>, options?: BootstrapOptions):
       Promise<NgModuleRef<M>> {
@@ -465,7 +467,7 @@ function getNgZone(
     ngZone = new NoopNgZone();
   } else {
     ngZone = (ngZoneOption === 'zone.js' ? undefined : ngZoneOption) || new NgZone({
-               enableLongStackTrace: isDevMode(),
+               enableLongStackTrace: typeof ngDevMode === 'undefined' ? false : !!ngDevMode,
                shouldCoalesceEventChangeDetection: !!extra?.ngZoneEventCoalescing,
                shouldCoalesceRunChangeDetection: !!extra?.ngZoneRunCoalescing
              });
@@ -722,6 +724,88 @@ export class ApplicationRef {
    *
    * {@example core/ts/platform/platform.ts region='domNode'}
    */
+  bootstrap<C>(component: Type<C>, rootSelectorOrNode?: string|any): ComponentRef<C>;
+
+  /**
+   * Bootstrap a component onto the element identified by its selector or, optionally, to a
+   * specified element.
+   *
+   * @usageNotes
+   * ### Bootstrap process
+   *
+   * When bootstrapping a component, Angular mounts it onto a target DOM element
+   * and kicks off automatic change detection. The target DOM element can be
+   * provided using the `rootSelectorOrNode` argument.
+   *
+   * If the target DOM element is not provided, Angular tries to find one on a page
+   * using the `selector` of the component that is being bootstrapped
+   * (first matched element is used).
+   *
+   * ### Example
+   *
+   * Generally, we define the component to bootstrap in the `bootstrap` array of `NgModule`,
+   * but it requires us to know the component while writing the application code.
+   *
+   * Imagine a situation where we have to wait for an API call to decide about the component to
+   * bootstrap. We can use the `ngDoBootstrap` hook of the `NgModule` and call this method to
+   * dynamically bootstrap a component.
+   *
+   * {@example core/ts/platform/platform.ts region='componentSelector'}
+   *
+   * Optionally, a component can be mounted onto a DOM element that does not match the
+   * selector of the bootstrapped component.
+   *
+   * In the following example, we are providing a CSS selector to match the target element.
+   *
+   * {@example core/ts/platform/platform.ts region='cssSelector'}
+   *
+   * While in this example, we are providing reference to a DOM node.
+   *
+   * {@example core/ts/platform/platform.ts region='domNode'}
+   *
+   * @deprecated Passing Component factories as the `Application.bootstrap` function argument is
+   *     deprecated. Pass Component Types instead.
+   */
+  bootstrap<C>(componentFactory: ComponentFactory<C>, rootSelectorOrNode?: string|any):
+      ComponentRef<C>;
+
+  /**
+   * Bootstrap a component onto the element identified by its selector or, optionally, to a
+   * specified element.
+   *
+   * @usageNotes
+   * ### Bootstrap process
+   *
+   * When bootstrapping a component, Angular mounts it onto a target DOM element
+   * and kicks off automatic change detection. The target DOM element can be
+   * provided using the `rootSelectorOrNode` argument.
+   *
+   * If the target DOM element is not provided, Angular tries to find one on a page
+   * using the `selector` of the component that is being bootstrapped
+   * (first matched element is used).
+   *
+   * ### Example
+   *
+   * Generally, we define the component to bootstrap in the `bootstrap` array of `NgModule`,
+   * but it requires us to know the component while writing the application code.
+   *
+   * Imagine a situation where we have to wait for an API call to decide about the component to
+   * bootstrap. We can use the `ngDoBootstrap` hook of the `NgModule` and call this method to
+   * dynamically bootstrap a component.
+   *
+   * {@example core/ts/platform/platform.ts region='componentSelector'}
+   *
+   * Optionally, a component can be mounted onto a DOM element that does not match the
+   * selector of the bootstrapped component.
+   *
+   * In the following example, we are providing a CSS selector to match the target element.
+   *
+   * {@example core/ts/platform/platform.ts region='cssSelector'}
+   *
+   * While in this example, we are providing reference to a DOM node.
+   *
+   * {@example core/ts/platform/platform.ts region='domNode'}
+   */
   bootstrap<C>(componentOrFactory: ComponentFactory<C>|Type<C>, rootSelectorOrNode?: string|any):
       ComponentRef<C> {
     if (!this._initStatus.done) {
@@ -758,9 +842,7 @@ export class ApplicationRef {
     });
 
     this._loadComponent(compRef);
-    // Note that we have still left the `isDevMode()` condition in order to avoid
-    // creating a breaking change for projects that still use the View Engine.
-    if ((typeof ngDevMode === 'undefined' || ngDevMode) && isDevMode()) {
+    if (typeof ngDevMode === 'undefined' || ngDevMode) {
       const _console = this._injector.get(Console);
       _console.log(
           `Angular is running in development mode. Call enableProdMode() to enable production mode.`);
@@ -788,9 +870,7 @@ export class ApplicationRef {
       for (let view of this._views) {
         view.detectChanges();
       }
-      // Note that we have still left the `isDevMode()` condition in order to avoid
-      // creating a breaking change for projects that still use the View Engine.
-      if ((typeof ngDevMode === 'undefined' || ngDevMode) && isDevMode()) {
+      if (typeof ngDevMode === 'undefined' || ngDevMode) {
         for (let view of this._views) {
           view.checkNoChanges();
         }

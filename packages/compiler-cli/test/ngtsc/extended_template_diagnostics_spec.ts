@@ -6,8 +6,8 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
-import * as ts from 'typescript';
-import {ErrorCode} from '../../src/ngtsc/diagnostics';
+import ts from 'typescript';
+import {ErrorCode, ngErrorCode} from '../../src/ngtsc/diagnostics';
 import {runInEachFileSystem} from '../../src/ngtsc/file_system/testing';
 import {getSourceCodeForDiagnostic, loadStandardTestFiles} from '../../src/ngtsc/testing';
 
@@ -31,15 +31,15 @@ runInEachFileSystem(() => {
                 selector: 'test',
                 template: '<div ([notARealThing])="bar"></div>',
               })
-              class TestCmp { 
-                bar: string = "text"; 
+              class TestCmp {
+                bar: string = "text";
               }
             `);
 
       const diags = env.driveDiagnostics();
       expect(diags.length).toBe(1);
       expect(diags[0].category).toBe(ts.DiagnosticCategory.Warning);
-      expect(diags[0].code).toBe(ErrorCode.INVALID_BANANA_IN_BOX);
+      expect(diags[0].code).toBe(ngErrorCode(ErrorCode.INVALID_BANANA_IN_BOX));
       expect(getSourceCodeForDiagnostic(diags[0])).toBe('([notARealThing])="bar"');
     });
 
@@ -50,8 +50,8 @@ runInEachFileSystem(() => {
                 selector: 'test',
                 templateUrl: './test.html',
               })
-              class TestCmp { 
-                bar: string = "text"; 
+              class TestCmp {
+                bar: string = "text";
               }
             `);
 
@@ -62,7 +62,7 @@ runInEachFileSystem(() => {
       const diags = env.driveDiagnostics();
       expect(diags.length).toBe(1);
       expect(diags[0].category).toBe(ts.DiagnosticCategory.Warning);
-      expect(diags[0].code).toBe(ErrorCode.INVALID_BANANA_IN_BOX);
+      expect(diags[0].code).toBe(ngErrorCode(ErrorCode.INVALID_BANANA_IN_BOX));
       expect(getSourceCodeForDiagnostic(diags[0])).toBe('([notARealThing])="bar"');
     });
 
@@ -74,8 +74,8 @@ runInEachFileSystem(() => {
                 selector: 'test',
                 template: '<div ([notARealThing])="bar"></div>',
               })
-              class TestCmp { 
-                bar: string = "text"; 
+              class TestCmp {
+                bar: string = "text";
               }
             `);
 
@@ -92,8 +92,8 @@ runInEachFileSystem(() => {
                 selector: 'test',
                 template: '<div ([notARealThing])="bar"></div>',
               })
-              class TestCmp { 
-                bar: string = "text"; 
+              class TestCmp {
+                bar: string = "text";
               }
             `);
 
@@ -102,6 +102,44 @@ runInEachFileSystem(() => {
          expect(diags[0].messageText)
              .toMatch(
                  /Error: The '_extendedTemplateDiagnostics' option requires 'strictTemplates' to also be enabled./);
+       });
+
+    it(`should produce nullish coalescing not nullable warning`, () => {
+      env.write('test.ts', `
+              import {Component} from '@angular/core';
+              @Component({
+                selector: 'test',
+                template: '{{ bar ?? "foo" }}',
+              })
+              export class TestCmp {
+                bar: string = "text";
+              }
+            `);
+
+      const diags = env.driveDiagnostics();
+      expect(diags.length).toBe(1);
+      expect(diags[0].category).toBe(ts.DiagnosticCategory.Warning);
+      expect(diags[0].code).toBe(ngErrorCode(ErrorCode.NULLISH_COALESCING_NOT_NULLABLE));
+      expect(getSourceCodeForDiagnostic(diags[0])).toBe('bar ?? "foo"');
+    });
+
+    it(`should not produce nullish coalescing not nullable warning with strictNullChecks disabled`,
+       () => {
+         env.tsconfig(
+             {_extendedTemplateDiagnostics: true, strictTemplates: true, strictNullChecks: false});
+         env.write('test.ts', `
+              import {Component} from '@angular/core';
+              @Component({
+                selector: 'test',
+                template: '{{ bar ?? "foo" }}',
+              })
+              export class TestCmp {
+                bar: string = undefined;
+              }
+            `);
+
+         const diags = env.driveDiagnostics();
+         expect(diags.length).toBe(0);
        });
   });
 });

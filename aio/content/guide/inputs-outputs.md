@@ -1,7 +1,7 @@
 # Sharing data between child and parent directives and components
 
 A common pattern in Angular is sharing data between a parent component and one or more child components.
-To implement this pattern use the `@Input()` and `@Output()` decorators.
+Implement this pattern with the `@Input()` and `@Output()` decorators.
 
 <div class="alert is-helpful">
 
@@ -199,3 +199,5 @@ The property `currentItem` and the method `crossOffItem()` are both in the paren
 
 To combine property and event bindings using the banana-in-a-box
 syntax, `[()]`, see [Two-way Binding](guide/two-way-binding).
+
+@reviewed 2021-09-17

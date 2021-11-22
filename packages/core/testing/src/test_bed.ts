@@ -39,6 +39,20 @@ export interface TestBed {
   initTestEnvironment(
       ngModule: Type<any>|Type<any>[], platform: PlatformRef,
       options?: TestEnvironmentOptions): void;
+  /**
+   * Initialize the environment for testing with a compiler factory, a PlatformRef, and an
+   * angular module. These are common to every test in the suite.
+   *
+   * This may only be called once, to set up the common providers for the current test
+   * suite on the current platform. If you absolutely need to change the providers,
+   * first use `resetTestEnvironment`.
+   *
+   * Test modules and platforms for individual platforms are available from
+   * '@angular/<platform_name>/testing'.
+   *
+   * @deprecated This API that allows providing AOT summaries is deprecated, since summary files are
+   *     unused in Ivy.
+   */
   initTestEnvironment(
       ngModule: Type<any>|Type<any>[], platform: PlatformRef, aotSummaries?: () => any[]): void;
 
@@ -451,8 +465,11 @@ export class TestBedViewEngine implements TestBed {
     this._moduleRef = this._moduleFactory.create(ngZoneInjector);
     // ApplicationInitStatus.runInitializers() is marked @internal to core. So casting to any
     // before accessing it.
-    (this._moduleRef.injector.get(ApplicationInitStatus) as any).runInitializers();
-    this._instantiated = true;
+    try {
+      (this._moduleRef.injector.get(ApplicationInitStatus) as any).runInitializers();
+    } finally {
+      this._instantiated = true;
+    }
   }
 
   private _createCompilerAndModule(): Type<any> {
@@ -677,17 +694,18 @@ export class TestBedViewEngine implements TestBed {
     }
   }
 
-  private shouldRethrowTeardownErrors() {
+  shouldRethrowTeardownErrors() {
     const instanceOptions = this._instanceTeardownOptions;
     const environmentOptions = TestBedViewEngine._environmentTeardownOptions;
 
     // If the new teardown behavior hasn't been configured, preserve the old behavior.
     if (!instanceOptions && !environmentOptions) {
-      return false;
+      return TEARDOWN_TESTING_MODULE_ON_DESTROY_DEFAULT;
     }
 
     // Otherwise use the configured behavior or default to rethrowing.
-    return instanceOptions?.rethrowErrors ?? environmentOptions?.rethrowErrors ?? true;
+    return instanceOptions?.rethrowErrors ?? environmentOptions?.rethrowErrors ??
+        this.shouldTearDownTestingModule();
   }
 
   shouldTearDownTestingModule(): boolean {

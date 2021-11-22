@@ -6,11 +6,10 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
-import {AST, CssSelector, DomElementSchemaRegistry, LiteralPrimitive, MethodCall, ParseError, ParseSourceSpan, parseTemplate, PropertyRead, SafeMethodCall, SafePropertyRead, TmplAstElement, TmplAstNode, TmplAstReference, TmplAstTemplate, TmplAstVariable} from '@angular/compiler';
-import {TextAttribute} from '@angular/compiler/src/render3/r3_ast';
-import * as ts from 'typescript';
-import {ErrorCode} from '../../diagnostics';
+import {AST, CssSelector, DomElementSchemaRegistry, LiteralPrimitive, ParseSourceSpan, PropertyRead, SafePropertyRead, TmplAstElement, TmplAstNode, TmplAstReference, TmplAstTemplate, TmplAstTextAttribute} from '@angular/compiler';
+import ts from 'typescript';
 
+import {ErrorCode, ngErrorCode} from '../../diagnostics';
 import {absoluteFrom, absoluteFromSourceFile, AbsoluteFsPath, getSourceFileOrError} from '../../file_system';
 import {Reference, ReferenceEmitter} from '../../imports';
 import {IncrementalBuild} from '../../incremental/api';
@@ -20,8 +19,8 @@ import {ClassDeclaration, isNamedClassDeclaration, ReflectionHost} from '../../r
 import {ComponentScopeReader, TypeCheckScopeRegistry} from '../../scope';
 import {isShim} from '../../shims';
 import {getSourceFileOrNull, isSymbolWithValueDeclaration} from '../../util/src/typescript';
-import {DirectiveInScope, ElementSymbol, FullTemplateMapping, GlobalCompletion, OptimizeFor, PipeInScope, ProgramTypeCheckAdapter, ShimLocation, Symbol, TemplateId, TemplateSymbol, TemplateTypeChecker, TypeCheckableDirectiveMeta, TypeCheckingConfig} from '../api';
-import {makeTemplateDiagnostic, TemplateDiagnostic} from '../diagnostics';
+import {DirectiveInScope, ElementSymbol, FullTemplateMapping, GlobalCompletion, NgTemplateDiagnostic, OptimizeFor, PipeInScope, ProgramTypeCheckAdapter, ShimLocation, Symbol, TemplateDiagnostic, TemplateId, TemplateSymbol, TemplateTypeChecker, TypeCheckableDirectiveMeta, TypeCheckingConfig} from '../api';
+import {makeTemplateDiagnostic} from '../diagnostics';
 
 import {CompletionEngine} from './completion';
 import {InliningMode, ShimTypeCheckingData, TemplateData, TypeCheckContextImpl, TypeCheckingHost} from './context';
@@ -271,8 +270,7 @@ export class TemplateTypeCheckerImpl implements TemplateTypeChecker {
   }
 
   getExpressionCompletionLocation(
-      ast: PropertyRead|SafePropertyRead|MethodCall|SafeMethodCall,
-      component: ts.ClassDeclaration): ShimLocation|null {
+      ast: PropertyRead|SafePropertyRead, component: ts.ClassDeclaration): ShimLocation|null {
     const engine = this.getOrCreateCompletionEngine(component);
     if (engine === null) {
       return null;
@@ -282,7 +280,8 @@ export class TemplateTypeCheckerImpl implements TemplateTypeChecker {
   }
 
   getLiteralCompletionLocation(
-      node: LiteralPrimitive|TextAttribute, component: ts.ClassDeclaration): ShimLocation|null {
+      node: LiteralPrimitive|TmplAstTextAttribute, component: ts.ClassDeclaration): ShimLocation
+      |null {
     const engine = this.getOrCreateCompletionEngine(component);
     if (engine === null) {
       return null;
@@ -316,14 +315,18 @@ export class TemplateTypeCheckerImpl implements TemplateTypeChecker {
         start: number,
         end: number,
         sourceFile: ts.SourceFile,
-      }[]): TemplateDiagnostic {
+      }[]): NgTemplateDiagnostic<T> {
     const sfPath = absoluteFromSourceFile(clazz.getSourceFile());
     const fileRecord = this.state.get(sfPath)!;
     const templateId = fileRecord.sourceManager.getTemplateId(clazz);
     const mapping = fileRecord.sourceManager.getSourceMapping(templateId);
 
-    return makeTemplateDiagnostic(
-        templateId, mapping, sourceSpan, category, errorCode, message, relatedInformation);
+    return {
+      ...makeTemplateDiagnostic(
+          templateId, mapping, sourceSpan, category, ngErrorCode(errorCode), message,
+          relatedInformation),
+      __ngCode: errorCode
+    };
   }
 
   private getOrCreateCompletionEngine(component: ts.ClassDeclaration): CompletionEngine|null {
@@ -577,6 +580,10 @@ export class TemplateTypeCheckerImpl implements TemplateTypeChecker {
                             attribute,
                             property: REGISTRY.getMappedPropName(attribute),
                           }));
+  }
+
+  getPotentialDomEvents(tagName: string): string[] {
+    return REGISTRY.allKnownEventsOfElement(tagName);
   }
 
   private getScopeData(component: ts.ClassDeclaration): ScopeData|null {

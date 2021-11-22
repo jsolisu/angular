@@ -19,7 +19,7 @@ const DEFAULT_NAMESPACE_ID = 'id';
 const DEFAULT_COMPONENT_ID = '1';
 
 (function() {
-// these tests are only mean't to be run within the DOM (for now)
+// these tests are only meant to be run within the DOM (for now)
 if (isNode) return;
 
 describe('animation tests', function() {
@@ -3622,7 +3622,7 @@ describe('animation tests', function() {
       ]);
     });
 
-    it('should convert hyphenated properties to camelcase by default that are auto/pre style properties',
+    it('should convert hyphenated properties to camelCase by default that are auto/pre style properties',
        () => {
          @Component({
            selector: 'cmp',
@@ -3827,29 +3827,65 @@ describe('animation tests', function() {
       });
     });
 
-    it('should throw when using an @prop binding without the animation module', () => {
-      @Component({template: `<div [@myAnimation]="true"></div>`})
-      class Cmp {
-      }
 
-      TestBed.configureTestingModule({declarations: [Cmp]});
-      const comp = TestBed.createComponent(Cmp);
-      expect(() => comp.detectChanges())
-          .toThrowError(
-              'Found the synthetic property @myAnimation. Please include either "BrowserAnimationsModule" or "NoopAnimationsModule" in your application.');
+    function syntheticPropError(name: string, nameKind: string) {
+      return `Unexpected synthetic ${nameKind} ${name} found. Please make sure that:
+  - Either \`BrowserAnimationsModule\` or \`NoopAnimationsModule\` are imported in your application.
+  - There is corresponding configuration for the animation named \`${
+          name}\` defined in the \`animations\` field of the \`@Component\` decorator (see https://angular.io/api/core/Component#animations).`;
+    }
+
+    describe('when modules are missing', () => {
+      it('should throw when using an @prop binding without the animation module', () => {
+        @Component({template: `<div [@myAnimation]="true"></div>`})
+        class Cmp {
+        }
+
+        TestBed.configureTestingModule({declarations: [Cmp]});
+        const comp = TestBed.createComponent(Cmp);
+        expect(() => comp.detectChanges())
+            .toThrowError(syntheticPropError('@myAnimation', 'property'));
+      });
+
+      it('should throw when using an @prop listener without the animation module', () => {
+        @Component({template: `<div (@myAnimation.start)="a = true"></div>`})
+        class Cmp {
+          a = false;
+        }
+
+        TestBed.configureTestingModule({declarations: [Cmp]});
+
+        expect(() => TestBed.createComponent(Cmp))
+            .toThrowError(syntheticPropError('@myAnimation.start', 'listener'));
+      });
     });
 
-    it('should throw when using an @prop listener without the animation module', () => {
-      @Component({template: `<div (@myAnimation.start)="a = true"></div>`})
-      class Cmp {
-        a: any;
-      }
+    describe('when modules are present, but animations are missing', () => {
+      it('should throw when using an @prop property, BrowserAnimationModule is imported, but there is no animation rule',
+         () => {
+           @Component({template: `<div [@myAnimation]="true"></div>`})
+           class Cmp {
+           }
 
-      TestBed.configureTestingModule({declarations: [Cmp]});
+           TestBed.configureTestingModule(
+               {declarations: [Cmp], imports: [BrowserAnimationsModule]});
+           const comp = TestBed.createComponent(Cmp);
+           expect(() => comp.detectChanges())
+               .toThrowError(syntheticPropError('@myAnimation', 'property'));
+         });
 
-      expect(() => TestBed.createComponent(Cmp))
-          .toThrowError(
-              'Found the synthetic listener @myAnimation.start. Please include either "BrowserAnimationsModule" or "NoopAnimationsModule" in your application.');
+      it('should throw when using an @prop listener, BrowserAnimationModule is imported, but there is no animation rule',
+         () => {
+           @Component({template: `<div (@myAnimation.start)="true"></div>`})
+           class Cmp {
+           }
+
+           TestBed.configureTestingModule(
+               {declarations: [Cmp], imports: [BrowserAnimationsModule]});
+
+           expect(() => TestBed.createComponent(Cmp))
+               .toThrowError(syntheticPropError('@myAnimation.start', 'listener'));
+         });
     });
   });
 });

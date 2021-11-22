@@ -6,6 +6,8 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
+import {computeMsgId} from '../i18n/digest';
+import {Message} from '../i18n/i18n_ast';
 import {ParseSourceSpan} from '../parse_util';
 import {I18nMeta} from '../render3/view/i18n/meta';
 
@@ -174,11 +176,6 @@ export abstract class Expression {
 
   key(index: Expression, type?: Type|null, sourceSpan?: ParseSourceSpan|null): ReadKeyExpr {
     return new ReadKeyExpr(this, index, type, sourceSpan);
-  }
-
-  callMethod(name: string|BuiltinMethod, params: Expression[], sourceSpan?: ParseSourceSpan|null):
-      InvokeMethodExpr {
-    return new InvokeMethodExpr(this, name, params, null, sourceSpan);
   }
 
   callFn(params: Expression[], sourceSpan?: ParseSourceSpan|null, pure?: boolean):
@@ -424,37 +421,6 @@ export enum BuiltinMethod {
   Bind
 }
 
-export class InvokeMethodExpr extends Expression {
-  public name: string|null;
-  public builtin: BuiltinMethod|null;
-  constructor(
-      public receiver: Expression, method: string|BuiltinMethod, public args: Expression[],
-      type?: Type|null, sourceSpan?: ParseSourceSpan|null) {
-    super(type, sourceSpan);
-    if (typeof method === 'string') {
-      this.name = method;
-      this.builtin = null;
-    } else {
-      this.name = null;
-      this.builtin = <BuiltinMethod>method;
-    }
-  }
-
-  override isEquivalent(e: Expression): boolean {
-    return e instanceof InvokeMethodExpr && this.receiver.isEquivalent(e.receiver) &&
-        this.name === e.name && this.builtin === e.builtin && areAllEquivalent(this.args, e.args);
-  }
-
-  override isConstant() {
-    return false;
-  }
-
-  override visitExpression(visitor: ExpressionVisitor, context: any): any {
-    return visitor.visitInvokeMethodExpr(this, context);
-  }
-}
-
-
 export class InvokeFunctionExpr extends Expression {
   constructor(
       public fn: Expression, public args: Expression[], type?: Type|null,
@@ -560,11 +526,29 @@ export class TemplateLiteralElement {
   }
 }
 
-export abstract class MessagePiece {
+export class LiteralPiece {
   constructor(public text: string, public sourceSpan: ParseSourceSpan) {}
 }
-export class LiteralPiece extends MessagePiece {}
-export class PlaceholderPiece extends MessagePiece {}
+export class PlaceholderPiece {
+  /**
+   * Create a new instance of a `PlaceholderPiece`.
+   *
+   * @param text the name of this placeholder (e.g. `PH_1`).
+   * @param sourceSpan the location of this placeholder in its localized message the source code.
+   * @param associatedMessage reference to another message that this placeholder is associated with.
+   * The `associatedMessage` is mainly used to provide a relationship to an ICU message that has
+   * been extracted out from the message containing the placeholder.
+   */
+  constructor(
+      public text: string, public sourceSpan: ParseSourceSpan, public associatedMessage?: Message) {
+  }
+}
+
+export type MessagePiece = LiteralPiece|PlaceholderPiece;
+
+const MEANING_SEPARATOR = '|';
+const ID_SEPARATOR = '@@';
+const LEGACY_ID_INDICATOR = '␟';
 
 export class LocalizedString extends Expression {
   constructor(
@@ -596,10 +580,6 @@ export class LocalizedString extends Expression {
    * @param messagePart The first part of the tagged string
    */
   serializeI18nHead(): CookedRawString {
-    const MEANING_SEPARATOR = '|';
-    const ID_SEPARATOR = '@@';
-    const LEGACY_ID_INDICATOR = '␟';
-
     let metaBlock = this.metaBlock.description || '';
     if (this.metaBlock.meaning) {
       metaBlock = `${this.metaBlock.meaning}${MEANING_SEPARATOR}${metaBlock}`;
@@ -629,14 +609,24 @@ export class LocalizedString extends Expression {
    * Serialize the given `placeholderName` and `messagePart` into "cooked" and "raw" strings that
    * can be used in a `$localize` tagged string.
    *
-   * @param placeholderName The placeholder name to serialize
-   * @param messagePart The following message string after this placeholder
+   * The format is `:<placeholder-name>[@@<associated-id>]:`.
+   *
+   * The `associated-id` is the message id of the (usually an ICU) message to which this placeholder
+   * refers.
+   *
+   * @param partIndex The index of the message part to serialize.
    */
   serializeI18nTemplatePart(partIndex: number): CookedRawString {
-    const placeholderName = this.placeHolderNames[partIndex - 1].text;
+    const placeholder = this.placeHolderNames[partIndex - 1];
     const messagePart = this.messageParts[partIndex];
+    let metaBlock = placeholder.text;
+    if (placeholder.associatedMessage?.legacyIds.length === 0) {
+      metaBlock += `${ID_SEPARATOR}${
+          computeMsgId(
+              placeholder.associatedMessage.messageString, placeholder.associatedMessage.meaning)}`;
+    }
     return createCookedRawString(
-        placeholderName, messagePart.text, this.getMessagePartSourceSpan(partIndex));
+        metaBlock, messagePart.text, this.getMessagePartSourceSpan(partIndex));
   }
 }
 
@@ -1001,7 +991,6 @@ export interface ExpressionVisitor {
   visitWriteVarExpr(expr: WriteVarExpr, context: any): any;
   visitWriteKeyExpr(expr: WriteKeyExpr, context: any): any;
   visitWritePropExpr(expr: WritePropExpr, context: any): any;
-  visitInvokeMethodExpr(ast: InvokeMethodExpr, context: any): any;
   visitInvokeFunctionExpr(ast: InvokeFunctionExpr, context: any): any;
   visitTaggedTemplateExpr(ast: TaggedTemplateExpr, context: any): any;
   visitInstantiateExpr(ast: InstantiateExpr, context: any): any;
@@ -1309,15 +1298,6 @@ export class AstTransformer implements StatementVisitor, ExpressionVisitor {
         context);
   }
 
-  visitInvokeMethodExpr(ast: InvokeMethodExpr, context: any): any {
-    const method = ast.builtin || ast.name;
-    return this.transformExpr(
-        new InvokeMethodExpr(
-            ast.receiver.visitExpression(this, context), method!,
-            this.visitAllExpressions(ast.args, context), ast.type, ast.sourceSpan),
-        context);
-  }
-
   visitInvokeFunctionExpr(ast: InvokeFunctionExpr, context: any): any {
     return this.transformExpr(
         new InvokeFunctionExpr(
@@ -1574,11 +1554,6 @@ export class RecursiveAstVisitor implements StatementVisitor, ExpressionVisitor 
   visitWritePropExpr(ast: WritePropExpr, context: any): any {
     ast.receiver.visitExpression(this, context);
     ast.value.visitExpression(this, context);
-    return this.visitExpression(ast, context);
-  }
-  visitInvokeMethodExpr(ast: InvokeMethodExpr, context: any): any {
-    ast.receiver.visitExpression(this, context);
-    this.visitAllExpressions(ast.args, context);
     return this.visitExpression(ast, context);
   }
   visitInvokeFunctionExpr(ast: InvokeFunctionExpr, context: any): any {

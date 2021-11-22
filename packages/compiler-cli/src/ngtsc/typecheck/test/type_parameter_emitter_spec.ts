@@ -5,7 +5,7 @@
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.io/license
  */
-import * as ts from 'typescript';
+import ts from 'typescript';
 
 import {absoluteFrom} from '../../file_system';
 import {runInEachFileSystem, TestFile} from '../../file_system/testing';
@@ -201,6 +201,62 @@ runInEachFileSystem(() => {
 
       expect(emitter.canEmit()).toBe(true);
       expect(emit(emitter)).toEqual('<T extends test.Internal>');
+    });
+
+    it('can emit references to exported classes imported using a namespace import', () => {
+      const additionalFiles: TestFile[] = [{
+        name: absoluteFrom('/internal.ts'),
+        contents: `export class Internal {}`,
+      }];
+      const emitter = createEmitter(
+          `
+        import * as ns from './internal';
+
+        export class TestClass<T extends ns.Internal> {}`,
+          additionalFiles);
+
+      expect(emitter.canEmit()).toBe(true);
+      expect(emit(emitter)).toEqual('<T extends test.Internal>');
+    });
+
+    it('cannot emit references to local classes exported within a namespace', () => {
+      const additionalFiles: TestFile[] = [{
+        name: absoluteFrom('/ns.ts'),
+        contents: `
+          export namespace ns {
+            export class Nested {}
+          }
+        `,
+      }];
+      const emitter = createEmitter(
+          `
+          import {ns} from './ns';
+
+          export class TestClass<T extends ns.Nested> {}`,
+          additionalFiles);
+
+      expect(emitter.canEmit()).toBe(false);
+      expect(() => emit(emitter)).toThrowError('Unable to emit an unresolved reference');
+    });
+
+    it('cannot emit references to external classes exported within a namespace', () => {
+      const additionalFiles: TestFile[] = [{
+        name: absoluteFrom('/node_modules/ns/index.d.ts'),
+        contents: `
+          export namespace ns {
+            export declare class Nested {}
+          }
+        `,
+      }];
+      const emitter = createEmitter(
+          `
+          import {ns} from 'ns';
+
+          export class TestClass<T extends ns.Nested> {}`,
+          additionalFiles);
+
+      expect(emitter.canEmit()).toBe(false);
+      expect(() => emit(emitter)).toThrowError('Unable to emit an unresolved reference');
     });
 
     it('can emit references to interfaces', () => {

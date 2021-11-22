@@ -8,7 +8,7 @@
 
 import {ASTWithSource, Binary, BindingPipe, Conditional, Interpolation, PropertyRead, TmplAstBoundAttribute, TmplAstBoundText, TmplAstElement, TmplAstNode, TmplAstReference, TmplAstTemplate} from '@angular/compiler';
 import {AST, LiteralArray, LiteralMap} from '@angular/compiler/src/compiler';
-import * as ts from 'typescript';
+import ts from 'typescript';
 
 import {absoluteFrom, AbsoluteFsPath, getSourceFileOrError} from '../../file_system';
 import {runInEachFileSystem} from '../../file_system/testing';
@@ -467,13 +467,10 @@ runInEachFileSystem(() => {
           const safeMethodCall = nodes[2].inputs[0].value as ASTWithSource;
           const methodCallSymbol = templateTypeChecker.getSymbolOfNode(safeMethodCall, cmp)!;
           assertExpressionSymbol(methodCallSymbol);
-          expect(program.getTypeChecker().symbolToString(methodCallSymbol.tsSymbol!))
-              .toEqual('speak');
-          expect((methodCallSymbol.tsSymbol!.declarations![0] as ts.PropertyDeclaration)
-                     .parent.name!.getText())
-              .toEqual('Person');
+          // Note that the symbol returned is for the return value of the safe method call.
+          expect(methodCallSymbol.tsSymbol).toBeNull();
           expect(program.getTypeChecker().typeToString(methodCallSymbol.tsType))
-              .toEqual('string | undefined');
+              .toBe('string | undefined');
         });
 
         it('safe keyed reads', () => {
@@ -855,7 +852,7 @@ runInEachFileSystem(() => {
         expect(program.getTypeChecker().typeToString(writeSymbol.tsType)).toEqual('any');
       });
 
-      it('should get a symbol for MethodCall expressions', () => {
+      it('should get a symbol for Call expressions', () => {
         const fileName = absoluteFrom('/main.ts');
         const {templateTypeChecker, program} = setup([
           {
@@ -869,14 +866,9 @@ runInEachFileSystem(() => {
         const node = getAstElements(templateTypeChecker, cmp)[0];
         const callSymbol = templateTypeChecker.getSymbolOfNode(node.inputs[0].value, cmp)!;
         assertExpressionSymbol(callSymbol);
-        // Note that the symbol returned is for the method name of the MethodCall. The AST
-        // does not support specific designation for the name so we assume that's what
-        // is wanted in this case. We don't support retrieving a symbol for the whole
-        // call expression and if you want to get a symbol for the args, you can
-        // use the AST of the args in the `MethodCall`.
-        expect(program.getTypeChecker().symbolToString(callSymbol.tsSymbol!)).toEqual('toString');
-        expect(program.getTypeChecker().typeToString(callSymbol.tsType))
-            .toEqual('(v: any) => string');
+        // Note that the symbol returned is for the return value of the Call.
+        expect(callSymbol.tsSymbol).toBeNull();
+        expect(program.getTypeChecker().typeToString(callSymbol.tsType)).toBe('string');
       });
     });
 

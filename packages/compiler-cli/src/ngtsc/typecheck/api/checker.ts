@@ -6,16 +6,16 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
-import {AST, LiteralPrimitive, MethodCall, ParseError, ParseSourceSpan, PropertyRead, SafeMethodCall, SafePropertyRead, TmplAstElement, TmplAstNode, TmplAstTemplate} from '@angular/compiler';
-import {AbsoluteFsPath} from '@angular/compiler-cli/src/ngtsc/file_system';
-import {TextAttribute} from '@angular/compiler/src/render3/r3_ast';
-import * as ts from 'typescript';
+import {AST, LiteralPrimitive, ParseSourceSpan, PropertyRead, SafePropertyRead, TmplAstElement, TmplAstNode, TmplAstTemplate, TmplAstTextAttribute} from '@angular/compiler';
+import ts from 'typescript';
+
+import {AbsoluteFsPath} from '../../../../src/ngtsc/file_system';
 import {ErrorCode} from '../../diagnostics';
 
-import {FullTemplateMapping, TypeCheckableDirectiveMeta} from './api';
+import {FullTemplateMapping, NgTemplateDiagnostic, TypeCheckableDirectiveMeta} from './api';
 import {GlobalCompletion} from './completion';
 import {DirectiveInScope, PipeInScope} from './scope';
-import {DirectiveSymbol, ElementSymbol, ShimLocation, Symbol, TemplateSymbol} from './symbols';
+import {ElementSymbol, ShimLocation, Symbol, TemplateSymbol} from './symbols';
 
 /**
  * Interface to the Angular Template Type Checker to extract diagnostics and intelligence from the
@@ -117,8 +117,7 @@ export interface TemplateTypeChecker {
    * autocompletion at that point in the expression, if such a location exists.
    */
   getExpressionCompletionLocation(
-      expr: PropertyRead|SafePropertyRead|MethodCall|SafeMethodCall,
-      component: ts.ClassDeclaration): ShimLocation|null;
+      expr: PropertyRead|SafePropertyRead, component: ts.ClassDeclaration): ShimLocation|null;
 
   /**
    * For the given node represents a `LiteralPrimitive`(the `TextAttribute` represents a string
@@ -126,7 +125,8 @@ export interface TemplateTypeChecker {
    * the node, if such a location exists.
    */
   getLiteralCompletionLocation(
-      strNode: LiteralPrimitive|TextAttribute, component: ts.ClassDeclaration): ShimLocation|null;
+      strNode: LiteralPrimitive|TmplAstTextAttribute, component: ts.ClassDeclaration): ShimLocation
+      |null;
 
   /**
    * Get basic metadata on the directives which are in scope for the given component.
@@ -155,6 +155,11 @@ export interface TemplateTypeChecker {
   getPotentialDomBindings(tagName: string): {attribute: string, property: string}[];
 
   /**
+   * Retrieve any potential DOM events.
+   */
+  getPotentialDomEvents(tagName: string): string[];
+
+  /**
    * Retrieve the type checking engine's metadata for the given directive class, if available.
    */
   getDirectiveMetadata(dir: ts.ClassDeclaration): TypeCheckableDirectiveMeta|null;
@@ -175,7 +180,7 @@ export interface TemplateTypeChecker {
         start: number,
         end: number,
         sourceFile: ts.SourceFile,
-      }[]): ts.Diagnostic;
+      }[]): NgTemplateDiagnostic<T>;
 }
 
 /**

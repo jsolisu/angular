@@ -8,8 +8,9 @@
 
 import {logging, normalize} from '@angular-devkit/core';
 import {Rule, SchematicContext, SchematicsException, Tree} from '@angular-devkit/schematics';
-import {EmptyExpr, TmplAstBoundAttribute} from '@angular/compiler';
+import type {TmplAstBoundAttribute} from '@angular/compiler';
 import {relative} from 'path';
+import {loadEsmModule} from '../../utils/load_esm';
 
 import {NgComponentTemplateVisitor, ResolvedTemplate} from '../../utils/ng_component_template';
 import {getProjectTsConfigPaths} from '../../utils/project_tsconfig_paths';
@@ -22,16 +23,21 @@ type Logger = logging.LoggerApi;
 const README_URL =
     'https://github.com/angular/angular/blob/master/packages/core/schematics/migrations/router-link-empty-expression/README.md';
 
+interface Replacement {
+  start: number;
+  end: number;
+  newContent: string;
+}
 interface FixedTemplate {
   originalTemplate: ResolvedTemplate;
-  newContent: string;
+  replacements: Replacement[];
   emptyRouterlinkExpressions: TmplAstBoundAttribute[];
 }
 
 /** Entry point for the RouterLink empty expression migration. */
 export default function(): Rule {
-  return (tree: Tree, context: SchematicContext) => {
-    const {buildPaths, testPaths} = getProjectTsConfigPaths(tree);
+  return async (tree: Tree, context: SchematicContext) => {
+    const {buildPaths, testPaths} = await getProjectTsConfigPaths(tree);
     const basePath = process.cwd();
 
     if (!buildPaths.length && !testPaths.length) {
@@ -39,8 +45,20 @@ export default function(): Rule {
           'Could not find any tsconfig file. Cannot check templates for empty routerLinks.');
     }
 
+    let compilerModule;
+    try {
+      // Load ESM `@angular/compiler` using the TypeScript dynamic import workaround.
+      // Once TypeScript provides support for keeping the dynamic import this workaround can be
+      // changed to a direct dynamic import.
+      compilerModule = await loadEsmModule<typeof import('@angular/compiler')>('@angular/compiler');
+    } catch (e) {
+      throw new SchematicsException(
+          `Unable to load the '@angular/compiler' package. Details: ${e.message}`);
+    }
+
     for (const tsconfigPath of [...buildPaths, ...testPaths]) {
-      runEmptyRouterLinkExpressionMigration(tree, tsconfigPath, basePath, context.logger);
+      runEmptyRouterLinkExpressionMigration(
+          tree, tsconfigPath, basePath, context.logger, compilerModule);
     }
   };
 }
@@ -50,10 +68,11 @@ export default function(): Rule {
  * which templates received updates.
  */
 function runEmptyRouterLinkExpressionMigration(
-    tree: Tree, tsconfigPath: string, basePath: string, logger: Logger) {
+    tree: Tree, tsconfigPath: string, basePath: string, logger: Logger,
+    compilerModule: typeof import('@angular/compiler')) {
   const {program} = createMigrationProgram(tree, tsconfigPath, basePath);
   const typeChecker = program.getTypeChecker();
-  const templateVisitor = new NgComponentTemplateVisitor(typeChecker);
+  const templateVisitor = new NgComponentTemplateVisitor(typeChecker, basePath, tree);
   const sourceFiles =
       program.getSourceFiles().filter(sourceFile => canMigrateFile(basePath, sourceFile, program));
 
@@ -61,15 +80,17 @@ function runEmptyRouterLinkExpressionMigration(
   sourceFiles.forEach(sourceFile => templateVisitor.visitNode(sourceFile));
 
   const {resolvedTemplates} = templateVisitor;
-  fixEmptyRouterlinks(resolvedTemplates, tree, logger);
+  fixEmptyRouterlinks(resolvedTemplates, tree, logger, compilerModule);
 }
 
-function fixEmptyRouterlinks(resolvedTemplates: ResolvedTemplate[], tree: Tree, logger: Logger) {
+function fixEmptyRouterlinks(
+    resolvedTemplates: ResolvedTemplate[], tree: Tree, logger: Logger,
+    compilerModule: typeof import('@angular/compiler')) {
   const basePath = process.cwd();
   const collectedFixes: string[] = [];
-  const fixesByFile = getFixesByFile(resolvedTemplates);
+  const fixesByFile = getFixesByFile(resolvedTemplates, compilerModule);
 
-  for (const [absFilePath, fixes] of fixesByFile) {
+  for (const [absFilePath, templateFixes] of fixesByFile) {
     const treeFilePath = relative(normalize(basePath), normalize(absFilePath));
     const originalFileContent = tree.read(treeFilePath)?.toString();
     if (originalFileContent === undefined) {
@@ -80,14 +101,17 @@ function fixEmptyRouterlinks(resolvedTemplates: ResolvedTemplate[], tree: Tree, 
     }
 
     const updater = tree.beginUpdate(treeFilePath);
-    for (const fix of fixes) {
-      const displayFilePath = normalize(relative(basePath, fix.originalTemplate.filePath));
-      updater.remove(fix.originalTemplate.start, fix.originalTemplate.content.length);
-      updater.insertLeft(fix.originalTemplate.start, fix.newContent);
-
-      for (const n of fix.emptyRouterlinkExpressions) {
+    for (const templateFix of templateFixes) {
+      // Sort backwards so string replacements do not conflict
+      templateFix.replacements.sort((a, b) => b.start - a.start);
+      for (const replacement of templateFix.replacements) {
+        updater.remove(replacement.start, replacement.end - replacement.start);
+        updater.insertLeft(replacement.start, replacement.newContent);
+      }
+      const displayFilePath = normalize(relative(basePath, templateFix.originalTemplate.filePath));
+      for (const n of templateFix.emptyRouterlinkExpressions) {
         const {line, character} =
-            fix.originalTemplate.getCharacterAndLineOfPosition(n.sourceSpan.start.offset);
+            templateFix.originalTemplate.getCharacterAndLineOfPosition(n.sourceSpan.start.offset);
         collectedFixes.push(`${displayFilePath}@${line + 1}:${character + 1}`);
       }
       tree.commitUpdate(updater);
@@ -108,10 +132,12 @@ function fixEmptyRouterlinks(resolvedTemplates: ResolvedTemplate[], tree: Tree, 
 /**
  * Returns fixes for nodes in templates which contain empty routerLink assignments, grouped by file.
  */
-function getFixesByFile(templates: ResolvedTemplate[]): Map<string, FixedTemplate[]> {
+function getFixesByFile(
+    templates: ResolvedTemplate[],
+    compilerModule: typeof import('@angular/compiler')): Map<string, FixedTemplate[]> {
   const fixesByFile = new Map<string, FixedTemplate[]>();
   for (const template of templates) {
-    const templateFix = fixEmptyRouterlinksInTemplate(template);
+    const templateFix = fixEmptyRouterlinksInTemplate(template, compilerModule);
     if (templateFix === null) {
       continue;
     }
@@ -133,25 +159,37 @@ function getFixesByFile(templates: ResolvedTemplate[]): Map<string, FixedTemplat
   return fixesByFile;
 }
 
-function fixEmptyRouterlinksInTemplate(template: ResolvedTemplate): FixedTemplate|null {
-  const emptyRouterlinkExpressions = analyzeResolvedTemplate(template);
+function fixEmptyRouterlinksInTemplate(
+    template: ResolvedTemplate, compilerModule: typeof import('@angular/compiler')): FixedTemplate|
+    null {
+  const emptyRouterlinkExpressions = analyzeResolvedTemplate(template, compilerModule);
 
-  if (!emptyRouterlinkExpressions) {
+  if (!emptyRouterlinkExpressions || emptyRouterlinkExpressions.length === 0) {
     return null;
   }
 
-  // Sort backwards so string replacements do not conflict
-  emptyRouterlinkExpressions.sort((a, b) => b.value.sourceSpan.start - a.value.sourceSpan.start);
-  let newContent = template.content;
+  const replacements: Replacement[] = [];
   for (const expr of emptyRouterlinkExpressions) {
+    let replacement: Replacement;
     if (expr.valueSpan) {
-      newContent = newContent.substr(0, expr.value.sourceSpan.start) + '[]' +
-          newContent.substr(expr.value.sourceSpan.start);
+      replacement = {
+        start: template.start + expr.value.sourceSpan.start,
+        end: template.start + expr.value.sourceSpan.end,
+        newContent: '[]',
+      };
     } else {
-      newContent = newContent.substr(0, expr.sourceSpan.end.offset) + '="[]"' +
-          newContent.substr(expr.sourceSpan.end.offset);
+      const spanLength = expr.sourceSpan.end.offset - expr.sourceSpan.start.offset;
+      // `expr.value.sourceSpan.start` is the start of the very beginning of the binding since there
+      // is no value
+      const endOfExpr = template.start + expr.value.sourceSpan.start + spanLength;
+      replacement = {
+        start: endOfExpr,
+        end: endOfExpr,
+        newContent: '="[]"',
+      };
     }
+    replacements.push(replacement);
   }
 
-  return {originalTemplate: template, newContent, emptyRouterlinkExpressions};
+  return {originalTemplate: template, replacements, emptyRouterlinkExpressions};
 }

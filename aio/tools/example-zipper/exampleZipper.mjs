@@ -95,7 +95,6 @@ export class ExampleZipper {
       'karma-test-shim.js',
       'package.json',
       'tsconfig.*',
-      'tslint.*',
       'e2e/protractor.conf.js',
       'e2e/tsconfig.json',
       'src/favicon.ico',

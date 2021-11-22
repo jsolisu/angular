@@ -53,24 +53,40 @@ export class ApplicationInitStatus {
     readonly done = false;
     // (undocumented)
     readonly donePromise: Promise<any>;
-    }
+    // (undocumented)
+    static ɵfac: i0.ɵɵFactoryDeclaration<ApplicationInitStatus, [{ optional: true; }]>;
+    // (undocumented)
+    static ɵprov: i0.ɵɵInjectableDeclaration<ApplicationInitStatus>;
+}
 
 // @public
 export class ApplicationModule {
     constructor(appRef: ApplicationRef);
+    // (undocumented)
+    static ɵfac: i0.ɵɵFactoryDeclaration<ApplicationModule, never>;
+    // (undocumented)
+    static ɵinj: i0.ɵɵInjectorDeclaration<ApplicationModule>;
+    // (undocumented)
+    static ɵmod: i0.ɵɵNgModuleDeclaration<ApplicationModule, never, never, never>;
 }
 
 // @public
 export class ApplicationRef {
     attachView(viewRef: ViewRef): void;
-    bootstrap<C>(componentOrFactory: ComponentFactory<C> | Type<C>, rootSelectorOrNode?: string | any): ComponentRef<C>;
+    bootstrap<C>(component: Type<C>, rootSelectorOrNode?: string | any): ComponentRef<C>;
+    // @deprecated
+    bootstrap<C>(componentFactory: ComponentFactory<C>, rootSelectorOrNode?: string | any): ComponentRef<C>;
     readonly components: ComponentRef<any>[];
     readonly componentTypes: Type<any>[];
     detachView(viewRef: ViewRef): void;
     readonly isStable: Observable<boolean>;
     tick(): void;
     get viewCount(): number;
-    }
+    // (undocumented)
+    static ɵfac: i0.ɵɵFactoryDeclaration<ApplicationRef, never>;
+    // (undocumented)
+    static ɵprov: i0.ɵɵInjectableDeclaration<ApplicationRef>;
+}
 
 // @public (undocumented)
 export function asNativeElements(debugEls: DebugElement[]): any;
@@ -119,7 +135,7 @@ export interface ClassSansProvider {
     useClass: Type<any>;
 }
 
-// @public
+// @public @deprecated
 export class Compiler {
     clearCache(): void;
     clearCacheFor(type: Type<any>): void;
@@ -128,12 +144,16 @@ export class Compiler {
     compileModuleAsync: <T>(moduleType: Type<T>) => Promise<NgModuleFactory<T>>;
     compileModuleSync: <T>(moduleType: Type<T>) => NgModuleFactory<T>;
     getModuleId(moduleType: Type<any>): string | undefined;
+    // (undocumented)
+    static ɵfac: i0.ɵɵFactoryDeclaration<Compiler, never>;
+    // (undocumented)
+    static ɵprov: i0.ɵɵInjectableDeclaration<Compiler>;
 }
 
 // @public
 export const COMPILER_OPTIONS: InjectionToken<CompilerOptions[]>;
 
-// @public
+// @public @deprecated
 export abstract class CompilerFactory {
     // (undocumented)
     abstract createCompiler(options?: CompilerOptions[]): Compiler;
@@ -261,6 +281,9 @@ export interface ContentChildrenDecorator {
 }
 
 // @public
+export const createNgModuleRef: <T>(ngModule: Type<T>, parentInjector?: Injector) => NgModuleRef<T>;
+
+// @public
 export function createPlatform(injector: Injector): PlatformRef;
 
 // @public
@@ -361,7 +384,7 @@ export class DefaultIterableDiffer<V> implements IterableDiffer<V>, IterableChan
     readonly length: number;
     // (undocumented)
     onDestroy(): void;
-    }
+}
 
 // @public @deprecated (undocumented)
 export const defineInjectable: typeof ɵɵdefineInjectable;
@@ -476,8 +499,11 @@ export interface ForwardRefFn {
 // @public (undocumented)
 export const getDebugNode: (nativeNode: any) => DebugNode | null;
 
-// @public
+// @public @deprecated
 export const getModuleFactory: (id: string) => NgModuleFactory<any>;
+
+// @public
+export const getNgModuleById: <T>(id: string) => Type<T>;
 
 // @public
 export function getPlatform(): PlatformRef | null;
@@ -759,7 +785,7 @@ export enum MissingTranslationStrategy {
     Warning = 1
 }
 
-// @public
+// @public @deprecated
 export class ModuleWithComponentFactories<T> {
     constructor(ngModuleFactory: NgModuleFactory<T>, componentFactories: ComponentFactory<any>[]);
     // (undocumented)
@@ -803,18 +829,12 @@ export interface NgModuleDecorator {
     new (obj?: NgModule): NgModule;
 }
 
-// @public (undocumented)
+// @public @deprecated (undocumented)
 export abstract class NgModuleFactory<T> {
     // (undocumented)
     abstract create(parentInjector: Injector | null): NgModuleRef<T>;
     // (undocumented)
     abstract get moduleType(): Type<T>;
-}
-
-// @public @deprecated
-export abstract class NgModuleFactoryLoader {
-    // (undocumented)
-    abstract load(path: string): Promise<NgModuleFactory<any>>;
 }
 
 // @public
@@ -946,12 +966,17 @@ export const platformCore: (extraProviders?: StaticProvider[] | undefined) => Pl
 // @public
 export class PlatformRef {
     bootstrapModule<M>(moduleType: Type<M>, compilerOptions?: (CompilerOptions & BootstrapOptions) | Array<CompilerOptions & BootstrapOptions>): Promise<NgModuleRef<M>>;
+    // @deprecated
     bootstrapModuleFactory<M>(moduleFactory: NgModuleFactory<M>, options?: BootstrapOptions): Promise<NgModuleRef<M>>;
     destroy(): void;
     // (undocumented)
     get destroyed(): boolean;
     get injector(): Injector;
     onDestroy(callback: () => void): void;
+    // (undocumented)
+    static ɵfac: i0.ɵɵFactoryDeclaration<PlatformRef, never>;
+    // (undocumented)
+    static ɵprov: i0.ɵɵInjectableDeclaration<PlatformRef>;
 }
 
 // @public
@@ -1101,8 +1126,8 @@ export interface RendererType2 {
 export class ResolvedReflectiveFactory {
     constructor(
     factory: Function,
-    dependencies: ɵangular_packages_core_core_e[]);
-    dependencies: ɵangular_packages_core_core_e[];
+    dependencies: ReflectiveDependency[]);
+    dependencies: ReflectiveDependency[];
     factory: Function;
 }
 
@@ -1210,19 +1235,6 @@ export interface StaticClassSansProvider {
 // @public
 export type StaticProvider = ValueProvider | ExistingProvider | StaticClassProvider | ConstructorProvider | FactoryProvider | any[];
 
-// @public @deprecated
-export class SystemJsNgModuleLoader implements NgModuleFactoryLoader {
-    constructor(_compiler: Compiler, config?: SystemJsNgModuleLoaderConfig);
-    // (undocumented)
-    load(path: string): Promise<NgModuleFactory<any>>;
-    }
-
-// @public @deprecated
-export abstract class SystemJsNgModuleLoaderConfig {
-    factoryPathPrefix: string;
-    factoryPathSuffix: string;
-}
-
 // @public
 export abstract class TemplateRef<C> {
     abstract createEmbeddedView(context: C): EmbeddedViewRef<C>;
@@ -1241,6 +1253,10 @@ export class Testability implements PublicTestability {
     increasePendingRequestCount(): number;
     isStable(): boolean;
     whenStable(doneCb: Function, timeout?: number, updateCb?: Function): void;
+    // (undocumented)
+    static ɵfac: i0.ɵɵFactoryDeclaration<Testability, never>;
+    // (undocumented)
+    static ɵprov: i0.ɵɵInjectableDeclaration<Testability>;
 }
 
 // @public
@@ -1253,6 +1269,10 @@ export class TestabilityRegistry {
     registerApplication(token: any, testability: Testability): void;
     unregisterAllApplications(): void;
     unregisterApplication(token: any): void;
+    // (undocumented)
+    static ɵfac: i0.ɵɵFactoryDeclaration<TestabilityRegistry, never>;
+    // (undocumented)
+    static ɵprov: i0.ɵɵInjectableDeclaration<TestabilityRegistry>;
 }
 
 // @public
@@ -1355,7 +1375,14 @@ export interface ViewChildrenDecorator {
 // @public
 export abstract class ViewContainerRef {
     abstract clear(): void;
-    abstract createComponent<C>(componentFactory: ComponentFactory<C>, index?: number, injector?: Injector, projectableNodes?: any[][], ngModule?: NgModuleRef<any>): ComponentRef<C>;
+    abstract createComponent<C>(componentType: Type<C>, options?: {
+        index?: number;
+        injector?: Injector;
+        ngModuleRef?: NgModuleRef<unknown>;
+        projectableNodes?: Node[][];
+    }): ComponentRef<C>;
+    // @deprecated
+    abstract createComponent<C>(componentFactory: ComponentFactory<C>, index?: number, injector?: Injector, projectableNodes?: any[][], ngModuleRef?: NgModuleRef<any>): ComponentRef<C>;
     abstract createEmbeddedView<C>(templateRef: TemplateRef<C>, context?: C, index?: number): EmbeddedViewRef<C>;
     abstract detach(index?: number): ViewRef | null;
     abstract get element(): ElementRef;
@@ -1384,16 +1411,6 @@ export abstract class ViewRef extends ChangeDetectorRef {
     abstract onDestroy(callback: Function): any /** TODO #9100 */;
 }
 
-// @public @deprecated
-export class WrappedValue {
-    constructor(value: any);
-    static isWrapped(value: any): value is WrappedValue;
-    static unwrap(value: any): any;
-    static wrap(value: any): WrappedValue;
-    // @deprecated (undocumented)
-    wrapped: any;
-}
-
 // @public
 export function ɵɵdefineInjectable<T>(opts: {
     token: unknown;
@@ -1409,7 +1426,6 @@ export function ɵɵinject<T>(token: ProviderToken<T>, flags?: InjectFlags): T |
 
 // @public
 export function ɵɵinjectAttribute(attrNameToInject: string): string | null;
-
 
 // (No @packageDocumentation comment for this package)
 

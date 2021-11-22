@@ -7,7 +7,7 @@
  */
 
 import {GeneratedFile, HtmlParser, MessageBundle} from '@angular/compiler';
-import * as ts from 'typescript';
+import ts from 'typescript';
 
 import * as api from '../transformers/api';
 import {i18nExtract} from '../transformers/i18n';
@@ -220,7 +220,7 @@ export class NgtscProgram implements api.Program {
   }
 
   listLazyRoutes(entryRoute?: string|undefined): api.LazyRoute[] {
-    return this.compiler.listLazyRoutes(entryRoute);
+    return [];
   }
 
   private emitXi18n(): void {

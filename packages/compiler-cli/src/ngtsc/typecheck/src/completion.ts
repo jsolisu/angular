@@ -6,10 +6,8 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
-import {TmplAstReference, TmplAstTemplate} from '@angular/compiler';
-import {AST, EmptyExpr, ImplicitReceiver, LiteralPrimitive, MethodCall, PropertyRead, PropertyWrite, SafeMethodCall, SafePropertyRead, TmplAstNode} from '@angular/compiler/src/compiler';
-import {TextAttribute} from '@angular/compiler/src/render3/r3_ast';
-import * as ts from 'typescript';
+import {AST, EmptyExpr, ImplicitReceiver, LiteralPrimitive, PropertyRead, PropertyWrite, SafePropertyRead, TmplAstNode, TmplAstReference, TmplAstTemplate, TmplAstTextAttribute} from '@angular/compiler';
+import ts from 'typescript';
 
 import {AbsoluteFsPath} from '../../file_system';
 import {CompletionKind, GlobalCompletion, ReferenceCompletion, ShimLocation, VariableCompletion} from '../api';
@@ -33,9 +31,8 @@ export class CompletionEngine {
   private templateContextCache =
       new Map<TmplAstTemplate|null, Map<string, ReferenceCompletion|VariableCompletion>>();
 
-  private expressionCompletionCache = new Map<
-      PropertyRead|SafePropertyRead|MethodCall|SafeMethodCall|LiteralPrimitive|TextAttribute,
-      ShimLocation>();
+  private expressionCompletionCache =
+      new Map<PropertyRead|SafePropertyRead|LiteralPrimitive|TmplAstTextAttribute, ShimLocation>();
 
 
   constructor(private tcb: ts.Node, private data: TemplateData, private shimPath: AbsoluteFsPath) {
@@ -111,22 +108,21 @@ export class CompletionEngine {
     };
   }
 
-  getExpressionCompletionLocation(expr: PropertyRead|PropertyWrite|MethodCall|
-                                  SafeMethodCall): ShimLocation|null {
+  getExpressionCompletionLocation(expr: PropertyRead|PropertyWrite|SafePropertyRead): ShimLocation
+      |null {
     if (this.expressionCompletionCache.has(expr)) {
       return this.expressionCompletionCache.get(expr)!;
     }
 
     // Completion works inside property reads and method calls.
     let tsExpr: ts.PropertyAccessExpression|null = null;
-    if (expr instanceof PropertyRead || expr instanceof MethodCall ||
-        expr instanceof PropertyWrite) {
+    if (expr instanceof PropertyRead || expr instanceof PropertyWrite) {
       // Non-safe navigation operations are trivial: `foo.bar` or `foo.bar()`
       tsExpr = findFirstMatchingNode(this.tcb, {
         filter: ts.isPropertyAccessExpression,
         withSpan: expr.nameSpan,
       });
-    } else if (expr instanceof SafePropertyRead || expr instanceof SafeMethodCall) {
+    } else if (expr instanceof SafePropertyRead) {
       // Safe navigation operations are a little more complex, and involve a ternary. Completion
       // happens in the "true" case of the ternary.
       const ternaryExpr = findFirstMatchingNode(this.tcb, {
@@ -138,11 +134,10 @@ export class CompletionEngine {
       }
       const whenTrue = ternaryExpr.expression.whenTrue;
 
-      if (expr instanceof SafePropertyRead && ts.isPropertyAccessExpression(whenTrue)) {
+      if (ts.isPropertyAccessExpression(whenTrue)) {
         tsExpr = whenTrue;
       } else if (
-          expr instanceof SafeMethodCall && ts.isCallExpression(whenTrue) &&
-          ts.isPropertyAccessExpression(whenTrue.expression)) {
+          ts.isCallExpression(whenTrue) && ts.isPropertyAccessExpression(whenTrue.expression)) {
         tsExpr = whenTrue.expression;
       }
     }
@@ -159,14 +154,14 @@ export class CompletionEngine {
     return res;
   }
 
-  getLiteralCompletionLocation(expr: LiteralPrimitive|TextAttribute): ShimLocation|null {
+  getLiteralCompletionLocation(expr: LiteralPrimitive|TmplAstTextAttribute): ShimLocation|null {
     if (this.expressionCompletionCache.has(expr)) {
       return this.expressionCompletionCache.get(expr)!;
     }
 
     let tsExpr: ts.StringLiteral|ts.NumericLiteral|null = null;
 
-    if (expr instanceof TextAttribute) {
+    if (expr instanceof TmplAstTextAttribute) {
       const strNode = findFirstMatchingNode(this.tcb, {
         filter: ts.isParenthesizedExpression,
         withSpan: expr.sourceSpan,

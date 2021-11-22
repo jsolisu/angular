@@ -8,7 +8,7 @@
 
 import {runfiles} from '@bazel/runfiles';
 import {CldrStatic} from 'cldrjs';
-import {sync as globSync} from 'glob';
+import glob from 'glob';
 
 // TypeScript doesn't allow us to import the default export without the `esModuleInterop`. We use
 // the NodeJS require function instead as specifying a custom tsconfig complicates the setup
@@ -22,17 +22,17 @@ const cldrjs: typeof import('cldrjs') = require('cldrjs');
  * (noticeable in local development if locale data is re-generated).
  */
 const CLDR_DATA_GLOBS = [
-  'cldr-core-37.0.0/scriptMetadata.json',
-  'cldr-core-37.0.0/supplemental/**/*.json',
-  'cldr-dates-full-37.0.0/main/**/*.json',
-  'cldr-numbers-full-37.0.0/main/**/*.json',
+  'cldr-core/scriptMetadata.json',
+  'cldr-core/supplemental/*.json',
+  'cldr-dates-full/main/**/*.json',
+  'cldr-numbers-full/main/**/*.json',
 ];
 
 /** Path to the CLDR available locales file. */
-const CLDR_AVAILABLE_LOCALES_PATH = 'cldr-core-37.0.0/availableLocales.json';
+const CLDR_AVAILABLE_LOCALES_PATH = 'cldr-core/availableLocales.json';
 
 /** Path to the CLDR locale aliases file. */
-const CLDR_LOCALE_ALIASES_PATH = 'cldr-core-37.0.0/supplemental/aliases.json';
+const CLDR_LOCALE_ALIASES_PATH = 'cldr-core/supplemental/aliases.json';
 
 /**
  * Instance providing access to a locale's CLDR data. This type extends the `cldrjs`
@@ -141,7 +141,7 @@ export class CldrData {
    */
   private _readCldrDataFromRepository(): object[] {
     const jsonFiles =
-        CLDR_DATA_GLOBS.map(pattern => globSync(pattern, {cwd: this.cldrDataDir, absolute: true}))
+        CLDR_DATA_GLOBS.map(pattern => glob.sync(pattern, {cwd: this.cldrDataDir, absolute: true}))
             .reduce((acc, dataFiles) => [...acc, ...dataFiles], []);
 
     // Read the JSON for all determined CLDR json files.

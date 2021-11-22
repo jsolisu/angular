@@ -1,5 +1,6 @@
 load("@build_bazel_rules_nodejs//:index.bzl", "generated_file_test")
 load("//tools:defaults.bzl", "api_golden_test", "api_golden_test_npm_package", "ng_module", "ng_package")
+load("//tools:tsec.bzl", "tsec_test")
 load("//packages/common/locales:index.bzl", "generate_base_locale_file")
 
 package(default_visibility = ["//visibility:public"])
@@ -34,10 +35,15 @@ ng_module(
         "//packages/core/src/interface",
         "//packages/core/src/reflection",
         "//packages/core/src/util",
-        "//packages/localize",
         "//packages/zone.js/lib:zone_d_ts",
         "@npm//rxjs",
     ],
+)
+
+tsec_test(
+    name = "tsec_test",
+    target = "core",
+    tsconfig = "//packages:tsec_config",
 )
 
 ng_package(
@@ -46,7 +52,6 @@ ng_package(
         "package.json",
         "//packages/core/testing:package.json",
     ],
-    entry_point = ":index.ts",
     nested_packages = [
         "//packages/core/schematics:npm_package",
     ],

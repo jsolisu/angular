@@ -76,7 +76,7 @@ export class InjectSetupWrapper {
     constructor(_moduleDef: () => TestModuleMetadata);
     // (undocumented)
     inject(tokens: any[], fn: Function): () => any;
-    }
+}
 
 // @public
 export type MetadataOverride<T> = {
@@ -114,7 +114,7 @@ export interface TestBed {
     // @deprecated (undocumented)
     get(token: any, notFoundValue?: any): any;
     initTestEnvironment(ngModule: Type<any> | Type<any>[], platform: PlatformRef, options?: TestEnvironmentOptions): void;
-    // (undocumented)
+    // @deprecated
     initTestEnvironment(ngModule: Type<any> | Type<any>[], platform: PlatformRef, aotSummaries?: () => any[]): void;
     // (undocumented)
     inject<T>(token: ProviderToken<T>, notFoundValue?: T, flags?: InjectFlags): T;
@@ -172,11 +172,8 @@ export interface TestBedStatic {
     get<T>(token: ProviderToken<T>, notFoundValue?: T, flags?: InjectFlags): any;
     // @deprecated (undocumented)
     get(token: any, notFoundValue?: any): any;
-    // (undocumented)
-    initTestEnvironment(ngModule: Type<any> | Type<any>[], platform: PlatformRef, options?: {
-        teardown?: ModuleTeardownOptions;
-    }): TestBed;
-    // (undocumented)
+    initTestEnvironment(ngModule: Type<any> | Type<any>[], platform: PlatformRef, options?: TestEnvironmentOptions): TestBed;
+    // @deprecated
     initTestEnvironment(ngModule: Type<any> | Type<any>[], platform: PlatformRef, aotSummaries?: () => any[]): TestBed;
     // (undocumented)
     inject<T>(token: ProviderToken<T>, notFoundValue?: T, flags?: InjectFlags): T;
@@ -222,9 +219,8 @@ export class TestComponentRenderer {
 
 // @public (undocumented)
 export interface TestEnvironmentOptions {
-    // (undocumented)
+    // @deprecated
     aotSummaries?: () => any[];
-    // (undocumented)
     teardown?: ModuleTeardownOptions;
 }
 
@@ -251,7 +247,6 @@ export function withModule(moduleDef: TestModuleMetadata): InjectSetupWrapper;
 
 // @public (undocumented)
 export function withModule(moduleDef: TestModuleMetadata, fn: Function): () => any;
-
 
 // (No @packageDocumentation comment for this package)
 

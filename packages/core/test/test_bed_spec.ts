@@ -11,7 +11,9 @@ import {getTestBed, TestBed, TestBedViewEngine} from '@angular/core/testing/src/
 import {By} from '@angular/platform-browser';
 import {expect} from '@angular/platform-browser/testing/src/matchers';
 import {onlyInIvy} from '@angular/private/testing';
+
 import {TestBedRender3} from '../testing/src/r3_test_bed';
+import {TEARDOWN_TESTING_MODULE_ON_DESTROY_DEFAULT} from '../testing/src/test_bed_common';
 
 const NAME = new InjectionToken<string>('name');
 
@@ -722,6 +724,53 @@ describe('TestBed', () => {
        expect(service.get()).toEqual('override');
      });
 
+  it('should allowing overriding a module with a cyclic structure in its metadata', () => {
+    class Cyclic {
+      cycle = this;
+
+      constructor(public name: string) {}
+    }
+
+    const CYCLES = new InjectionToken<Cyclic[]>('cycles', {factory: () => []});
+
+    @NgModule({
+      providers: [
+        {provide: CYCLES, useValue: new Cyclic('a'), multi: true},
+        {provide: CYCLES, useValue: new Cyclic('b'), multi: true},
+      ],
+    })
+    class TestModule {
+    }
+
+    TestBed
+        .configureTestingModule({
+          imports: [TestModule],
+        })
+        .overrideModule(TestModule, {
+          remove: {
+            providers: [
+              // Removing the cycle named "a" should result in removing the provider for "a".
+              // Note: although this removes a different instance than the one provided, metadata
+              // overrides compare objects by value, not by reference.
+              {provide: CYCLES, useValue: new Cyclic('a'), multi: true},
+
+              // Also attempt to remove a cycle named "B" (which does not exist) to verify that
+              // objects are correctly compared by value.
+              {provide: CYCLES, useValue: new Cyclic('B'), multi: true},
+            ],
+          },
+          add: {
+            providers: [
+              {provide: CYCLES, useValue: new Cyclic('c'), multi: true},
+            ],
+          },
+        })
+        .compileComponents();
+
+    const values = TestBed.inject(CYCLES);
+    expect(values.map(v => v.name)).toEqual(['b', 'c']);
+  });
+
   it('overrides injectable that is using providedIn: AModule', () => {
     @NgModule()
     class ServiceModule {
@@ -1344,20 +1393,20 @@ describe('TestBed module teardown', () => {
     TestBed.resetTestingModule();
   });
 
-  it('should not tear down the test module by default', () => {
-    expect(TestBed.shouldTearDownTestingModule()).toBe(false);
+  it('should tear down the test module by default', () => {
+    expect(TestBed.shouldTearDownTestingModule()).toBe(true);
   });
 
   it('should be able to configure the teardown behavior', () => {
-    TestBed.configureTestingModule({teardown: {destroyAfterEach: true}});
-    expect(TestBed.shouldTearDownTestingModule()).toBe(true);
+    TestBed.configureTestingModule({teardown: {destroyAfterEach: false}});
+    expect(TestBed.shouldTearDownTestingModule()).toBe(false);
   });
 
   it('should reset the teardown behavior back to the default when TestBed is reset', () => {
-    TestBed.configureTestingModule({teardown: {destroyAfterEach: true}});
-    expect(TestBed.shouldTearDownTestingModule()).toBe(true);
-    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({teardown: {destroyAfterEach: false}});
     expect(TestBed.shouldTearDownTestingModule()).toBe(false);
+    TestBed.resetTestingModule();
+    expect(TestBed.shouldTearDownTestingModule()).toBe(true);
   });
 
   it('should destroy test module providers when test module teardown is enabled', () => {
@@ -1527,5 +1576,29 @@ describe('TestBed module teardown', () => {
     expect(fixtureDocument.body.contains(fixture.nativeElement)).toBe(true);
     TestBed.resetTestingModule();
     expect(fixtureDocument.body.contains(fixture.nativeElement)).toBe(false);
+  });
+
+  it('should rethrow errors based on the default teardown behavior', () => {
+    expect(TestBed.shouldRethrowTeardownErrors()).toBe(TEARDOWN_TESTING_MODULE_ON_DESTROY_DEFAULT);
+  });
+
+  it('should rethrow errors if the option is omitted and test teardown is enabled', () => {
+    TestBed.configureTestingModule({teardown: {destroyAfterEach: true}});
+    expect(TestBed.shouldRethrowTeardownErrors()).toBe(true);
+  });
+
+  it('should not rethrow errors if the option is omitted and test teardown is disabled', () => {
+    TestBed.configureTestingModule({teardown: {destroyAfterEach: false}});
+    expect(TestBed.shouldRethrowTeardownErrors()).toBe(false);
+  });
+
+  it('should rethrow errors if the option is enabled, but teardown is disabled', () => {
+    TestBed.configureTestingModule({teardown: {destroyAfterEach: false, rethrowErrors: true}});
+    expect(TestBed.shouldRethrowTeardownErrors()).toBe(true);
+  });
+
+  it('should not rethrow errors if the option is disabled, but teardown is enabled', () => {
+    TestBed.configureTestingModule({teardown: {destroyAfterEach: true, rethrowErrors: false}});
+    expect(TestBed.shouldRethrowTeardownErrors()).toBe(false);
   });
 });
