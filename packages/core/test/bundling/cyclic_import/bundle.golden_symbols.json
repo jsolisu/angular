@@ -6,9 +6,6 @@
     "name": "ChangeDetectionStrategy"
   },
   {
-    "name": "DepComponent"
-  },
-  {
     "name": "EMPTY_ARRAY"
   },
   {
@@ -16,9 +13,6 @@
   },
   {
     "name": "InjectFlags"
-  },
-  {
-    "name": "Module"
   },
   {
     "name": "NG_COMP_DEF"
@@ -45,7 +39,7 @@
     "name": "RuntimeError"
   },
   {
-    "name": "SimpleChange"
+    "name": "TRACKED_LVIEWS"
   },
   {
     "name": "TriggerComponent"
@@ -91,9 +85,6 @@
   },
   {
     "name": "attachPatchData"
-  },
-  {
-    "name": "autoRegisterModuleById"
   },
   {
     "name": "callHook"
@@ -162,6 +153,9 @@
     "name": "generatePropertyAliases"
   },
   {
+    "name": "getBindingsEnabled"
+  },
+  {
     "name": "getClosureSafeProperty"
   },
   {
@@ -213,6 +207,9 @@
     "name": "getSimpleChangesStore"
   },
   {
+    "name": "getTNodeFromLView"
+  },
+  {
     "name": "getTView"
   },
   {
@@ -258,6 +255,9 @@
     "name": "isInlineTemplate"
   },
   {
+    "name": "isLView"
+  },
+  {
     "name": "isNodeMatchingSelector"
   },
   {
@@ -268,6 +268,9 @@
   },
   {
     "name": "isProceduralRenderer"
+  },
+  {
+    "name": "isTemplateNode"
   },
   {
     "name": "leaveDI"
@@ -295,9 +298,6 @@
   },
   {
     "name": "ngOnChangesSetInput"
-  },
-  {
-    "name": "noSideEffects"
   },
   {
     "name": "refreshComponent"
@@ -360,6 +360,9 @@
     "name": "setUpAttributes"
   },
   {
+    "name": "uniqueIdCounter"
+  },
+  {
     "name": "updateTransplantedViewCount"
   },
   {
@@ -375,10 +378,10 @@
     "name": "ɵɵdefineComponent"
   },
   {
-    "name": "ɵɵdefineInjector"
+    "name": "ɵɵelement"
   },
   {
-    "name": "ɵɵdefineNgModule"
+    "name": "ɵɵelementEnd"
   },
   {
     "name": "ɵɵelementStart"

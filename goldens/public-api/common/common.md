@@ -308,7 +308,7 @@ export class KeyValuePipe implements PipeTransform {
 }
 
 // @public
-class Location_2 {
+class Location_2 implements OnDestroy {
     constructor(platformStrategy: LocationStrategy, platformLocation: PlatformLocation);
     back(): void;
     forward(): void;
@@ -317,9 +317,11 @@ class Location_2 {
     historyGo(relativePosition?: number): void;
     isCurrentPathEqualTo(path: string, query?: string): boolean;
     static joinWithSlash: (start: string, end: string) => string;
+    // (undocumented)
+    ngOnDestroy(): void;
     normalize(url: string): string;
     static normalizeQueryParams: (params: string) => string;
-    onUrlChange(fn: (url: string, state: unknown) => void): void;
+    onUrlChange(fn: (url: string, state: unknown) => void): VoidFunction;
     path(includeHash?: boolean): string;
     prepareExternalUrl(url: string): string;
     replaceState(path: string, query?: string, state?: any): void;
@@ -412,17 +414,19 @@ export class NgComponentOutlet implements OnChanges, OnDestroy {
     // (undocumented)
     ngComponentOutlet: Type<any>;
     // (undocumented)
-    ngComponentOutletContent: any[][];
+    ngComponentOutletContent?: any[][];
     // (undocumented)
-    ngComponentOutletInjector: Injector;
+    ngComponentOutletInjector?: Injector;
     // (undocumented)
-    ngComponentOutletNgModuleFactory: NgModuleFactory<any>;
+    ngComponentOutletNgModule?: Type<any>;
+    // @deprecated (undocumented)
+    ngComponentOutletNgModuleFactory?: NgModuleFactory<any>;
     // (undocumented)
     ngOnChanges(changes: SimpleChanges): void;
     // (undocumented)
     ngOnDestroy(): void;
     // (undocumented)
-    static ɵdir: i0.ɵɵDirectiveDeclaration<NgComponentOutlet, "[ngComponentOutlet]", never, { "ngComponentOutlet": "ngComponentOutlet"; "ngComponentOutletInjector": "ngComponentOutletInjector"; "ngComponentOutletContent": "ngComponentOutletContent"; "ngComponentOutletNgModuleFactory": "ngComponentOutletNgModuleFactory"; }, {}, never>;
+    static ɵdir: i0.ɵɵDirectiveDeclaration<NgComponentOutlet, "[ngComponentOutlet]", never, { "ngComponentOutlet": "ngComponentOutlet"; "ngComponentOutletInjector": "ngComponentOutletInjector"; "ngComponentOutletContent": "ngComponentOutletContent"; "ngComponentOutletNgModule": "ngComponentOutletNgModule"; "ngComponentOutletNgModuleFactory": "ngComponentOutletNgModuleFactory"; }, {}, never>;
     // (undocumented)
     static ɵfac: i0.ɵɵFactoryDeclaration<NgComponentOutlet, never>;
 }
@@ -503,6 +507,10 @@ export class NgLocaleLocalization extends NgLocalization {
 export abstract class NgLocalization {
     // (undocumented)
     abstract getPluralCategory(value: any, locale?: string): string;
+    // (undocumented)
+    static ɵfac: i0.ɵɵFactoryDeclaration<NgLocalization, never>;
+    // (undocumented)
+    static ɵprov: i0.ɵɵInjectableDeclaration<NgLocalization>;
 }
 
 // @public
@@ -581,8 +589,9 @@ export class NgTemplateOutlet implements OnChanges {
     ngOnChanges(changes: SimpleChanges): void;
     ngTemplateOutlet: TemplateRef<any> | null;
     ngTemplateOutletContext: Object | null;
+    ngTemplateOutletInjector: Injector | null;
     // (undocumented)
-    static ɵdir: i0.ɵɵDirectiveDeclaration<NgTemplateOutlet, "[ngTemplateOutlet]", never, { "ngTemplateOutletContext": "ngTemplateOutletContext"; "ngTemplateOutlet": "ngTemplateOutlet"; }, {}, never>;
+    static ɵdir: i0.ɵɵDirectiveDeclaration<NgTemplateOutlet, "[ngTemplateOutlet]", never, { "ngTemplateOutletContext": "ngTemplateOutletContext"; "ngTemplateOutlet": "ngTemplateOutlet"; "ngTemplateOutletInjector": "ngTemplateOutletInjector"; }, {}, never>;
     // (undocumented)
     static ɵfac: i0.ɵɵFactoryDeclaration<NgTemplateOutlet, never>;
 }

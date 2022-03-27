@@ -228,7 +228,6 @@ def _ngc_tsconfig(ctx, files, srcs, **kwargs):
         "generateNgSummaryShims": True if generate_ve_shims else False,
         "fullTemplateTypeCheck": ctx.attr.type_check,
         "strictTemplates": ctx.attr.strict_templates,
-        "_extendedTemplateDiagnostics": ctx.attr.experimental_extended_template_diagnostics,
         "compilationMode": compilation_mode,
         # In Google3 we still want to use the symbol factory re-exports in order to
         # not break existing apps inside Google. Unlike Bazel, Google3 does not only
@@ -275,6 +274,10 @@ def _ngc_tsconfig(ctx, files, srcs, **kwargs):
     if not is_devmode:
         # Note: Keep in sync with the `prodmode_target` for `ts_library` in `tools/defaults.bzl`
         tsconfig["compilerOptions"]["target"] = "es2020"
+    else:
+        # For devmode output, we use ES2015 to match with what `ts_library` produces by default.
+        # https://github.com/bazelbuild/rules_nodejs/blob/9b36274dba34204625579463e3da054a9f42cb47/packages/typescript/internal/build_defs.bzl#L83.
+        tsconfig["compilerOptions"]["target"] = "es2015"
 
     return tsconfig
 
@@ -408,7 +411,6 @@ def _compile_action(
         inputs,
         outputs,
         dts_bundle_out,
-        perf_out,
         tsconfig_file,
         node_opts,
         target_flavor):
@@ -446,17 +448,17 @@ def _compile_action(
 
 def _prodmode_compile_action(ctx, inputs, outputs, tsconfig_file, node_opts):
     outs = _expected_outs(ctx)
-    return _compile_action(ctx, inputs, outputs + outs.closure_js + outs.prod_perf_files, None, outs.prod_perf_files, tsconfig_file, node_opts, "prodmode")
+    return _compile_action(ctx, inputs, outputs + outs.closure_js + outs.prod_perf_files, None, tsconfig_file, node_opts, "prodmode")
 
 def _devmode_compile_action(ctx, inputs, outputs, tsconfig_file, node_opts):
     outs = _expected_outs(ctx)
     compile_action_outputs = outputs + outs.devmode_js + outs.declarations + outs.dev_perf_files
-    _compile_action(ctx, inputs, compile_action_outputs, outs.dts_bundle, outs.dev_perf_files, tsconfig_file, node_opts, "devmode")
+    _compile_action(ctx, inputs, compile_action_outputs, outs.dts_bundle, tsconfig_file, node_opts, "devmode")
 
+# Note: We need to define `label` and `srcs_files` as `tsc_wrapped` passes
+# them and Starlark would otherwise error at runtime.
+# buildifier: disable=unused-variable
 def _ts_expected_outs(ctx, label, srcs_files = []):
-    # rules_typescript expects a function with two or more arguments, but our
-    # implementation doesn't use the label(and **kwargs).
-    _ignored = [label, srcs_files]
     return _expected_outs(ctx)
 
 def ng_module_impl(ctx, ts_compile_actions):
@@ -594,7 +596,7 @@ NG_MODULE_ATTRIBUTES = {
     ),
     "_supports_workers": attr.bool(default = True),
 
-    # Matches the API of the `ts_library` rule from `@bazel/typescript`.
+    # Matches the API of the `ts_library` rule from `@bazel/concatjs`.
     # https://github.com/bazelbuild/rules_nodejs/blob/398d351a3f2a9b2ebf6fc31fb5882cce7eedfd7b/packages/typescript/internal/build_defs.bzl#L435-L446.
     "package_name": attr.string(
         doc = """The package name that the linker will link this `ng_module` output as.
@@ -602,7 +604,7 @@ NG_MODULE_ATTRIBUTES = {
     If `package_path` is not set, the package will be linked in the top-level workspace node_modules folder.""",
     ),
 
-    # Matches the API of the `ts_library` rule from `@bazel/typescript`.
+    # Matches the API of the `ts_library` rule from `@bazel/concatjs`.
     # https://github.com/bazelbuild/rules_nodejs/blob/398d351a3f2a9b2ebf6fc31fb5882cce7eedfd7b/packages/typescript/internal/build_defs.bzl#L435-L446.
     "package_path": attr.string(
         doc = """The package path in the workspace that the linker will link this `ng_module` output to.

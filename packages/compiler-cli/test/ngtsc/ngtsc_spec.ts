@@ -19,7 +19,7 @@ import {NgtscTestEnvironment} from './env';
 
 const trim = (input: string): string => input.replace(/\s+/g, ' ').trim();
 
-const varRegExp = (name: string): RegExp => new RegExp(`var \\w+ = \\[\"${name}\"\\];`);
+const varRegExp = (name: string): RegExp => new RegExp(`const \\w+ = \\[\"${name}\"\\];`);
 
 const viewQueryRegExp = (predicate: string, flags: number, ref?: string): RegExp => {
   const maybeRef = ref ? `, ${ref}` : ``;
@@ -37,7 +37,7 @@ const setClassMetadataRegExp = (expectedType: string): RegExp =>
 const testFiles = loadStandardTestFiles();
 
 function getDiagnosticSourceCode(diag: ts.Diagnostic): string {
-  return diag.file!.text.substr(diag.start!, diag.length!);
+  return diag.file!.text.slice(diag.start!, diag.start! + diag.length!);
 }
 
 runInEachFileSystem(allTests);
@@ -162,8 +162,7 @@ function allTests(os: string) {
 
       const jsContents = env.getContents('test.js');
       expect(jsContents).toContain('Service.ɵprov =');
-      expect(jsContents)
-          .toContain('factory: function () { return (function () { return new Service(); })(); }');
+      expect(jsContents).toContain('factory: function () { return (() => new Service())(); }');
       expect(jsContents).toContain('Service_Factory(t) { return new (t || Service)(); }');
       expect(jsContents).toContain(', providedIn: \'root\' });');
       expect(jsContents).not.toContain('__decorate');
@@ -190,10 +189,9 @@ function allTests(os: string) {
 
       const jsContents = env.getContents('test.js');
       expect(jsContents).toContain('Service.ɵprov =');
-      expect(jsContents).toContain('factory: function Service_Factory(t) { var r = null; if (t) {');
+      expect(jsContents).toContain('factory: function Service_Factory(t) { let r = null; if (t) {');
       expect(jsContents).toContain('return new (t || Service)(i0.ɵɵinject(Dep));');
-      expect(jsContents)
-          .toContain('r = (function (dep) { return new Service(dep); })(i0.ɵɵinject(Dep));');
+      expect(jsContents).toContain('r = ((dep) => new Service(dep))(i0.ɵɵinject(Dep));');
       expect(jsContents).toContain('return r; }, providedIn: \'root\' });');
       expect(jsContents).not.toContain('__decorate');
       const dtsContents = env.getContents('test.d.ts');
@@ -224,10 +222,9 @@ function allTests(os: string) {
          const jsContents = env.getContents('test.js');
          expect(jsContents).toContain('Service.ɵprov =');
          expect(jsContents)
-             .toContain('factory: function Service_Factory(t) { var r = null; if (t) {');
+             .toContain('factory: function Service_Factory(t) { let r = null; if (t) {');
          expect(jsContents).toContain('return new (t || Service)(i0.ɵɵinject(Dep));');
-         expect(jsContents)
-             .toContain('r = (function (dep) { return new Service(dep); })(i0.ɵɵinject(Dep, 10));');
+         expect(jsContents).toContain('r = ((dep) => new Service(dep))(i0.ɵɵinject(Dep, 10));');
          expect(jsContents).toContain(`return r; }, providedIn: 'root' });`);
          expect(jsContents).not.toContain('__decorate');
          const dtsContents = env.getContents('test.d.ts');
@@ -612,11 +609,11 @@ function allTests(os: string) {
             expect(trim(jsContents)).toContain(trim(`
               [{
                   provide: 'token-a',
-                  useFactory: (function (service) {
+                  useFactory: ((service) => {
                       return (/**
                       * @return {?}
                       */
-                      function () { return service.id; });
+                      () => service.id);
                   })
               }, {
                   provide: 'token-b',
@@ -624,9 +621,7 @@ function allTests(os: string) {
                       return (/**
                       * @return {?}
                       */
-                      function () {
-                          return service.id;
-                      });
+                      function () { return service.id; });
                   })
               }]
             `));
@@ -1238,7 +1233,7 @@ function allTests(os: string) {
       expect(jsContents).toContain(`i0.ɵɵdefineNgModule({ type: TestModule, id: 'test' })`);
     });
 
-    it('should emit the id when the module\'s id is defined as `module.id`', () => {
+    it('should warn when an NgModule id is defined as module.id, and not emit it', () => {
       env.write('index.d.ts', `
          declare const module = {id: string};
        `);
@@ -1249,10 +1244,30 @@ function allTests(os: string) {
          export class TestModule {}
        `);
 
+      const diags = env.driveDiagnostics();
+
+      const jsContents = env.getContents('test.js');
+      expect(jsContents).toContain('i0.ɵɵdefineNgModule({ type: TestModule })');
+      expect(jsContents).not.toContain('i0.ɵɵregisterNgModuleType');
+
+      expect(diags.length).toEqual(1);
+      expect(diags[0].category).toEqual(ts.DiagnosticCategory.Warning);
+      expect(diags[0].code).toEqual(ngErrorCode(ErrorCode.WARN_NGMODULE_ID_UNNECESSARY));
+      expect(getDiagnosticSourceCode(diags[0])).toEqual('module.id');
+    });
+
+    it('should emit a side-effectful registration call when an @NgModule has an id', () => {
+      env.write('test.ts', `
+        import {NgModule} from '@angular/core';
+
+        @NgModule({id: 'test'})
+        export class TestModule {}
+    `);
+
       env.driveMain();
 
       const jsContents = env.getContents('test.js');
-      expect(jsContents).toContain('i0.ɵɵdefineNgModule({ type: TestModule, id: module.id })');
+      expect(jsContents).toContain(`i0.ɵɵregisterNgModuleType(TestModule, 'test')`);
     });
 
     it('should filter out directives and pipes from module exports in the injector def', () => {
@@ -1392,7 +1407,7 @@ function allTests(os: string) {
       expect(jsContents)
           .toContain(
               `TestModule.ɵinj = /*@__PURE__*/ i0.ɵɵdefineInjector({ ` +
-              `providers: [{ provide: Token, useFactory: function () { return new Token(); } }], ` +
+              `providers: [{ provide: Token, useFactory: () => new Token() }], ` +
               `imports: [[OtherModule]] });`);
 
       const dtsContents = env.getContents('test.d.ts');
@@ -1439,7 +1454,7 @@ function allTests(os: string) {
       expect(jsContents)
           .toContain(
               `TestModule.ɵinj = /*@__PURE__*/ i0.ɵɵdefineInjector({ ` +
-              `providers: [{ provide: Token, useFactory: function (dep) { return new Token(dep); }, deps: [Dep] }], ` +
+              `providers: [{ provide: Token, useFactory: (dep) => new Token(dep), deps: [Dep] }], ` +
               `imports: [[OtherModule]] });`);
 
       const dtsContents = env.getContents('test.d.ts');
@@ -2380,36 +2395,69 @@ function allTests(os: string) {
                  .toBe('This type is not supported as injection token.');
            });
 
-        it('should report an error when using a type-only import as injection token', () => {
-          env.tsconfig({strictInjectionParameters: true});
-          env.write(`types.ts`, `
-             export class TypeOnly {}
-           `);
-          env.write(`test.ts`, `
-             import {Injectable} from '@angular/core';
-             import type {TypeOnly} from './types';
+        it('should report an error when using a symbol from a type-only import clause as injection token',
+           () => {
+             env.tsconfig({strictInjectionParameters: true});
+             env.write(`types.ts`, `
+              export class TypeOnly {}
+            `);
+             env.write(`test.ts`, `
+              import {Injectable} from '@angular/core';
+              import type {TypeOnly} from './types';
 
-             @Injectable()
-             export class MyService {
-               constructor(param: TypeOnly) {}
-             }
-          `);
+              @Injectable()
+              export class MyService {
+                constructor(param: TypeOnly) {}
+              }
+            `);
 
-          const diags = env.driveDiagnostics();
-          expect(diags.length).toBe(1);
-          expect(ts.flattenDiagnosticMessageText(diags[0].messageText, '\n'))
-              .toBe(
-                  `No suitable injection token for parameter 'param' of class 'MyService'.\n` +
-                  `  Consider changing the type-only import to a regular import, ` +
-                  `or use the @Inject decorator to specify an injection token.`);
-          expect(diags[0].relatedInformation!.length).toBe(2);
-          expect(diags[0].relatedInformation![0].messageText)
-              .toBe(
-                  'This type is imported using a type-only import, ' +
-                  'which prevents it from being usable as an injection token.');
-          expect(diags[0].relatedInformation![1].messageText)
-              .toBe('The type-only import occurs here.');
-        });
+             const diags = env.driveDiagnostics();
+             expect(diags.length).toBe(1);
+             expect(ts.flattenDiagnosticMessageText(diags[0].messageText, '\n'))
+                 .toBe(
+                     `No suitable injection token for parameter 'param' of class 'MyService'.\n` +
+                     `  Consider changing the type-only import to a regular import, ` +
+                     `or use the @Inject decorator to specify an injection token.`);
+             expect(diags[0].relatedInformation!.length).toBe(2);
+             expect(diags[0].relatedInformation![0].messageText)
+                 .toBe(
+                     'This type is imported using a type-only import, ' +
+                     'which prevents it from being usable as an injection token.');
+             expect(diags[0].relatedInformation![1].messageText)
+                 .toBe('The type-only import occurs here.');
+           });
+
+        it('should report an error when using a symbol from a type-only import specifier as injection token',
+           () => {
+             env.tsconfig({strictInjectionParameters: true});
+             env.write(`types.ts`, `
+                export class TypeOnly {}
+              `);
+             env.write(`test.ts`, `
+                import {Injectable} from '@angular/core';
+                import {type TypeOnly} from './types';
+
+                @Injectable()
+                export class MyService {
+                  constructor(param: TypeOnly) {}
+                }
+              `);
+
+             const diags = env.driveDiagnostics();
+             expect(diags.length).toBe(1);
+             expect(ts.flattenDiagnosticMessageText(diags[0].messageText, '\n'))
+                 .toBe(
+                     `No suitable injection token for parameter 'param' of class 'MyService'.\n` +
+                     `  Consider changing the type-only import to a regular import, ` +
+                     `or use the @Inject decorator to specify an injection token.`);
+             expect(diags[0].relatedInformation!.length).toBe(2);
+             expect(diags[0].relatedInformation![0].messageText)
+                 .toBe(
+                     'This type is imported using a type-only import, ' +
+                     'which prevents it from being usable as an injection token.');
+             expect(diags[0].relatedInformation![1].messageText)
+                 .toBe('The type-only import occurs here.');
+           });
 
         it('should report an error when using a primitive type as injection token', () => {
           env.tsconfig({strictInjectionParameters: true});
@@ -3750,7 +3798,7 @@ function allTests(os: string) {
       const jsContents = env.getContents('test.js');
       expect(jsContents)
           .toContain(
-              '":\\u241F5dbba0a3da8dff890e20cf76eb075d58900fbcd3\\u241F8321000940098097247:Some text"');
+              '`:\u241F5dbba0a3da8dff890e20cf76eb075d58900fbcd3\u241F8321000940098097247:Some text`');
     });
 
     it('should render custom id and legacy ids if `enableI18nLegacyMessageIdFormat` is not false',
@@ -3767,7 +3815,7 @@ function allTests(os: string) {
          const jsContents = env.getContents('test.js');
          expect(jsContents)
              .toContain(
-                 ':@@custom\\u241F5dbba0a3da8dff890e20cf76eb075d58900fbcd3\\u241F8321000940098097247:Some text');
+                 ':@@custom\u241F5dbba0a3da8dff890e20cf76eb075d58900fbcd3\u241F8321000940098097247:Some text');
        });
 
     it('should not render legacy ids when `enableI18nLegacyMessageIdFormat` is set to false',
@@ -3802,10 +3850,10 @@ function allTests(os: string) {
       const jsContents = env.getContents('test.js');
       expect(jsContents)
           .toContain(
-              ':\\u241F720ba589d043a0497ac721ff972f41db0c919efb\\u241F3221232817843005870:{VAR_PLURAL, plural, 10 {ten} other {other}}');
+              ':\u241F720ba589d043a0497ac721ff972f41db0c919efb\u241F3221232817843005870:{VAR_PLURAL, plural, 10 {ten} other {other}}');
       expect(jsContents)
           .toContain(
-              ':@@custom\\u241Fdcb6170595f5d548a3d00937e87d11858f51ad04\\u241F7419139165339437596:Some text');
+              ':@@custom\u241Fdcb6170595f5d548a3d00937e87d11858f51ad04\u241F7419139165339437596:Some text');
     });
 
     it('@Component\'s `interpolation` should override default interpolation config', () => {
@@ -4001,14 +4049,14 @@ function allTests(os: string) {
       expect(factoryContents).toContain(`import { NotAModule, TestModule } from './test';`);
       expect(factoryContents)
           .toContain(
-              'export var TestModuleNgFactory = i0.\u0275noSideEffects(function () { ' +
+              'export const TestModuleNgFactory = i0.\u0275noSideEffects(function () { ' +
               'return new i0.\u0275NgModuleFactory(TestModule); });');
       expect(factoryContents).not.toContain(`NotAModuleNgFactory`);
       expect(factoryContents).not.toContain('\u0275NonEmptyModule');
 
       const emptyFactory = env.getContents('empty.ngfactory.js');
       expect(emptyFactory).toContain(`import * as i0 from '@angular/core';`);
-      expect(emptyFactory).toContain(`export var \u0275NonEmptyModule = true;`);
+      expect(emptyFactory).toContain(`export const \u0275NonEmptyModule = true;`);
     });
 
     describe('ngfactory shims', () => {
@@ -4146,28 +4194,8 @@ function allTests(os: string) {
             .toBe(
                 'import * as i0 from "./r3_symbols";\n' +
                 'import { TestModule } from \'./test\';\n' +
-                'export var TestModuleNgFactory = i0.\u0275noSideEffects(function () {' +
+                'export const TestModuleNgFactory = i0.\u0275noSideEffects(function () {' +
                 ' return new i0.NgModuleFactory(TestModule); });\n');
-      });
-
-      it('should generate side effectful NgModuleFactory constructor when lazy loaded', () => {
-        env.tsconfig({'allowEmptyCodegenFiles': true});
-
-        env.write('test.ts', `
-          import {NgModule} from '@angular/core';
-
-          @NgModule({
-            id: 'test', // ID to use for lazy loading.
-          })
-          export class TestModule {}
-        `);
-
-        env.driveMain();
-
-        // Should **not** contain noSideEffects(), because the module is lazy loaded.
-        const factoryContents = env.getContents('test.ngfactory.js');
-        expect(factoryContents)
-            .toContain('export var TestModuleNgFactory = new i0.ɵNgModuleFactory(TestModule);');
       });
 
       describe('file-level comments', () => {
@@ -4232,7 +4260,7 @@ function allTests(os: string) {
         env.driveMain();
 
         const summaryContents = env.getContents('test.ngsummary.js');
-        expect(summaryContents).toEqual(`export var TestModuleNgSummary = null;\n`);
+        expect(summaryContents).toEqual(`export const TestModuleNgSummary = null;\n`);
       });
 
       it('should generate a summary stub for classes exported via exports', () => {
@@ -4248,7 +4276,7 @@ function allTests(os: string) {
         env.driveMain();
 
         const summaryContents = env.getContents('test.ngsummary.js');
-        expect(summaryContents).toEqual(`export var NotDirectlyExportedNgSummary = null;\n`);
+        expect(summaryContents).toEqual(`export const NotDirectlyExportedNgSummary = null;\n`);
       });
 
       it('it should generate empty export when there are no other summary symbols, to ensure the output is a valid ES module',
@@ -4261,7 +4289,7 @@ function allTests(os: string) {
 
            const emptySummary = env.getContents('empty.ngsummary.js');
            // The empty export ensures this js file is still an ES module.
-           expect(emptySummary).toEqual(`export var \u0275empty = null;\n`);
+           expect(emptySummary).toEqual(`export const \u0275empty = null;\n`);
          });
     });
 
@@ -4310,7 +4338,7 @@ function allTests(os: string) {
           .toContain('function Base_Factory(t) { return new (t || Base)(i0.ɵɵinject(Dep)); }');
       expect(jsContents)
           .toContain(
-              'function () { var ɵChild_BaseFactory; return function Child_Factory(t) { return (ɵChild_BaseFactory || (ɵChild_BaseFactory = i0.ɵɵgetInheritedFactory(Child)))(t || Child); }; }();');
+              'function () { let ɵChild_BaseFactory; return function Child_Factory(t) { return (ɵChild_BaseFactory || (ɵChild_BaseFactory = i0.ɵɵgetInheritedFactory(Child)))(t || Child); }; }();');
       expect(jsContents)
           .toContain('function GrandChild_Factory(t) { return new (t || GrandChild)(); }');
     });
@@ -4336,7 +4364,7 @@ function allTests(os: string) {
       const jsContents = env.getContents('test.js');
       expect(jsContents)
           .toContain(
-              '/*@__PURE__*/ function () { var ɵDir_BaseFactory; return function Dir_Factory(t) { return (ɵDir_BaseFactory || (ɵDir_BaseFactory = i0.ɵɵgetInheritedFactory(Dir)))(t || Dir); }; }();');
+              '/*@__PURE__*/ function () { let ɵDir_BaseFactory; return function Dir_Factory(t) { return (ɵDir_BaseFactory || (ɵDir_BaseFactory = i0.ɵɵgetInheritedFactory(Dir)))(t || Dir); }; }();');
     });
 
     it('should wrap "directives" in component metadata in a closure when forward references are present',
@@ -4770,12 +4798,14 @@ function allTests(os: string) {
        () => {
          env.write(`types.ts`, `
            export default class {}
-           export class TypeOnly {}
+           export class TypeOnlyOne {}
+           export class TypeOnlyTwo {}
          `);
          env.write(`test.ts`, `
            import {Component, Inject, Injectable} from '@angular/core';
            import type DefaultImport from './types';
-           import type {TypeOnly} from './types';
+           import type {TypeOnlyOne} from './types';
+           import {type TypeOnlyTwo} from './types';
            import type * as types from './types';
 
            @Component({
@@ -4784,9 +4814,10 @@ function allTests(os: string) {
            })
            export class SomeComp {
              constructor(
-               @Inject('token') namedImport: TypeOnly,
+               @Inject('token') namedImport: TypeOnlyOne,
                @Inject('token') defaultImport: DefaultImport,
-               @Inject('token') namespacedImport: types.TypeOnly,
+               @Inject('token') namespacedImport: types.TypeOnlyOne,
+               @Inject('token') typeOnlySpecifier: TypeOnlyTwo,
              ) {}
            }
         `);
@@ -4798,7 +4829,9 @@ function allTests(os: string) {
          // Default type-only import should not be emitted
          expect(jsContents).not.toContain('DefaultImport');
          // Named type-only import should not be emitted
-         expect(jsContents).not.toContain('TypeOnly');
+         expect(jsContents).not.toContain('TypeOnlyOne');
+         // Symbols from type-only specifiers should not be emitted
+         expect(jsContents).not.toContain('TypeOnlyTwo');
          // The parameter type in class metadata should be undefined
          expect(jsContents).toMatch(setClassMetadataRegExp('type: undefined'));
        });
@@ -4950,7 +4983,7 @@ function allTests(os: string) {
         expect(jsContents).not.toContain('setComponentScope');
       });
 
-      it('should not consider type-only imports during cycle detection', () => {
+      it('should not consider type-only import clauses during cycle detection', () => {
         env.write('test.ts', `
         import {NgModule} from '@angular/core';
         import {ACmp} from './a';
@@ -4984,6 +5017,50 @@ function allTests(os: string) {
         const jsContents = env.getContents('test.js');
         expect(jsContents).not.toContain('setComponentScope');
       });
+
+      it('should not consider import clauses where all the specifiers are type-only during cycle detection',
+         () => {
+           env.write('test.ts', `
+              import {NgModule} from '@angular/core';
+              import {SharedOne, SharedTwo} from './shared';
+              import {CyclicCmp} from './cyclic';
+
+              @NgModule({declarations: [SharedOne, SharedTwo, CyclicCmp]})
+              export class Module {}
+            `);
+           env.write('shared.ts', `
+              import {Component} from '@angular/core';
+
+              @Component({
+                selector: 'shared-one-cmp',
+                template: '<cyclic-cmp></cyclic-cmp>',
+              })
+              export class SharedOne {}
+
+              @Component({
+                selector: 'shared-two-cmp',
+                template: '<cyclic-cmp></cyclic-cmp>',
+              })
+              export class SharedTwo {}
+            `);
+           env.write('cyclic.ts', `
+              import {Component} from '@angular/core';
+              import {type SharedOne, type SharedTwo} from './shared';
+
+              @Component({
+                selector: 'cyclic-cmp',
+                template: 'does not use shared components',
+              })
+              export class CyclicCmp {
+                one: SharedOne;
+                two: SharedTwo;
+              }
+            `);
+
+           env.driveMain();
+           const jsContents = env.getContents('test.js');
+           expect(jsContents).not.toContain('setComponentScope');
+         });
 
       it('should only pass components actually used to setComponentScope', () => {
         env.write('test.ts', `
@@ -7441,7 +7518,7 @@ function allTests(os: string) {
                   'Cannot mark an element as translatable inside of a translatable section.' +
                   ' Please remove the nested i18n marker.');
           expect(diags[0].file?.fileName).toEqual(absoluteFrom('/test.ts'));
-          expect(diags[0].file?.text.substr(diags[0].start!, diags[0].length))
+          expect(diags[0].file?.text.slice(diags[0].start!, diags[0].start! + diags[0].length!))
               .toEqual('<div i18n>Content</div>');
         });
 
@@ -7463,7 +7540,7 @@ function allTests(os: string) {
                   'Cannot mark an element as translatable inside of a translatable section.' +
                   ' Please remove the nested i18n marker.');
           expect(diags[0].file?.fileName).toEqual(absoluteFrom('/test.ts'));
-          expect(diags[0].file?.text.substr(diags[0].start!, diags[0].length))
+          expect(diags[0].file?.text.slice(diags[0].start!, diags[0].start! + diags[0].length!))
               .toEqual('<div i18n>Content</div>');
         });
 
@@ -7485,7 +7562,7 @@ function allTests(os: string) {
                   'Cannot mark an element as translatable inside of a translatable section.' +
                   ' Please remove the nested i18n marker.');
           expect(diags[0].file?.fileName).toEqual(absoluteFrom('/test.ts'));
-          expect(diags[0].file?.text.substr(diags[0].start!, diags[0].length))
+          expect(diags[0].file?.text.slice(diags[0].start!, diags[0].start! + diags[0].length!))
               .toEqual('<ng-container i18n>Content</ng-container>');
         });
       });
@@ -7557,10 +7634,7 @@ function allTests(os: string) {
        });
 
     it('passes the build when only warnings are emitted', () => {
-      env.tsconfig({
-        strictTemplates: true,
-        _extendedTemplateDiagnostics: true,
-      });
+      env.tsconfig({strictTemplates: true});
 
       env.write('test.ts', `
         import {Component} from '@angular/core';

@@ -99,8 +99,8 @@ To tell the library how to build the schematics, add a `tsconfig.schematics.json
 
     * The `build` script compiles your schematic using the custom `tsconfig.schematics.json` file.
     * The `postbuild` script copies the schematic files after the `build` script completes.
-    * Both the `build` and the `postbuild` scripts require dependencies that are found in their parent directory.
-      They can be installed by running `npm install` prior to running the scripts.
+    * Both the `build` and the `postbuild` scripts require the `copyfiles` and `typescript` dependencies.
+      To install them, navigate to their path defined in `devDependencies` and run `npm install` before running the scripts.
 
 ## Providing generation support
 
@@ -227,12 +227,6 @@ The `Tree` methods give you access to the complete file tree in your workspace, 
     </code-example>
 
     Be sure to check that the context exists and throw the appropriate error.
-
-1. The `workspace.extensions` property includes a `defaultProject` value for determining which project to use if not provided.
-   You will use that value as a fallback, if no project is explicitly specified in the `ng generate` command.
-
-    <code-example header="projects/my-lib/schematics/my-service/index.ts (Default Project)" path="schematics-for-libraries/projects/my-lib/schematics/my-service/index.ts" region="project-fallback">
-    </code-example>
 
 1. Now that you have the project name, use it to retrieve the project-specific configuration information.
 

@@ -10,7 +10,10 @@ import {Injectable} from '@angular/core';
 
 import {AsyncValidatorFn, ValidatorFn} from './directives/validators';
 import {ReactiveFormsModule} from './form_providers';
-import {AbstractControl, AbstractControlOptions, FormArray, FormControl, FormGroup, FormHooks} from './model';
+import {AbstractControl, AbstractControlOptions, FormHooks} from './model/abstract_model';
+import {FormArray, isFormArray, UntypedFormArray} from './model/form_array';
+import {FormControl, FormControlOptions, isFormControl, UntypedFormControl} from './model/form_control';
+import {FormGroup, isFormGroup, UntypedFormGroup} from './model/form_group';
 
 function isAbstractControlOptions(options: AbstractControlOptions|
                                   {[key: string]: any}): options is AbstractControlOptions {
@@ -127,7 +130,7 @@ export class FormBuilder {
    * </code-example>
    */
   control(
-      formState: any, validatorOrOpts?: ValidatorFn|ValidatorFn[]|AbstractControlOptions|null,
+      formState: any, validatorOrOpts?: ValidatorFn|ValidatorFn[]|FormControlOptions|null,
       asyncValidator?: AsyncValidatorFn|AsyncValidatorFn[]|null): FormControl {
     return new FormControl(formState, validatorOrOpts, asyncValidator);
   }
@@ -165,8 +168,7 @@ export class FormBuilder {
 
   /** @internal */
   _createControl(controlConfig: any): AbstractControl {
-    if (controlConfig instanceof FormControl || controlConfig instanceof FormGroup ||
-        controlConfig instanceof FormArray) {
+    if (isFormControl(controlConfig) || isFormGroup(controlConfig) || isFormArray(controlConfig)) {
       return controlConfig;
 
     } else if (Array.isArray(controlConfig)) {
@@ -178,5 +180,50 @@ export class FormBuilder {
     } else {
       return this.control(controlConfig);
     }
+  }
+}
+
+/**
+ * UntypedFormBuilder is the same as @see FormBuilder, but it provides untyped controls.
+ */
+@Injectable({providedIn: ReactiveFormsModule})
+export class UntypedFormBuilder extends FormBuilder {
+  /**
+   * @see FormBuilder#group
+   */
+  override group(
+      controlsConfig: {[key: string]: any},
+      options?: AbstractControlOptions|null,
+      ): UntypedFormGroup;
+  /**
+   * @deprecated
+   */
+  override group(
+      controlsConfig: {[key: string]: any},
+      options: {[key: string]: any},
+      ): UntypedFormGroup;
+  override group(
+      controlsConfig: {[key: string]: any},
+      options: AbstractControlOptions|{[key: string]: any}|null = null): UntypedFormGroup {
+    return super.group(controlsConfig, options);
+  }
+
+  /**
+   * @see FormBuilder#control
+   */
+  override control(
+      formState: any, validatorOrOpts?: ValidatorFn|ValidatorFn[]|FormControlOptions|null,
+      asyncValidator?: AsyncValidatorFn|AsyncValidatorFn[]|null): UntypedFormControl {
+    return super.control(formState, validatorOrOpts, asyncValidator);
+  }
+
+  /**
+   * @see FormBuilder#array
+   */
+  override array(
+      controlsConfig: any[],
+      validatorOrOpts?: ValidatorFn|ValidatorFn[]|AbstractControlOptions|null,
+      asyncValidator?: AsyncValidatorFn|AsyncValidatorFn[]|null): UntypedFormArray {
+    return super.array(controlsConfig, validatorOrOpts, asyncValidator);
   }
 }

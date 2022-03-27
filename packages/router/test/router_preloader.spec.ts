@@ -7,14 +7,13 @@
  */
 
 import {Compiler, Component, Injector, NgModule, NgModuleFactory, NgModuleRef, Type} from '@angular/core';
-import {resolveComponentResources} from '@angular/core/src/metadata/resource_loading';
 import {fakeAsync, inject, TestBed, tick} from '@angular/core/testing';
 import {PreloadAllModules, PreloadingStrategy, RouterPreloader} from '@angular/router';
 import {BehaviorSubject, Observable, of, throwError} from 'rxjs';
 import {catchError, delay, filter, switchMap, take} from 'rxjs/operators';
 
 import {Route, RouteConfigLoadEnd, RouteConfigLoadStart, Router, RouterModule} from '../index';
-import {LoadedRouterConfig} from '../src/config';
+import {LoadedRouterConfig} from '../src/models';
 import {RouterTestingModule} from '../testing';
 
 

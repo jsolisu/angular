@@ -11,16 +11,17 @@ import {Compiler, Injectable, Injector, NgModuleRef, NgZone, Type, ɵConsole as 
 import {BehaviorSubject, EMPTY, Observable, of, Subject, SubscriptionLike} from 'rxjs';
 import {catchError, filter, finalize, map, switchMap, tap} from 'rxjs/operators';
 
-import {QueryParamsHandling, Route, Routes} from './config';
 import {createRouterState} from './create_router_state';
 import {createUrlTree} from './create_url_tree';
 import {Event, GuardsCheckEnd, GuardsCheckStart, NavigationCancel, NavigationEnd, NavigationError, NavigationStart, NavigationTrigger, ResolveEnd, ResolveStart, RouteConfigLoadEnd, RouteConfigLoadStart, RoutesRecognized} from './events';
+import {QueryParamsHandling, Route, Routes} from './models';
 import {activateRoutes} from './operators/activate_routes';
 import {applyRedirects} from './operators/apply_redirects';
 import {checkGuards} from './operators/check_guards';
 import {recognize} from './operators/recognize';
 import {resolveData} from './operators/resolve_data';
 import {switchTap} from './operators/switch_tap';
+import {TitleStrategy} from './page_title_strategy';
 import {DefaultRouteReuseStrategy, RouteReuseStrategy} from './route_reuse_strategy';
 import {RouterConfigLoader} from './router_config_loader';
 import {ChildrenOutletContexts} from './router_outlet_context';
@@ -273,7 +274,7 @@ export interface Navigation {
    * The target URL passed into the `Router#navigateByUrl()` call before navigation. This is
    * the value before the router has parsed or applied redirects to it.
    */
-  initialUrl: string|UrlTree;
+  initialUrl: UrlTree;
   /**
    * The initial target URL after being parsed with `UrlSerializer.extract()`.
    */
@@ -510,6 +511,11 @@ export class Router {
   routeReuseStrategy: RouteReuseStrategy = new DefaultRouteReuseStrategy();
 
   /**
+   * A strategy for setting the title based on the `routerState`.
+   */
+  titleStrategy?: TitleStrategy;
+
+  /**
    * How to handle a navigation request to the current URL. One of:
    *
    * - `'ignore'` :  The router ignores the request.
@@ -525,7 +531,7 @@ export class Router {
   onSameUrlNavigation: 'reload'|'ignore' = 'ignore';
 
   /**
-   * How to merge parameters, data, and resolved data from parent to child
+   * How to merge parameters, data, resolved data, and title from parent to child
    * routes. One of:
    *
    * - `'emptyOnly'` : Inherit parent parameters, data, and resolved data
@@ -547,6 +553,8 @@ export class Router {
   /**
    * Enables a bug fix that corrects relative link resolution in components with empty paths.
    * @see `RouterModule`
+   *
+   * @deprecated
    */
   relativeLinkResolution: 'legacy'|'corrected' = 'corrected';
 
@@ -644,7 +652,7 @@ export class Router {
                      tap(t => {
                        this.currentNavigation = {
                          id: t.id,
-                         initialUrl: t.currentRawUrl,
+                         initialUrl: t.rawUrl,
                          extractedUrl: t.extractedUrl,
                          trigger: t.source,
                          extras: t.extras,
@@ -1279,7 +1287,7 @@ export class Router {
     try {
       urlTree = this.urlSerializer.parse(url);
     } catch (e) {
-      urlTree = this.malformedUriErrorHandler(e, this.urlSerializer, url);
+      urlTree = this.malformedUriErrorHandler(e as URIError, this.urlSerializer, url);
     }
     return urlTree;
   }
@@ -1339,6 +1347,7 @@ export class Router {
               .next(new NavigationEnd(
                   t.id, this.serializeUrl(t.extractedUrl), this.serializeUrl(this.currentUrlTree)));
           this.lastSuccessfulNavigation = this.currentNavigation;
+          this.titleStrategy?.updateTitle(this.routerState.snapshot);
           t.resolve(true);
         },
         e => {
@@ -1352,21 +1361,6 @@ export class Router {
       priorPromise?: {resolve: any, reject: any, promise: Promise<boolean>}): Promise<boolean> {
     if (this.disposed) {
       return Promise.resolve(false);
-    }
-
-    // Duplicate navigations may be triggered by attempts to sync AngularJS and
-    // Angular router states. We have the setTimeout in the location listener to
-    // ensure the imperative nav is scheduled before the browser nav.
-    const lastNavigation = this.transitions.value;
-    const browserNavPrecededByRouterNav = isBrowserTriggeredNavigation(source) && lastNavigation &&
-        !isBrowserTriggeredNavigation(lastNavigation.source);
-    const navToSameUrl = lastNavigation.rawUrl.toString() === rawUrl.toString();
-    const lastNavigationInProgress = lastNavigation.id === this.currentNavigation?.id;
-    // We consider duplicates as ones that goes to the same URL while the first
-    // is still processing.
-    const isDuplicateNav = navToSameUrl && lastNavigationInProgress;
-    if (browserNavPrecededByRouterNav && isDuplicateNav) {
-      return Promise.resolve(true);  // return value is not used
     }
 
     let resolve: any;

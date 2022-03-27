@@ -14,7 +14,7 @@ import {ComponentFixture, inject} from '@angular/core/testing';
 import {expect} from '@angular/platform-browser/testing/src/matchers';
 
 import {InternalNgModuleRef, NgModuleFactory} from '../../src/linker/ng_module_factory';
-import {clearModulesForTest} from '../../src/linker/ng_module_factory_registration';
+import {clearModulesForTest, setAllowDuplicateNgModuleIdsForTest} from '../../src/linker/ng_module_registration';
 import {stringify} from '../../src/util/stringify';
 
 class Engine {}
@@ -246,11 +246,6 @@ describe('NgModule', () => {
          @NgModule({
            schemas: [CUSTOM_ELEMENTS_SCHEMA],
            declarations: [ComponentUsingInvalidProperty],
-
-           // Note that we need to add the component to `entryComponents`, because of the
-           // `createComp` call below. In Ivy the property validation happens during the
-           //  update phase so we need to create the component, in order for it to run.
-           entryComponents: [ComponentUsingInvalidProperty]
          })
          class SomeModule {
          }
@@ -283,6 +278,9 @@ describe('NgModule', () => {
     });
 
     it('should throw when registering a duplicate module', () => {
+      // TestBed disables the error that's being tested here, so temporarily re-enable it.
+      setAllowDuplicateNgModuleIdsForTest(false);
+
       @NgModule({id: token})
       class SomeModule {
       }
@@ -293,39 +291,25 @@ describe('NgModule', () => {
         }
         createModule(SomeOtherModule);
       }).toThrowError(/Duplicate module registered/);
-    });
 
-    it('should not throw immediately if two modules have the same id', () => {
-      expect(() => {
-        @NgModule({id: 'some-module'})
-        class ModuleA {
-        }
-
-        @NgModule({id: 'some-module'})
-        class ModuleB {
-        }
-      }).not.toThrow();
+      // Re-disable the error.
+      setAllowDuplicateNgModuleIdsForTest(true);
     });
 
     it('should register a module even if not importing the .ngfactory file or calling create()',
        () => {
+         @NgModule({id: 'child'})
          class ChildModule {
-           static ɵmod = defineNgModule({
-             type: ChildModule,
-             id: 'child',
-           });
          }
 
+         @NgModule({
+           id: 'test',
+           imports: [ChildModule],
+         })
          class Module {
-           static ɵmod = defineNgModule({
-             type: Module,
-             id: 'test',
-             imports: [ChildModule],
-           });
          }
 
          // Verify that we can retrieve NgModule factory by id.
-         createModuleFactory(ChildModule);
          expect(getModuleFactory('child')).toBeAnInstanceOf(NgModuleFactory);
 
          // Verify that we can also retrieve NgModule class by id.
@@ -462,10 +446,7 @@ describe('NgModule', () => {
   describe('directives and pipes', () => {
     describe('declarations', () => {
       it('should be supported in root modules', () => {
-        @NgModule({
-          declarations: [CompUsingModuleDirectiveAndPipe, SomeDirective, SomePipe],
-          entryComponents: [CompUsingModuleDirectiveAndPipe]
-        })
+        @NgModule({declarations: [CompUsingModuleDirectiveAndPipe, SomeDirective, SomePipe]})
         class SomeModule {
         }
 
@@ -477,10 +458,7 @@ describe('NgModule', () => {
       });
 
       it('should be supported in imported modules', () => {
-        @NgModule({
-          declarations: [CompUsingModuleDirectiveAndPipe, SomeDirective, SomePipe],
-          entryComponents: [CompUsingModuleDirectiveAndPipe]
-        })
+        @NgModule({declarations: [CompUsingModuleDirectiveAndPipe, SomeDirective, SomePipe]})
         class SomeImportedModule {
         }
 
@@ -507,8 +485,7 @@ describe('NgModule', () => {
           declarations: [
             ParentCompUsingModuleDirectiveAndPipe, CompUsingModuleDirectiveAndPipe, SomeDirective,
             SomePipe
-          ],
-          entryComponents: [ParentCompUsingModuleDirectiveAndPipe]
+          ]
         })
         class SomeModule {
         }
@@ -526,11 +503,7 @@ describe('NgModule', () => {
         class SomeImportedModule {
         }
 
-        @NgModule({
-          declarations: [CompUsingModuleDirectiveAndPipe],
-          imports: [SomeImportedModule],
-          entryComponents: [CompUsingModuleDirectiveAndPipe]
-        })
+        @NgModule({declarations: [CompUsingModuleDirectiveAndPipe], imports: [SomeImportedModule]})
         class SomeModule {
         }
 
@@ -549,8 +522,7 @@ describe('NgModule', () => {
 
            @NgModule({
              declarations: [CompUsingModuleDirectiveAndPipe],
-             imports: [{ngModule: SomeImportedModule}],
-             entryComponents: [CompUsingModuleDirectiveAndPipe]
+             imports: [{ngModule: SomeImportedModule}]
            })
            class SomeModule {
            }
@@ -571,11 +543,7 @@ describe('NgModule', () => {
         class SomeImportedModule {
         }
 
-        @NgModule({
-          declarations: [CompUsingModuleDirectiveAndPipe],
-          imports: [SomeImportedModule],
-          entryComponents: [CompUsingModuleDirectiveAndPipe]
-        })
+        @NgModule({declarations: [CompUsingModuleDirectiveAndPipe], imports: [SomeImportedModule]})
         class SomeModule {
         }
 
@@ -594,11 +562,7 @@ describe('NgModule', () => {
         class SomeImportedModule {
         }
 
-        @NgModule({
-          declarations: [CompUsingModuleDirectiveAndPipe],
-          imports: [SomeImportedModule],
-          entryComponents: [CompUsingModuleDirectiveAndPipe]
-        })
+        @NgModule({declarations: [CompUsingModuleDirectiveAndPipe], imports: [SomeImportedModule]})
         class SomeModule {
         }
 
@@ -615,11 +579,7 @@ describe('NgModule', () => {
         class SomeImportedModule {
         }
 
-        @NgModule({
-          declarations: [CompUsingModuleDirectiveAndPipe],
-          imports: [SomeImportedModule],
-          entryComponents: [CompUsingModuleDirectiveAndPipe]
-        })
+        @NgModule({declarations: [CompUsingModuleDirectiveAndPipe], imports: [SomeImportedModule]})
         class SomeModule {
         }
 
@@ -673,7 +633,7 @@ describe('NgModule', () => {
 
     it('should throw when no type and not @Inject (class case)', () => {
       expect(() => createInjector([NoAnnotations]))
-          .toThrowError('Can\'t resolve all parameters for NoAnnotations: (?).');
+          .toThrowError('NG0204: Can\'t resolve all parameters for NoAnnotations: (?).');
     });
 
     it('should cache instances', () => {

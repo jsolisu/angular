@@ -39,7 +39,7 @@
     "name": "RuntimeError"
   },
   {
-    "name": "SimpleChange"
+    "name": "TRACKED_LVIEWS"
   },
   {
     "name": "ViewEncapsulation"
@@ -70,6 +70,9 @@
   },
   {
     "name": "allocLFrame"
+  },
+  {
+    "name": "appendChild"
   },
   {
     "name": "attachPatchData"
@@ -150,10 +153,16 @@
     "name": "getNextLContainer"
   },
   {
+    "name": "getNodeInjectable"
+  },
+  {
     "name": "getOrCreateTNode"
   },
   {
     "name": "getSimpleChangesStore"
+  },
+  {
+    "name": "getTNodeFromLView"
   },
   {
     "name": "includeViewProviders"
@@ -165,9 +174,6 @@
     "name": "insertBloom"
   },
   {
-    "name": "instantiateRootComponent"
-  },
-  {
     "name": "instructionState"
   },
   {
@@ -177,7 +183,13 @@
     "name": "isInCheckNoChangesMode"
   },
   {
+    "name": "isLView"
+  },
+  {
     "name": "isProceduralRenderer"
+  },
+  {
+    "name": "isTemplateNode"
   },
   {
     "name": "leaveDI"
@@ -243,6 +255,9 @@
     "name": "setSelectedIndex"
   },
   {
+    "name": "uniqueIdCounter"
+  },
+  {
     "name": "updateTransplantedViewCount"
   },
   {
@@ -250,8 +265,5 @@
   },
   {
     "name": "ɵɵdefineComponent"
-  },
-  {
-    "name": "ɵɵtext"
   }
 ]

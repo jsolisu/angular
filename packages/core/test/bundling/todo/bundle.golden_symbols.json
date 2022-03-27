@@ -6,12 +6,6 @@
     "name": "ChangeDetectionStrategy"
   },
   {
-    "name": "ComponentFactory"
-  },
-  {
-    "name": "ComponentRef"
-  },
-  {
     "name": "DefaultIterableDiffer"
   },
   {
@@ -25,9 +19,6 @@
   },
   {
     "name": "ElementRef"
-  },
-  {
-    "name": "ErrorHandler"
   },
   {
     "name": "InjectFlags"
@@ -75,16 +66,10 @@
     "name": "NgForOf"
   },
   {
-    "name": "NgForOfContext"
-  },
-  {
     "name": "NgIf"
   },
   {
     "name": "NgIfContext"
-  },
-  {
-    "name": "NgModuleRef"
   },
   {
     "name": "NodeInjector"
@@ -102,12 +87,6 @@
     "name": "R3ViewContainerRef"
   },
   {
-    "name": "RecordViewTuple"
-  },
-  {
-    "name": "RendererFactory2"
-  },
-  {
     "name": "RootViewRef"
   },
   {
@@ -117,10 +96,10 @@
     "name": "Sanitizer"
   },
   {
-    "name": "SimpleChange"
+    "name": "SkipSelf"
   },
   {
-    "name": "SkipSelf"
+    "name": "TRACKED_LVIEWS"
   },
   {
     "name": "TemplateRef"
@@ -156,9 +135,6 @@
     "name": "VE_ViewContainerRef"
   },
   {
-    "name": "Version"
-  },
-  {
     "name": "ViewContainerRef"
   },
   {
@@ -172,9 +148,6 @@
   },
   {
     "name": "_CLEAN_PROMISE"
-  },
-  {
-    "name": "_DuplicateItemRecordList"
   },
   {
     "name": "_DuplicateMap"
@@ -235,6 +208,9 @@
   },
   {
     "name": "applyView"
+  },
+  {
+    "name": "applyViewChange"
   },
   {
     "name": "assertTemplate"
@@ -390,6 +366,9 @@
     "name": "getBeforeNodeForView"
   },
   {
+    "name": "getBindingsEnabled"
+  },
+  {
     "name": "getClosureSafeProperty"
   },
   {
@@ -397,6 +376,9 @@
   },
   {
     "name": "getComponentLViewByIndex"
+  },
+  {
+    "name": "getComponentViewByInstance"
   },
   {
     "name": "getConstant"
@@ -421,6 +403,9 @@
   },
   {
     "name": "getLView"
+  },
+  {
+    "name": "getLViewById"
   },
   {
     "name": "getLViewParent"
@@ -454,6 +439,9 @@
   },
   {
     "name": "getOrCreateTNode"
+  },
+  {
+    "name": "getOrCreateTViewCleanup"
   },
   {
     "name": "getOrCreateViewRefs"
@@ -490,6 +478,9 @@
   },
   {
     "name": "getTNode"
+  },
+  {
+    "name": "getTNodeFromLView"
   },
   {
     "name": "getTStylingRangeNext"
@@ -603,6 +594,9 @@
     "name": "isStylingValuePresent"
   },
   {
+    "name": "isTemplateNode"
+  },
+  {
     "name": "keyValueArrayGet"
   },
   {
@@ -625,6 +619,9 @@
   },
   {
     "name": "lookupTokenUsingModuleInjector"
+  },
+  {
+    "name": "lookupTokenUsingNodeInjector"
   },
   {
     "name": "makeParamDecorator"
@@ -813,6 +810,9 @@
     "name": "trackByIdentity"
   },
   {
+    "name": "uniqueIdCounter"
+  },
+  {
     "name": "unwrapRNode"
   },
   {
@@ -871,6 +871,9 @@
   },
   {
     "name": "ɵɵreference"
+  },
+  {
+    "name": "ɵɵresetView"
   },
   {
     "name": "ɵɵrestoreView"

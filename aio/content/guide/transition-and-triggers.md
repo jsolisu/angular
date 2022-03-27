@@ -7,7 +7,7 @@ This chapter also explores multiple animation triggers, animation callbacks, and
 
 ## Predefined states and wildcard matching
 
-In Angular, transition states can be defined explicitly through the `state()` function, or using the predefined `*` (wildcard) and `void` states.
+In Angular, transition states can be defined explicitly through the <code>[state](api/animations/state)()</code> function, or using the predefined `*` (wildcard) and `void` states.
 
 ### Wildcard state
 
@@ -75,12 +75,6 @@ Combine wildcard and void states in a transition to trigger animations that ente
 
 This section shows how to animate elements entering or leaving a page.
 
-<div class="alert is-helpful">
-
-**Note:** For this example, an element entering or leaving a view is equivalent to being inserted or removed from the DOM.
-
-</div>
-
 Add a new behavior:
 
 * When you add a hero to the list of heroes, it appears to fly onto the page from the left.
@@ -109,6 +103,12 @@ So, use the aliases `:enter` and `:leave` to target HTML elements that are inser
 
 The `:enter` transition runs when any `*ngIf` or `*ngFor` views are placed on the page, and `:leave` runs when those views are removed from the page.
 
+<div class="alert is-important">
+
+  **Note:** Entering/leaving behaviors can sometime be confusing. As a rule of thumb consider that any element being added to the DOM by Angular passes via the `:enter` transition, but only elements being directly removed from the DOM by Angular pass via the `:leave` transition (e.g. an element's view is removed from the DOM because its parent is being removed from the DOM or the app's route has changed, then the element will not pass via the `:leave` transition).
+
+</div>
+
 This example has a special trigger for the enter and leave animation called `myInsertRemoveTrigger`. The HTML template contains the following code.
 
 <code-example path="animations/src/app/insert-remove.component.html" header="src/app/insert-remove.component.html" region="insert-remove" language="typescript">
@@ -119,7 +119,7 @@ In the component file, the `:enter` transition sets an initial opacity of 0, and
 <code-example path="animations/src/app/insert-remove.component.ts" header="src/app/insert-remove.component.ts" region="enter-leave-trigger" language="typescript">
 </code-example>
 
-Note that this example doesn't need to use `state()`.
+Note that this example doesn't need to use <code>[state](api/animations/state)()</code>.
 
 ## :increment and :decrement in transitions
 

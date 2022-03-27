@@ -8,12 +8,15 @@
 
 import {Directive, EventEmitter, forwardRef, Inject, Input, OnChanges, OnDestroy, Optional, Output, Self, SimpleChanges} from '@angular/core';
 
-import {FormArray, FormControl, FormGroup} from '../../model';
+import {FormArray} from '../../model/form_array';
+import {FormControl, isFormControl} from '../../model/form_control';
+import {FormGroup} from '../../model/form_group';
+import {removeListItem} from '../../util';
 import {NG_ASYNC_VALIDATORS, NG_VALIDATORS} from '../../validators';
 import {ControlContainer} from '../control_container';
 import {Form} from '../form_interface';
 import {missingFormException} from '../reactive_errors';
-import {cleanUpControl, cleanUpFormContainer, cleanUpValidators, removeListItem, setUpControl, setUpFormContainer, setUpValidators, syncPendingControls} from '../shared';
+import {cleanUpControl, cleanUpFormContainer, cleanUpValidators, setUpControl, setUpFormContainer, setUpValidators, syncPendingControls} from '../shared';
 import {AsyncValidator, AsyncValidatorFn, Validator, ValidatorFn} from '../validators';
 
 import {FormControlName} from './form_control_name';
@@ -307,7 +310,7 @@ export class FormGroupDirective extends ControlContainer implements Form, OnChan
         // Note: we don't need to clear the list of directives (`this.directives`) here, it would be
         // taken care of in the `removeControl` method invoked when corresponding `formControlName`
         // directive instance is being removed (invoked from `FormControlName.ngOnDestroy`).
-        if (newCtrl instanceof FormControl) {
+        if (isFormControl(newCtrl)) {
           setUpControl(newCtrl, dir);
           (dir as {control: FormControl}).control = newCtrl;
         }

@@ -457,7 +457,6 @@ describe('Integration', () => {
 
       @NgModule({
         declarations: [Parent, NamedOutletHost, Child1, Child2, Child3],
-        entryComponents: [Parent, NamedOutletHost, Child1, Child2, Child3],
         imports: [RouterModule]
       })
       class TestModule {
@@ -642,7 +641,6 @@ describe('Integration', () => {
 
        @NgModule({
          declarations: [OnPushOutlet, NeedCdCmp],
-         entryComponents: [OnPushOutlet, NeedCdCmp],
          imports: [RouterModule],
        })
        class TestModule {
@@ -749,7 +747,7 @@ describe('Integration', () => {
          }
        }
 
-       @NgModule({declarations: [RecordLocationCmp], entryComponents: [RecordLocationCmp]})
+       @NgModule({declarations: [RecordLocationCmp]})
        class TestModule {
        }
 
@@ -1205,26 +1203,6 @@ describe('Integration', () => {
         ]
       });
     });
-
-    it('should ignore the duplicate resulting from a location sync', fakeAsync(() => {
-         const router = TestBed.inject(Router);
-         const fixture = createRoot(router, RootCmp);
-         const location = TestBed.inject(Location) as SpyLocation;
-         router.resetConfig([{path: 'simple', component: SimpleCmp, canActivate: ['in1Second']}]);
-
-         const recordedEvents: any[] = [];
-         router.events.forEach(e => onlyNavigationStartAndEnd(e) && recordedEvents.push(e));
-
-         // setTimeout used so this navigation resolves at the same time as the one that results
-         // from the location PopStateEvent (see Router#setUpLocationChangeListener).
-         setTimeout(() => {
-           router.navigateByUrl('/simple');
-         }, 0);
-         location.simulateUrlPop('/simple');
-         tick(1000);
-         advance(fixture);
-         expectEvents(recordedEvents, [[NavigationStart, '/simple'], [NavigationEnd, '/simple']]);
-       }));
 
     it('should reset location if a navigation by location is successful', fakeAsync(() => {
          const router = TestBed.inject(Router);
@@ -2334,6 +2312,20 @@ describe('Integration', () => {
            expect(log).toEqual(['resolver2', 'resolver1']);
          })));
     });
+
+    it('can resolve symbol keys', fakeAsync(() => {
+         const router = TestBed.inject(Router);
+         const fixture = createRoot(router, RootCmp);
+         const symbolKey = Symbol('key');
+
+         router.resetConfig(
+             [{path: 'simple', component: SimpleCmp, resolve: {[symbolKey]: 'resolveFour'}}]);
+
+         router.navigateByUrl('/simple');
+         advance(fixture);
+
+         expect(router.routerState.root.snapshot.firstChild!.data[symbolKey]).toEqual(4);
+       }));
   });
 
   describe('router links', () => {
@@ -4283,10 +4275,6 @@ describe('Integration', () => {
         return of(delayMs).pipe(delay(delayMs), mapTo(true));
       }
 
-      @NgModule({imports: [RouterModule.forChild([{path: '', component: BlankCmp}])]})
-      class LoadedModule {
-      }
-
       let log: string[];
 
       beforeEach(() => {
@@ -4338,10 +4326,14 @@ describe('Integration', () => {
            const router = TestBed.inject(Router);
 
            router.resetConfig([
-             {path: 'lazy', canLoad: ['guard1'], loadChildren: () => of(LoadedModule)},
+             {path: 'lazy', canLoad: ['guard1'], loadChildren: () => of(ModuleWithBlankCmpAsRoute)},
              {path: 'redirected', component: SimpleCmp},
              // canLoad should not run for this route because 'lazy' activates first
-             {path: '', canLoad: ['returnFalseAndNavigate'], loadChildren: () => of(LoadedModule)},
+             {
+               path: '',
+               canLoad: ['returnFalseAndNavigate'],
+               loadChildren: () => of(ModuleWithBlankCmpAsRoute)
+             },
            ]);
 
            router.navigateByUrl('/lazy');
@@ -4351,8 +4343,11 @@ describe('Integration', () => {
          }));
 
       it('should execute canLoad guards', fakeAsync(inject([Router], (router: Router) => {
-           router.resetConfig(
-               [{path: 'lazy', canLoad: ['guard1', 'guard2'], loadChildren: () => LoadedModule}]);
+           router.resetConfig([{
+             path: 'lazy',
+             canLoad: ['guard1', 'guard2'],
+             loadChildren: () => ModuleWithBlankCmpAsRoute
+           }]);
 
            router.navigateByUrl('/lazy');
            tick(5);
@@ -4367,7 +4362,7 @@ describe('Integration', () => {
              {
                path: 'lazy',
                canLoad: ['returnUrlTree', 'guard1', 'guard2'],
-               loadChildren: () => LoadedModule
+               loadChildren: () => ModuleWithBlankCmpAsRoute
              },
              {path: 'redirected', component: SimpleCmp}
            ]);
@@ -4383,7 +4378,11 @@ describe('Integration', () => {
       it('should redirect with UrlTree if UrlTree is lower priority',
          fakeAsync(inject([Router, Location], (router: Router, location: Location) => {
            router.resetConfig([
-             {path: 'lazy', canLoad: ['guard1', 'returnUrlTree'], loadChildren: () => LoadedModule},
+             {
+               path: 'lazy',
+               canLoad: ['guard1', 'returnUrlTree'],
+               loadChildren: () => ModuleWithBlankCmpAsRoute
+             },
              {path: 'redirected', component: SimpleCmp}
            ]);
 
@@ -5223,11 +5222,7 @@ describe('Integration', () => {
       class LoadedModule {
       }
 
-      @NgModule({
-        declarations: [EagerParentComponent],
-        entryComponents: [EagerParentComponent],
-        imports: [RouterModule]
-      })
+      @NgModule({declarations: [EagerParentComponent], imports: [RouterModule]})
       class TestModule {
       }
 
@@ -6289,6 +6284,10 @@ class CollectParamsCmp {
 class BlankCmp {
 }
 
+@NgModule({imports: [RouterModule.forChild([{path: '', component: BlankCmp}])]})
+class ModuleWithBlankCmpAsRoute {
+}
+
 @Component({
   selector: 'team-cmp',
   template: `team {{id | async}} ` +
@@ -6475,37 +6474,6 @@ class LazyComponent {
 
 @NgModule({
   imports: [RouterTestingModule, CommonModule],
-  entryComponents: [
-    BlankCmp,
-    SimpleCmp,
-    TwoOutletsCmp,
-    TeamCmp,
-    UserCmp,
-    StringLinkCmp,
-    DummyLinkCmp,
-    AbsoluteLinkCmp,
-    AbsoluteSimpleLinkCmp,
-    RelativeLinkCmp,
-    DummyLinkWithParentCmp,
-    LinkWithQueryParamsAndFragment,
-    DivLinkWithState,
-    LinkWithState,
-    CollectParamsCmp,
-    QueryParamsAndFragmentCmp,
-    StringLinkButtonCmp,
-    WrapperCmp,
-    OutletInNgIf,
-    ComponentRecordingRoutePathAndUrl,
-    RouteCmp,
-    RootCmp,
-    RelativeLinkInIfCmp,
-    RootCmpWithTwoOutlets,
-    RootCmpWithNamedOutlet,
-    EmptyQueryParamsCmp,
-    ThrowingCmp,
-    ConditionalThrowingCmp,
-  ],
-
 
   exports: [
     BlankCmp,

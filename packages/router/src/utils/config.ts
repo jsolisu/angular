@@ -7,7 +7,7 @@
  */
 
 import {EmptyOutletComponent} from '../components/empty_outlet';
-import {Route, Routes} from '../config';
+import {Route, Routes} from '../models';
 import {PRIMARY_OUTLET} from '../shared';
 
 export function validateConfig(config: Routes, parentPath: string = ''): void {
@@ -85,10 +85,6 @@ function validateNode(route: Route, fullPath: string): void {
           `The default value of 'pathMatch' is 'prefix', but often the intent is to use 'full'.`;
       throw new Error(`Invalid configuration of route '{path: "${fullPath}", redirectTo: "${
           route.redirectTo}"}': please provide 'pathMatch'. ${exp}`);
-    }
-    if (route.pathMatch !== void 0 && route.pathMatch !== 'full' && route.pathMatch !== 'prefix') {
-      throw new Error(`Invalid configuration of route '${
-          fullPath}': pathMatch can only be set to 'prefix' or 'full'`);
     }
   }
   if (route.children) {

@@ -7,7 +7,6 @@
  */
 
 import {ChangeDetectorRef as ViewEngine_ChangeDetectorRef} from '../change_detection/change_detector_ref';
-import {InjectionToken} from '../di/injection_token';
 import {Injector} from '../di/injector';
 import {InjectFlags} from '../di/interface/injector';
 import {ProviderToken} from '../di/provider_token';
@@ -20,6 +19,7 @@ import {RendererFactory2} from '../render/api';
 import {Sanitizer} from '../sanitization/sanitizer';
 import {VERSION} from '../version';
 import {NOT_FOUND_CHECK_ONLY_ELEMENT_INJECTOR} from '../view/provider_flags';
+
 import {assertComponentType} from './assert';
 import {createRootComponent, createRootComponentView, createRootContext, LifecycleHooksFeature} from './component';
 import {getComponentDef} from './definition';
@@ -35,7 +35,6 @@ import {createElementNode, writeDirectClass} from './node_manipulation';
 import {extractAttrsAndClassesFromSelector, stringifyCSSSelectorList} from './node_selector_matcher';
 import {enterView, leaveView} from './state';
 import {setUpAttributes} from './util/attrs_utils';
-import {defaultScheduler} from './util/misc_utils';
 import {getTNode} from './util/view_utils';
 import {RootViewRef, ViewRef} from './view_ref';
 
@@ -71,32 +70,27 @@ function getNamespace(elementName: string): string|null {
 }
 
 /**
- * A change detection scheduler token for {@link RootContext}. This token is the default value used
- * for the default `RootContext` found in the {@link ROOT_CONTEXT} token.
+ * Injector that looks up a value using a specific injector, before falling back to the module
+ * injector. Used primarily when creating components or embedded views dynamically.
  */
-export const SCHEDULER = new InjectionToken<((fn: () => void) => void)>('SCHEDULER_TOKEN', {
-  providedIn: 'root',
-  factory: () => defaultScheduler,
-});
+class ChainedInjector implements Injector {
+  constructor(private injector: Injector, private parentInjector: Injector) {}
 
-function createChainedInjector(rootViewInjector: Injector, moduleInjector: Injector): Injector {
-  return {
-    get: <T>(token: ProviderToken<T>, notFoundValue?: T, flags?: InjectFlags): T => {
-      const value = rootViewInjector.get(token, NOT_FOUND_CHECK_ONLY_ELEMENT_INJECTOR as T, flags);
+  get<T>(token: ProviderToken<T>, notFoundValue?: T, flags?: InjectFlags): T {
+    const value = this.injector.get(token, NOT_FOUND_CHECK_ONLY_ELEMENT_INJECTOR as T, flags);
 
-      if (value !== NOT_FOUND_CHECK_ONLY_ELEMENT_INJECTOR ||
-          notFoundValue === NOT_FOUND_CHECK_ONLY_ELEMENT_INJECTOR) {
-        // Return the value from the root element injector when
-        // - it provides it
-        //   (value !== NOT_FOUND_CHECK_ONLY_ELEMENT_INJECTOR)
-        // - the module injector should not be checked
-        //   (notFoundValue === NOT_FOUND_CHECK_ONLY_ELEMENT_INJECTOR)
-        return value;
-      }
-
-      return moduleInjector.get(token, notFoundValue, flags);
+    if (value !== NOT_FOUND_CHECK_ONLY_ELEMENT_INJECTOR ||
+        notFoundValue === NOT_FOUND_CHECK_ONLY_ELEMENT_INJECTOR) {
+      // Return the value from the root element injector when
+      // - it provides it
+      //   (value !== NOT_FOUND_CHECK_ONLY_ELEMENT_INJECTOR)
+      // - the module injector should not be checked
+      //   (notFoundValue === NOT_FOUND_CHECK_ONLY_ELEMENT_INJECTOR)
+      return value;
     }
-  };
+
+    return this.parentInjector.get(token, notFoundValue, flags);
+  }
 }
 
 /**
@@ -135,11 +129,11 @@ export class ComponentFactory<T> extends viewEngine_ComponentFactory<T> {
       ngModule?: viewEngine_NgModuleRef<any>|undefined): viewEngine_ComponentRef<T> {
     ngModule = ngModule || this.ngModule;
 
-    const rootViewInjector =
-        ngModule ? createChainedInjector(injector, ngModule.injector) : injector;
+    const rootViewInjector = ngModule ? new ChainedInjector(injector, ngModule.injector) : injector;
 
     const rendererFactory =
-        rootViewInjector.get(RendererFactory2, domRendererFactory3) as RendererFactory3;
+        rootViewInjector.get(RendererFactory2, domRendererFactory3 as RendererFactory2) as
+        RendererFactory3;
     const sanitizer = rootViewInjector.get(Sanitizer, null);
 
     const hostRenderer = rendererFactory.createRenderer(null, this.componentDef);
@@ -160,7 +154,7 @@ export class ComponentFactory<T> extends viewEngine_ComponentFactory<T> {
     const rootTView = createTView(TViewType.Root, null, null, 1, 0, null, null, null, null, null);
     const rootLView = createLView(
         null, rootTView, rootContext, rootFlags, null, null, rendererFactory, hostRenderer,
-        sanitizer, rootViewInjector);
+        sanitizer, rootViewInjector, null);
 
     // rootView is the parent when bootstrapping
     // TODO(misko): it looks like we are entering view here but we don't really need to as

@@ -6,10 +6,8 @@
  * found in the LICENSE file at https://angular.io/license
  */
 import {CommonModule} from '@angular/common';
-import {Component, Directive, HostBinding, InjectionToken, ViewChild} from '@angular/core';
-import {ChangeDetectionStrategy} from '@angular/core/src/change_detection';
+import {ChangeDetectionStrategy, Component, Directive, HostBinding, InjectionToken, Input, Output, ViewChild, ViewEncapsulation} from '@angular/core';
 import {EventEmitter} from '@angular/core/src/event_emitter';
-import {Input, Output, ViewEncapsulation} from '@angular/core/src/metadata';
 import {isLView} from '@angular/core/src/render3/interfaces/type_checks';
 import {CONTEXT} from '@angular/core/src/render3/interfaces/view';
 import {ComponentFixture, TestBed} from '@angular/core/testing';
@@ -67,16 +65,19 @@ describe('discovery utils', () => {
   @Component({
     selector: 'my-app',
     template: `
-      <span (click)="log($event)">{{text}}</span>
+      <span (click)="log($event)" *ngIf="spanVisible">{{text}}</span>
       <div dirA #div #foo="dirA"></div>
       <child></child>
       <child dirA #child></child>
-      <child dirA *ngIf="true"></child>
+      <child dirA *ngIf="conditionalChildVisible"></child>
       <ng-container><p></p></ng-container>
+      <b *ngIf="visible">Bold</b>
     `
   })
   class MyApp {
     text: string = 'INIT';
+    spanVisible = true;
+    conditionalChildVisible = true;
     @Input('a') b = 2;
     @Output('c') d = new EventEmitter();
     constructor() {
@@ -102,6 +103,15 @@ describe('discovery utils', () => {
       expect(getComponent<MyApp>(fixture.nativeElement)).toEqual(myApp);
       expect(getComponent<Child>(child[0])).toEqual(childComponent[0]);
       expect(getComponent<Child>(child[1])).toEqual(childComponent[1]);
+    });
+    it('should not throw when called on a destroyed node', () => {
+      expect(getComponent(span[0])).toEqual(null);
+      expect(getComponent<Child>(child[2])).toEqual(childComponent[2]);
+      fixture.componentInstance.spanVisible = false;
+      fixture.componentInstance.conditionalChildVisible = false;
+      fixture.detectChanges();
+      expect(getComponent(span[0])).toEqual(null);
+      expect(getComponent<Child>(child[2])).toEqual(childComponent[2]);
     });
   });
 
@@ -129,6 +139,12 @@ describe('discovery utils', () => {
       expect(getContext<{$implicit: boolean}>(child[2])!.$implicit).toEqual(true);
       expect(getContext<Child>(p[0])).toEqual(childComponent[0]);
     });
+    it('should return null for destroyed node', () => {
+      expect(getContext(span[0])).toBeTruthy();
+      fixture.componentInstance.spanVisible = false;
+      fixture.detectChanges();
+      expect(getContext(span[0])).toBeNull();
+    });
   });
 
   describe('getHostElement', () => {
@@ -143,6 +159,12 @@ describe('discovery utils', () => {
     });
     it('should throw on unknown target', () => {
       expect(() => getHostElement({})).toThrowError();  //
+    });
+    it('should return element for destroyed node', () => {
+      expect(getHostElement(span[0])).toEqual(span[0]);
+      fixture.componentInstance.spanVisible = false;
+      fixture.detectChanges();
+      expect(getHostElement(span[0])).toEqual(span[0]);
     });
   });
 
@@ -161,6 +183,12 @@ describe('discovery utils', () => {
       expect(getInjector(dirA[0]).get(String)).toEqual('Module');
       expect(getInjector(dirA[1]).get(String)).toEqual('Child');
     });
+    it('should retrieve injector from destroyed node', () => {
+      expect(getInjector(span[0])).toBeTruthy();
+      fixture.componentInstance.spanVisible = false;
+      fixture.detectChanges();
+      expect(getInjector(span[0])).toBeTruthy();
+    });
   });
 
   describe('getDirectives', () => {
@@ -172,6 +200,12 @@ describe('discovery utils', () => {
     it('should return just directives', () => {
       expect(getDirectives(div[0])).toEqual([dirA[0]]);
       expect(getDirectives(child[1])).toEqual([dirA[1]]);
+    });
+    it('should return empty array for destroyed node', () => {
+      expect(getDirectives(span[0])).toEqual([]);
+      fixture.componentInstance.spanVisible = false;
+      fixture.detectChanges();
+      expect(getDirectives(span[0])).toEqual([]);
     });
   });
 
@@ -200,6 +234,12 @@ describe('discovery utils', () => {
       expect(getOwningComponent<MyApp>(dirA[0])).toEqual(myApp);
       expect(getOwningComponent<MyApp>(dirA[1])).toEqual(myApp);
     });
+    it('should return null for destroyed node', () => {
+      expect(getOwningComponent<MyApp>(span[0])).toEqual(myApp);
+      fixture.componentInstance.spanVisible = false;
+      fixture.detectChanges();
+      expect(getOwningComponent<MyApp>(span[0])).toEqual(null);
+    });
   });
 
   describe('getLocalRefs', () => {
@@ -217,6 +257,13 @@ describe('discovery utils', () => {
       expect(getLocalRefs(child[1])).toEqual({child: childComponent[1]});
       expect(getLocalRefs(dirA[1])).toEqual({child: childComponent[1]});
     });
+
+    it('should retrieve from a destroyed node', () => {
+      expect(getLocalRefs(span[0])).toEqual({});
+      fixture.componentInstance.spanVisible = false;
+      fixture.detectChanges();
+      expect(getLocalRefs(span[0])).toEqual({});
+    });
   });
 
   describe('getRootComponents', () => {
@@ -231,6 +278,12 @@ describe('discovery utils', () => {
       expect(getRootComponents(child[1])).toEqual(rootComponents);
       expect(getRootComponents(div[0])).toEqual(rootComponents);
       expect(getRootComponents(p[0])).toEqual(rootComponents);
+    });
+    it('should return an empty array for a destroyed node', () => {
+      expect(getRootComponents(span[0])).toEqual([myApp]);
+      fixture.componentInstance.spanVisible = false;
+      fixture.detectChanges();
+      expect(getRootComponents(span[0])).toEqual([]);
     });
   });
 
@@ -249,6 +302,12 @@ describe('discovery utils', () => {
       listeners[0].callback('CLICKED');
       expect(log).toEqual(['CLICKED']);
     });
+    it('should return no listeners for destroyed node', () => {
+      expect(getListeners(span[0]).length).toEqual(1);
+      fixture.componentInstance.spanVisible = false;
+      fixture.detectChanges();
+      expect(getListeners(span[0]).length).toEqual(0);
+    });
   });
 
   describe('getInjectionTokens', () => {
@@ -256,6 +315,12 @@ describe('discovery utils', () => {
       expect(getInjectionTokens(fixture.nativeElement)).toEqual([MyApp]);
       expect(getInjectionTokens(child[0])).toEqual([String, Child]);
       expect(getInjectionTokens(child[1])).toEqual([String, Child, DirectiveA]);
+    });
+    it('should retrieve tokens from destroyed node', () => {
+      expect(getInjectionTokens(span[0])).toEqual([]);
+      fixture.componentInstance.spanVisible = false;
+      fixture.detectChanges();
+      expect(getInjectionTokens(span[0])).toEqual([]);
     });
   });
 

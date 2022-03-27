@@ -8,8 +8,8 @@
 
 import {CommonModule, DOCUMENT} from '@angular/common';
 import {computeMsgId} from '@angular/compiler';
-import {Compiler, Component, ComponentFactoryResolver, Directive, DoCheck, ElementRef, EmbeddedViewRef, ErrorHandler, InjectionToken, Injector, NgModule, NgModuleRef, NO_ERRORS_SCHEMA, OnDestroy, OnInit, Pipe, PipeTransform, QueryList, RendererFactory2, RendererType2, Sanitizer, TemplateRef, ViewChild, ViewChildren, ViewContainerRef, ɵsetDocument} from '@angular/core';
-import {Input} from '@angular/core/src/metadata';
+import {Compiler, Component, ComponentFactoryResolver, Directive, DoCheck, ElementRef, EmbeddedViewRef, ErrorHandler, InjectionToken, Injector, Input, NgModule, NgModuleRef, NO_ERRORS_SCHEMA, OnDestroy, OnInit, Pipe, PipeTransform, QueryList, Renderer2, RendererFactory2, RendererType2, Sanitizer, TemplateRef, ViewChild, ViewChildren, ViewContainerRef, ɵsetDocument} from '@angular/core';
+import {isProceduralRenderer} from '@angular/core/src/render3/interfaces/renderer';
 import {ngDevModeResetPerfCounters} from '@angular/core/src/util/ng_dev_mode';
 import {ComponentFixture, TestBed, TestComponentRenderer} from '@angular/core/testing';
 import {clearTranslations, loadTranslations} from '@angular/localize';
@@ -24,6 +24,15 @@ describe('ViewContainerRef', () => {
   function getElementHtml(element: Element) {
     return element.innerHTML.replace(/<!--(\W|\w)*?-->/g, '')
         .replace(/\sng-reflect-\S*="[^"]*"/g, '');
+  }
+
+  /**
+   * Helper method to retrieve the text content of the given element. This method also strips all
+   * leading and trailing whitespace and removes all newlines. This makes element content
+   * comparisons easier and less verbose.
+   */
+  function getElementText(element: Element): string {
+    return element.textContent!.trim().replace(/\r?\n/g, ' ');
   }
 
   beforeEach(() => {
@@ -74,10 +83,6 @@ describe('ViewContainerRef', () => {
       class HelloComp {
       }
 
-      @NgModule({entryComponents: [HelloComp], declarations: [HelloComp]})
-      class HelloCompModule {
-      }
-
       @Component({
         template: `
           <ng-container vcref></ng-container>
@@ -87,8 +92,7 @@ describe('ViewContainerRef', () => {
         @ViewChild(VCRefDirective, {static: true}) vcRefDir!: VCRefDirective;
       }
 
-      TestBed.configureTestingModule(
-          {declarations: [TestComp, VCRefDirective], imports: [HelloCompModule]});
+      TestBed.configureTestingModule({declarations: [TestComp, VCRefDirective, HelloComp]});
       const fixture = TestBed.createComponent(TestComp);
       const {vcref, cfr, elementRef} = fixture.componentInstance.vcRefDir;
       fixture.detectChanges();
@@ -120,10 +124,6 @@ describe('ViewContainerRef', () => {
       class HelloComp {
       }
 
-      @NgModule({entryComponents: [HelloComp], declarations: [HelloComp]})
-      class HelloCompModule {
-      }
-
       @Component({
         template: `
           <ng-container #container></ng-container>
@@ -140,7 +140,7 @@ describe('ViewContainerRef', () => {
         }
       }
 
-      TestBed.configureTestingModule({declarations: [TestComp], imports: [HelloCompModule]});
+      TestBed.configureTestingModule({declarations: [TestComp, HelloComp]});
       const fixture = TestBed.createComponent(TestComp);
       fixture.detectChanges();
       expect(fixture.debugElement.nativeElement.innerHTML).not.toContain('Hello');
@@ -165,17 +165,6 @@ describe('ViewContainerRef', () => {
             template: '<math><matrix></matrix></math>',
           })
           class MathMLComp {
-          }
-
-          @NgModule({
-            entryComponents: [SvgComp, MathMLComp],
-            declarations: [SvgComp, MathMLComp],
-            // View Engine doesn't have MathML tags listed in `DomElementSchemaRegistry`, thus
-            // throwing "unknown element" error (':math:matrix' is not a known element). Ignore
-            // these errors by adding `NO_ERRORS_SCHEMA` to this NgModule.
-            schemas: [NO_ERRORS_SCHEMA],
-          })
-          class RootModule {
           }
 
           @Component({
@@ -206,14 +195,9 @@ describe('ViewContainerRef', () => {
           }
 
           TestBed.configureTestingModule({
-            declarations: [TestComp],
-            imports: [RootModule],
+            declarations: [TestComp, SvgComp, MathMLComp],
             providers: [
               {provide: DOCUMENT, useFactory: _document, deps: []},
-              // TODO(FW-811): switch back to default server renderer (i.e. remove the line below)
-              // once it starts to support Ivy namespace format (URIs) correctly. For now, use
-              // `DomRenderer` that supports Ivy namespace format.
-              {provide: RendererFactory2, useClass: DomRendererFactory2}
             ],
           });
           const fixture = TestBed.createComponent(TestComp);
@@ -243,10 +227,6 @@ describe('ViewContainerRef', () => {
       class HelloComp {
       }
 
-      @NgModule({entryComponents: [HelloComp], declarations: [HelloComp]})
-      class HelloCompModule {
-      }
-
       @Component({
         template: `
           <div id="factory" attr-a="a-original" class="class-original"></div>
@@ -271,7 +251,7 @@ describe('ViewContainerRef', () => {
         }
       }
 
-      TestBed.configureTestingModule({declarations: [TestComp], imports: [HelloCompModule]});
+      TestBed.configureTestingModule({declarations: [TestComp, HelloComp]});
       const fixture = TestBed.createComponent(TestComp);
       fixture.detectChanges();
       fixture.componentInstance.createComponentViaVCRef();
@@ -1144,14 +1124,8 @@ describe('ViewContainerRef', () => {
         }
       }
 
-      @NgModule({entryComponents: [EmbeddedComponent], declarations: [EmbeddedComponent]})
-      class EmbeddedComponentModule {
-      }
-
-      TestBed.configureTestingModule({
-        declarations: [EmbeddedViewInsertionComp, VCRefDirective],
-        imports: [EmbeddedComponentModule]
-      });
+      TestBed.configureTestingModule(
+          {declarations: [EmbeddedViewInsertionComp, VCRefDirective, EmbeddedComponent]});
       const fixture = TestBed.createComponent(EmbeddedViewInsertionComp);
       const vcRefDir =
           fixture.debugElement.query(By.directive(VCRefDirective)).injector.get(VCRefDirective);
@@ -1196,14 +1170,8 @@ describe('ViewContainerRef', () => {
         }
       }
 
-      @NgModule({entryComponents: [EmbeddedComponent], declarations: [EmbeddedComponent]})
-      class EmbeddedComponentModule {
-      }
-
-      TestBed.configureTestingModule({
-        declarations: [EmbeddedViewInsertionComp, VCRefDirective],
-        imports: [EmbeddedComponentModule]
-      });
+      TestBed.configureTestingModule(
+          {declarations: [EmbeddedViewInsertionComp, VCRefDirective, EmbeddedComponent]});
 
       @NgModule({
         providers: [
@@ -1260,8 +1228,7 @@ describe('ViewContainerRef', () => {
 
     it('should support projectable nodes', () => {
       TestBed.configureTestingModule({
-        declarations: [EmbeddedViewInsertionComp, VCRefDirective],
-        imports: [EmbeddedComponentWithNgZoneModule]
+        declarations: [EmbeddedViewInsertionComp, VCRefDirective, EmbeddedComponentWithNgContent],
       });
       const fixture = TestBed.createComponent(EmbeddedViewInsertionComp);
       const vcRefDir =
@@ -1296,17 +1263,10 @@ describe('ViewContainerRef', () => {
       class Reprojector {
       }
 
-      @NgModule({
-        exports: [Reprojector, EmbeddedComponentWithNgContent],
-        declarations: [Reprojector, EmbeddedComponentWithNgContent],
-        entryComponents: [Reprojector]
-      })
-      class ReprojectorModule {
-      }
-
       TestBed.configureTestingModule({
-        declarations: [EmbeddedViewInsertionComp, VCRefDirective],
-        imports: [ReprojectorModule]
+        declarations: [
+          EmbeddedViewInsertionComp, VCRefDirective, Reprojector, EmbeddedComponentWithNgContent
+        ],
       });
       const fixture = TestBed.createComponent(EmbeddedViewInsertionComp);
       const vcRefDir =
@@ -1332,8 +1292,7 @@ describe('ViewContainerRef', () => {
 
     it('should support many projectable nodes with many slots', () => {
       TestBed.configureTestingModule({
-        declarations: [EmbeddedViewInsertionComp, VCRefDirective],
-        imports: [EmbeddedComponentWithNgZoneModule]
+        declarations: [EmbeddedViewInsertionComp, VCRefDirective, EmbeddedComponentWithNgContent]
       });
       const fixture = TestBed.createComponent(EmbeddedViewInsertionComp);
       const vcRefDir =
@@ -1385,12 +1344,7 @@ describe('ViewContainerRef', () => {
       class DynamicComponent {
       }
 
-      @NgModule({declarations: [DynamicComponent], entryComponents: [DynamicComponent]})
-      class DeclaresDynamicComponent {
-      }
-
-      TestBed.configureTestingModule(
-          {imports: [DeclaresDynamicComponent], declarations: [TestComp]});
+      TestBed.configureTestingModule({declarations: [DynamicComponent]});
       const fixture = TestBed.createComponent(TestComp);
 
       // Note: it's important that we **don't** call `fixture.detectChanges` between here and
@@ -1458,7 +1412,7 @@ describe('ViewContainerRef', () => {
         `,
       })
       class ChildB {
-        constructor(private injector: Injector) {}
+        constructor(private injector: Injector, public renderer: Renderer2) {}
         get tokenA() {
           return this.injector.get(TOKEN_A);
         }
@@ -1471,19 +1425,19 @@ describe('ViewContainerRef', () => {
         selector: 'app',
         template: '',
         providers: [
-          {provide: TOKEN_B, useValue: '[TokenValueB]'},
+          {provide: TOKEN_B, useValue: '[TokenB - Value]'},
         ]
       })
       class App {
         constructor(
             public viewContainerRef: ViewContainerRef, public ngModuleRef: NgModuleRef<unknown>,
-            public injector: Injector) {}
+            public injector: Injector, public cfr: ComponentFactoryResolver) {}
       }
 
       @NgModule({
         declarations: [App, ChildA, ChildB],
         providers: [
-          {provide: TOKEN_A, useValue: '[TokenValueA]'},
+          {provide: TOKEN_A, useValue: '[TokenA - Value]'},
         ]
       })
       class AppModule {
@@ -1499,6 +1453,48 @@ describe('ViewContainerRef', () => {
       it('should be able to create a component when Type is provided', () => {
         fixture.componentInstance.viewContainerRef.createComponent(ChildA);
         expect(fixture.nativeElement.parentNode.textContent).toContain('[Child Component A]');
+      });
+
+      it('should maintain connection with module injector when custom injector is provided', () => {
+        const comp = fixture.componentInstance;
+        const customInjector = Injector.create({
+          providers: [
+            {provide: TOKEN_B, useValue: '[TokenB - CustomValue]'},
+          ]
+        });
+
+        // Use factory-less way of creating a component.
+        const factorylessChildB =
+            comp.viewContainerRef.createComponent(ChildB, {injector: customInjector});
+        fixture.detectChanges();
+
+        // Custom injector provides only `TOKEN_B`,
+        // so `TOKEN_A` should be retrieved from the module injector.
+        expect(getElementText(fixture.nativeElement.parentNode))
+            .toContain('[TokenA - Value] [TokenB - CustomValue]');
+
+        // Verify that the dynamically-created component uses correct instance of a renderer.
+        // Ivy runtime code switches over to Renderer3 (document) if an instance of the Renderer2 is
+        // not found, which can happen when the module injector subtree is not in the DI tree.
+        // See https://github.com/angular/angular/issues/44897.
+        expect(isProceduralRenderer(factorylessChildB.instance.renderer)).toBe(true);
+
+        // Use factory-based API to compare the output with the factory-less one.
+        const childBFactory = comp.cfr.resolveComponentFactory(ChildB);
+        const factoryBasedChildB = comp.viewContainerRef.createComponent(
+            childBFactory, undefined, customInjector /* injector */);
+        fixture.detectChanges();
+
+        // Custom injector provides only `TOKEN_B`,
+        // so `TOKEN_A` should be retrieved from the module injector
+        expect(getElementText(fixture.nativeElement.parentNode))
+            .toContain('[TokenA - Value] [TokenB - CustomValue]');
+
+        // Verify that the dynamically-created component uses correct instance of a renderer.
+        // Ivy runtime code switches over to Renderer3 (document) if an instance of the Renderer2 is
+        // not found, which can happen when the module injector subtree is not in the DI tree.
+        // See https://github.com/angular/angular/issues/44897.
+        expect(isProceduralRenderer(factoryBasedChildB.instance.renderer)).toBe(true);
       });
 
       it('should throw if class without @Component decorator is used as Component type', () => {
@@ -1532,12 +1528,12 @@ describe('ViewContainerRef', () => {
 
           fixture.detectChanges();
 
-          expect(fixture.nativeElement.parentNode.textContent.trim())
+          expect(getElementText(fixture.nativeElement.parentNode))
               .toContain(
                   '[Child Component B] ' +
                   '[Projectable Node] ' +
-                  '[TokenValueA] ' +
-                  '[TokenValueB] ' +
+                  '[TokenA - Value] ' +
+                  '[TokenB - Value] ' +
                   '[Child Component A]');
         });
       });
@@ -1863,14 +1859,6 @@ describe('ViewContainerRef', () => {
       }
     }
 
-    @NgModule({
-      declarations: [ComponentWithHooks],
-      exports: [ComponentWithHooks],
-      entryComponents: [ComponentWithHooks]
-    })
-    class ComponentWithHooksModule {
-    }
-
     it('should call all hooks in correct order when creating with createEmbeddedView', () => {
       @Component({
         template: `
@@ -1969,7 +1957,7 @@ describe('ViewContainerRef', () => {
       log.length = 0;
 
       TestBed.configureTestingModule(
-          {declarations: [SomeComponent, VCRefDirective], imports: [ComponentWithHooksModule]});
+          {declarations: [SomeComponent, VCRefDirective, ComponentWithHooks]});
       const fixture = TestBed.createComponent(SomeComponent);
       const vcRefDir =
           fixture.debugElement.query(By.directive(VCRefDirective)).injector.get(VCRefDirective);
@@ -2053,12 +2041,8 @@ describe('ViewContainerRef', () => {
         @ViewChild(VCRefDirective, {static: true}) vcRefDir!: VCRefDirective;
       }
 
-      @NgModule({declarations: [HostBindingCmpt], entryComponents: [HostBindingCmpt]})
-      class TestModule {
-      }
-
       TestBed.configureTestingModule(
-          {declarations: [TestComponent, VCRefDirective], imports: [TestModule]});
+          {declarations: [TestComponent, VCRefDirective, HostBindingCmpt]});
       const fixture = TestBed.createComponent(TestComponent);
       const {vcRefDir} = fixture.componentInstance;
 
@@ -2358,15 +2342,9 @@ describe('ViewContainerRef', () => {
         constructor(public vcRef: ViewContainerRef, public cfResolver: ComponentFactoryResolver) {}
       }
 
-      @NgModule(
-          {entryComponents: [DynamicCompWithBindings], declarations: [DynamicCompWithBindings]})
-      class DynamicCompWithBindingsModule {
-      }
-
 
       TestBed.configureTestingModule({
-        declarations: [TestComp],
-        imports: [DynamicCompWithBindingsModule],
+        declarations: [TestComp, DynamicCompWithBindings],
         providers: [TEST_COMPONENT_RENDERER]
       });
       const fixture = TestBed.createComponent(TestComp);
@@ -2405,16 +2383,9 @@ describe('ViewContainerRef', () => {
       class DynamicCompWithChildren {
       }
 
-      @NgModule({
-        entryComponents: [DynamicCompWithChildren],
-        declarations: [DynamicCompWithChildren, Child]
-      })
-      class DynamicCompWithChildrenModule {
-      }
 
       TestBed.configureTestingModule({
-        declarations: [TestComp],
-        imports: [DynamicCompWithChildrenModule],
+        declarations: [TestComp, DynamicCompWithChildren, Child],
         providers: [TEST_COMPONENT_RENDERER]
       });
 
@@ -2478,14 +2449,6 @@ class VCRefDirective {
   template: `<ng-content></ng-content><hr><ng-content></ng-content>`
 })
 class EmbeddedComponentWithNgContent {
-}
-
-@NgModule({
-  exports: [EmbeddedComponentWithNgContent],
-  entryComponents: [EmbeddedComponentWithNgContent],
-  declarations: [EmbeddedComponentWithNgContent],
-})
-class EmbeddedComponentWithNgZoneModule {
 }
 
 @Component({

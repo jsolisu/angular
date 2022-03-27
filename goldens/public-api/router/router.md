@@ -25,6 +25,7 @@ import { OnInit } from '@angular/core';
 import { QueryList } from '@angular/core';
 import { Renderer2 } from '@angular/core';
 import { SimpleChanges } from '@angular/core';
+import { Title } from '@angular/platform-browser';
 import { Type } from '@angular/core';
 import { Version } from '@angular/core';
 import { ViewContainerRef } from '@angular/core';
@@ -165,8 +166,20 @@ export function convertToParamMap(params: Params): ParamMap;
 
 // @public
 export type Data = {
-    [name: string]: any;
+    [key: string | symbol]: any;
 };
+
+// @public
+export class DefaultTitleStrategy extends TitleStrategy {
+    constructor(title: Title);
+    // (undocumented)
+    readonly title: Title;
+    updateTitle(snapshot: RouterStateSnapshot): void;
+    // (undocumented)
+    static ɵfac: i0.ɵɵFactoryDeclaration<DefaultTitleStrategy, never>;
+    // (undocumented)
+    static ɵprov: i0.ɵɵInjectableDeclaration<DefaultTitleStrategy>;
+}
 
 // @public
 export class DefaultUrlSerializer implements UrlSerializer {
@@ -192,6 +205,7 @@ export interface ExtraOptions {
     onSameUrlNavigation?: 'reload' | 'ignore';
     paramsInheritanceStrategy?: 'emptyOnly' | 'always';
     preloadingStrategy?: any;
+    // @deprecated
     relativeLinkResolution?: 'legacy' | 'corrected';
     scrollOffset?: [number, number] | (() => [number, number]);
     scrollPositionRestoration?: 'disabled' | 'enabled' | 'top';
@@ -255,7 +269,7 @@ export interface Navigation {
     extras: NavigationExtras;
     finalUrl?: UrlTree;
     id: number;
-    initialUrl: string | UrlTree;
+    initialUrl: UrlTree;
     previousNavigation: Navigation | null;
     trigger: 'imperative' | 'popstate' | 'hashchange';
 }
@@ -390,7 +404,7 @@ export interface Resolve<T> {
 
 // @public
 export type ResolveData = {
-    [name: string]: any;
+    [key: string | symbol]: any;
 };
 
 // @public
@@ -436,10 +450,11 @@ export interface Route {
     matcher?: UrlMatcher;
     outlet?: string;
     path?: string;
-    pathMatch?: string;
+    pathMatch?: 'prefix' | 'full';
     redirectTo?: string;
     resolve?: ResolveData;
     runGuardsAndResolvers?: RunGuardsAndResolvers;
+    title?: string | Type<Resolve<string>>;
 }
 
 // @public
@@ -486,12 +501,14 @@ export class Router {
     onSameUrlNavigation: 'reload' | 'ignore';
     paramsInheritanceStrategy: 'emptyOnly' | 'always';
     parseUrl(url: string): UrlTree;
+    // @deprecated
     relativeLinkResolution: 'legacy' | 'corrected';
     resetConfig(config: Routes): void;
     routeReuseStrategy: RouteReuseStrategy;
     readonly routerState: RouterState;
     serializeUrl(url: UrlTree): string;
     setUpLocationChangeListener(): void;
+    titleStrategy?: TitleStrategy;
     get url(): string;
     urlHandlingStrategy: UrlHandlingStrategy;
     urlUpdateStrategy: 'deferred' | 'eager';
@@ -739,6 +756,14 @@ export class Scroll {
     readonly routerEvent: NavigationEnd;
     // (undocumented)
     toString(): string;
+}
+
+// @public
+export abstract class TitleStrategy {
+    // (undocumented)
+    buildTitle(snapshot: RouterStateSnapshot): string | undefined;
+    getResolvedTitleForRoute(snapshot: ActivatedRouteSnapshot): any;
+    abstract updateTitle(snapshot: RouterStateSnapshot): void;
 }
 
 // @public

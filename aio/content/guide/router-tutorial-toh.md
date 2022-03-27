@@ -1195,7 +1195,7 @@ First, import the `BrowserAnimationsModule` and add it to the `imports` array:
 <code-example path="router/src/app/app.module.ts" header="src/app/app.module.ts (animations-module)" region="animations-module"></code-example>
 
 Next, add a `data` object to the routes for `HeroListComponent` and `HeroDetailComponent`.
-Transitions are based on `states` and you use the `animation` data from the route to provide a named animation `state` for the transitions.
+Transitions are based on `states` and you use the `animation` data from the route to provide a named animation [`state`](api/animations/state) for the transitions.
 
 <code-example path="router/src/app/heroes/heroes-routing.module.2.ts" header="src/app/heroes/heroes-routing.module.ts (animation data)"></code-example>
 
@@ -1225,8 +1225,8 @@ This example uses a variable of `routerOutlet`.
 
 <code-example path="router/src/app/app.component.2.html" header="src/app/app.component.html (router outlet)"></code-example>
 
-The `@routeAnimation` property is bound to the `getAnimationData()` with the provided `routerOutlet` reference, so the next step is to define that function in the `AppComponent`.
-The `getAnimationData()` function returns the animation property from the `data` provided through the `ActivatedRoute`. The `animation` property matches the `transition` names you used in the `slideInAnimation` defined in `animations.ts`.
+The `@routeAnimation` property is bound to the `getAnimationData()` which returns the animation property from the `data` provided by the primary route. The `animation` property matches the `transition` names you used in the `slideInAnimation` defined in `animations.ts`.
+
 
 <code-example path="router/src/app/app.component.2.ts" header="src/app/app.component.ts (router outlet)" region="function-binding"></code-example>
 
@@ -1921,9 +1921,9 @@ These are all asynchronous operations.
 Accordingly, a routing guard can return an `Observable<boolean>` or a `Promise<boolean>` and the
 router will wait for the observable to resolve to `true` or `false`.
 
-<div class="alert is-critical">
+<div class="alert is-helpful">
 
-**Note:** The observable provided to the `Router` must also complete. If the observable does not complete, the navigation does not continue.
+**Note:** The observable provided to the `Router` automatically completes after retrieving the first value.
 
 </div>
 
@@ -2414,9 +2414,6 @@ Inject the `CrisisService` and `Router` and implement the `resolve()` method.
 That method could return a `Promise`, an `Observable`, or a synchronous return value.
 
 The `CrisisService.getCrisis()` method returns an observable in order to prevent the route from loading until the data is fetched.
-The `Router` guards require an observable to `complete`, which means it has emitted all
-of its values.
-You use the `take` operator with an argument of `1` to ensure that the `Observable` completes after retrieving the first value from the Observable returned by the `getCrisis()` method.
 
 If it doesn't return a valid `Crisis`, then return an empty `Observable`, cancel the previous in-progress navigation to the `CrisisDetailComponent`, and navigate the user back to the `CrisisListComponent`.
 The updated resolver service looks like this:

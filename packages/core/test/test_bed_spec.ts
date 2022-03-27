@@ -11,6 +11,7 @@ import {getTestBed, TestBed} from '@angular/core/testing/src/test_bed';
 import {By} from '@angular/platform-browser';
 import {expect} from '@angular/platform-browser/testing/src/matchers';
 
+import {getNgModuleById} from '../public_api';
 import {TestBedRender3} from '../testing/src/r3_test_bed';
 import {TEARDOWN_TESTING_MODULE_ON_DESTROY_DEFAULT} from '../testing/src/test_bed_common';
 
@@ -123,6 +124,51 @@ export class HelloWorldModule {
 }
 
 describe('TestBed', () => {
+  // This test is extracted to an individual `describe` block to avoid any extra TestBed
+  // initialization logic that happens in the `beforeEach` functions in other `describe` sections.
+  it('should apply scopes correctly for components in the lazy-loaded module', () => {
+    // Reset TestBed to the initial state, emulating an invocation of a first test.
+    // Check `TestBed.checkGlobalCompilationFinished` for additional info.
+    (getTestBed() as any)._globalCompilationChecked = false;
+
+    @Component({
+      selector: 'root',
+      template: '<div dirA></div>',
+    })
+    class Root {
+    }
+    @Directive({
+      selector: '[dirA]',
+      host: {'title': 'Test title'},
+    })
+    class DirA {
+    }
+
+    // Note: this module is not directly reference in the test intentionally.
+    // Its presence triggers a side-effect of patching correct scopes on the declared components.
+    @NgModule({
+      declarations: [Root, DirA],
+    })
+    class Module {
+    }
+
+    TestBed.configureTestingModule({});
+    // Trigger TestBed initialization.
+    TestBed.inject(Injector);
+
+    // Emulate the end of a test (trigger module scoping queue flush).
+    TestBed.resetTestingModule();
+
+    // Emulate a lazy-loading scenario by creating a component
+    // without importing a module into a TestBed testing module.
+    TestBed.configureTestingModule({});
+    const fixture = TestBed.createComponent(Root);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.firstChild.getAttribute('title')).toEqual('Test title');
+  });
+});
+
+describe('TestBed', () => {
   beforeEach(() => {
     getTestBed().resetTestingModule();
     TestBed.configureTestingModule({imports: [HelloWorldModule]});
@@ -225,6 +271,21 @@ describe('TestBed', () => {
 
     const greetingByDirective = hello.debugElement.query(By.directive(GreetingCmp));
     expect(greetingByDirective.componentInstance).toBeAnInstanceOf(GreetingCmp);
+  });
+
+  it('should allow duplicate NgModule registrations with the same id', () => {
+    const id = 'registered';
+    @NgModule({id})
+    class ModuleA {
+    }
+
+    expect(getNgModuleById(id)).toBe(ModuleA);
+
+    // This would ordinarily error, if not in a test scenario.
+    @NgModule({id})
+    class ModuleB {
+    }
+    expect(getNgModuleById(id)).toBe(ModuleB);
   });
 
   it('allow to override a template', () => {
@@ -1242,10 +1303,15 @@ describe('TestBed', () => {
 
          TestBed.resetTestingModule();
 
+         const spy = spyOn(console, 'error');
+
          // Case #2: the `TestBed.configureTestingModule` was not invoked, thus the `ChildCmp`
          // should not be available in the `RootCmp` scope and no child content should be
          // rendered.
          fixture = TestBed.createComponent(RootCmp);
+         // also an error should be logged to the user informing them that
+         // the child component is not part of the module
+         expect(spy).toHaveBeenCalledTimes(1);
          fixture.detectChanges();
 
          childCmpInstance = fixture.debugElement.query(By.directive(ChildCmp));

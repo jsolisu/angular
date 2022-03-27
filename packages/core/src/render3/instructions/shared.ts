@@ -7,6 +7,7 @@
  */
 import {Injector} from '../../di';
 import {ErrorHandler} from '../../error_handler';
+import {formatRuntimeError, RuntimeError, RuntimeErrorCode} from '../../errors';
 import {DoCheck, OnChanges, OnInit} from '../../interface/lifecycle_hooks';
 import {CUSTOM_ELEMENTS_SCHEMA, NO_ERRORS_SCHEMA, SchemaMetadata} from '../../metadata/schema';
 import {ViewEncapsulation} from '../../metadata/view';
@@ -20,18 +21,18 @@ import {assertFirstCreatePass, assertFirstUpdatePass, assertLContainer, assertLV
 import {attachPatchData, readPatchedLView} from '../context_discovery';
 import {getFactoryDef} from '../definition_factory';
 import {diPublicInInjector, getNodeInjectable, getOrCreateNodeInjectorForNode} from '../di';
-import {formatRuntimeError, RuntimeError, RuntimeErrorCode} from '../error_code';
 import {throwMultipleComponentError} from '../errors';
 import {executeCheckHooks, executeInitAndCheckHooks, incrementInitPhaseFlags} from '../hooks';
 import {CONTAINER_HEADER_OFFSET, HAS_TRANSPLANTED_VIEWS, LContainer, MOVED_VIEWS} from '../interfaces/container';
 import {ComponentDef, ComponentTemplate, DirectiveDef, DirectiveDefListOrFactory, HostBindingsFunction, PipeDefListOrFactory, RenderFlags, ViewQueriesFunction} from '../interfaces/definition';
 import {NodeInjectorFactory} from '../interfaces/injector';
+import {getUniqueLViewId} from '../interfaces/lview_tracking';
 import {AttributeMarker, InitialInputData, InitialInputs, LocalRefExtractor, PropertyAliases, PropertyAliasValue, TAttributes, TConstantsOrFactory, TContainerNode, TDirectiveHostNode, TElementContainerNode, TElementNode, TIcuContainerNode, TNode, TNodeFlags, TNodeType, TProjectionNode} from '../interfaces/node';
 import {isProceduralRenderer, Renderer3, RendererFactory3} from '../interfaces/renderer';
 import {RComment, RElement, RNode, RText} from '../interfaces/renderer_dom';
 import {SanitizerFn} from '../interfaces/sanitization';
 import {isComponentDef, isComponentHost, isContentQueryHost, isRootView} from '../interfaces/type_checks';
-import {CHILD_HEAD, CHILD_TAIL, CLEANUP, CONTEXT, DECLARATION_COMPONENT_VIEW, DECLARATION_VIEW, FLAGS, HEADER_OFFSET, HOST, HostBindingOpCodes, InitPhaseState, INJECTOR, LView, LViewFlags, NEXT, PARENT, RENDERER, RENDERER_FACTORY, RootContext, RootContextFlags, SANITIZER, T_HOST, TData, TRANSPLANTED_VIEWS_TO_REFRESH, TVIEW, TView, TViewType} from '../interfaces/view';
+import {CHILD_HEAD, CHILD_TAIL, CLEANUP, CONTEXT, DECLARATION_COMPONENT_VIEW, DECLARATION_VIEW, EMBEDDED_VIEW_INJECTOR, FLAGS, HEADER_OFFSET, HOST, HostBindingOpCodes, ID, InitPhaseState, INJECTOR, LView, LViewFlags, NEXT, PARENT, RENDERER, RENDERER_FACTORY, RootContext, RootContextFlags, SANITIZER, T_HOST, TData, TRANSPLANTED_VIEWS_TO_REFRESH, TVIEW, TView, TViewType} from '../interfaces/view';
 import {assertPureTNodeType, assertTNodeType} from '../node_assert';
 import {updateTextNode} from '../node_manipulation';
 import {isInlineTemplate, isNodeMatchingSelectorList} from '../node_selector_matcher';
@@ -125,11 +126,16 @@ function renderChildComponents(hostLView: LView, components: number[]): void {
 export function createLView<T>(
     parentLView: LView|null, tView: TView, context: T|null, flags: LViewFlags, host: RElement|null,
     tHostNode: TNode|null, rendererFactory: RendererFactory3|null, renderer: Renderer3|null,
-    sanitizer: Sanitizer|null, injector: Injector|null): LView {
+    sanitizer: Sanitizer|null, injector: Injector|null,
+    embeddedViewInjector: Injector|null): LView {
   const lView =
       ngDevMode ? cloneToLViewFromTViewBlueprint(tView) : tView.blueprint.slice() as LView;
   lView[HOST] = host;
   lView[FLAGS] = flags | LViewFlags.CreationMode | LViewFlags.Attached | LViewFlags.FirstLViewPass;
+  if (embeddedViewInjector !== null ||
+      (parentLView && (parentLView[FLAGS] & LViewFlags.HasEmbeddedViewInjector))) {
+    lView[FLAGS] |= LViewFlags.HasEmbeddedViewInjector;
+  }
   resetPreOrderHookFlags(lView);
   ngDevMode && tView.declTNode && parentLView && assertTNodeForLView(tView.declTNode, parentLView);
   lView[PARENT] = lView[DECLARATION_VIEW] = parentLView;
@@ -141,6 +147,8 @@ export function createLView<T>(
   lView[SANITIZER] = sanitizer || parentLView && parentLView[SANITIZER] || null!;
   lView[INJECTOR as any] = injector || parentLView && parentLView[INJECTOR] || null;
   lView[T_HOST] = tHostNode;
+  lView[ID] = getUniqueLViewId();
+  lView[EMBEDDED_VIEW_INJECTOR as any] = embeddedViewInjector;
   ngDevMode &&
       assertEqual(
           tView.type == TViewType.Embedded ? parentLView !== null : true, true,
@@ -1320,7 +1328,6 @@ function instantiateAllDirectives(
 function invokeDirectivesHostBindings(tView: TView, lView: LView, tNode: TNode) {
   const start = tNode.directiveStart;
   const end = tNode.directiveEnd;
-  const firstCreatePass = tView.firstCreatePass;
   const elementIndex = tNode.index;
   const currentDirectiveIndex = getCurrentDirectiveIndex();
   try {
@@ -1417,7 +1424,8 @@ function cacheMatchingLocalNames(
       const index = exportsMap[localRefs[i + 1]];
       if (index == null)
         throw new RuntimeError(
-            RuntimeErrorCode.EXPORT_NOT_FOUND, `Export of name '${localRefs[i + 1]}' not found!`);
+            RuntimeErrorCode.EXPORT_NOT_FOUND,
+            ngDevMode && `Export of name '${localRefs[i + 1]}' not found!`);
       localNames.push(localRefs[i], index);
     }
   }
@@ -1497,7 +1505,7 @@ function addComponentLogic<T>(lView: LView, hostTNode: TElementNode, def: Compon
       createLView(
           lView, tView, null, def.onPush ? LViewFlags.Dirty : LViewFlags.CheckAlways, native,
           hostTNode as TElementNode, rendererFactory, rendererFactory.createRenderer(native, def),
-          null, null));
+          null, null, null));
 
   // Component view will always be created before any injected LContainers,
   // so this is a regular element, wrap it with the component view
@@ -1904,9 +1912,12 @@ export function scheduleTick(rootContext: RootContext, flags: RootContextFlags) 
 export function tickRootContext(rootContext: RootContext) {
   for (let i = 0; i < rootContext.components.length; i++) {
     const rootComponent = rootContext.components[i];
-    const lView = readPatchedLView(rootComponent)!;
-    const tView = lView[TVIEW];
-    renderComponentOrTemplate(tView, lView, tView.template, rootComponent);
+    const lView = readPatchedLView(rootComponent);
+    // We might not have an `LView` if the component was destroyed.
+    if (lView !== null) {
+      const tView = lView[TVIEW];
+      renderComponentOrTemplate(tView, lView, tView.template, rootComponent);
+    }
   }
 }
 

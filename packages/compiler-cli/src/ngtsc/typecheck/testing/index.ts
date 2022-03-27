@@ -120,6 +120,35 @@ export function angularAnimationsDts(): TestFile {
   };
 }
 
+export function ngIfDeclaration(): TestDeclaration {
+  return {
+    type: 'directive',
+    file: absoluteFrom('/ngif.d.ts'),
+    selector: '[ngIf]',
+    name: 'NgIf',
+    inputs: {ngIf: 'ngIf'},
+    ngTemplateGuards: [{type: 'binding', inputName: 'ngIf'}],
+    hasNgTemplateContextGuard: true,
+    isGeneric: true,
+  };
+}
+
+export function ngIfDts(): TestFile {
+  return {
+    name: absoluteFrom('/ngif.d.ts'),
+    contents: `
+    export declare class NgIf<T> {
+      ngIf: T;
+      static ngTemplateContextGuard<T>(dir: NgIf<T>, ctx: any): ctx is NgIfContext<Exclude<T, false|0|''|null|undefined>>
+    }
+
+    export declare class NgIfContext<T> {
+      $implicit: T;
+      ngIf: T;
+    }`,
+  };
+}
+
 export function ngForDeclaration(): TestDeclaration {
   return {
     type: 'directive',
@@ -553,6 +582,7 @@ function prepareDeclarations(
       outputs: ClassPropertyMapping.fromMappedObject(decl.outputs || {}),
       queries: decl.queries || [],
       isStructural: false,
+      animationTriggerNames: null,
     };
     matcher.addSelectables(selector, meta);
   }
@@ -617,6 +647,8 @@ function makeScope(program: ts.Program, sf: ts.SourceFile, decls: TestDeclaratio
         isGeneric: decl.isGeneric ?? false,
         isPoisoned: false,
         isStructural: false,
+        animationTriggerNames: null,
+        isStandalone: false,
       });
     } else if (decl.type === 'pipe') {
       scope.pipes.push({
@@ -624,6 +656,7 @@ function makeScope(program: ts.Program, sf: ts.SourceFile, decls: TestDeclaratio
         ref: new Reference(declClass),
         name: decl.pipeName,
         nameExpr: null,
+        isStandalone: false,
       });
     }
   }
@@ -635,11 +668,13 @@ class FakeEnvironment /* implements Environment */ {
   constructor(readonly config: TypeCheckingConfig) {}
 
   typeCtorFor(dir: TypeCheckableDirectiveMeta): ts.Expression {
-    return ts.createPropertyAccess(ts.createIdentifier(dir.name), 'ngTypeCtor');
+    return ts.factory.createPropertyAccessExpression(
+        ts.factory.createIdentifier(dir.name), 'ngTypeCtor');
   }
 
   pipeInst(ref: Reference<ClassDeclaration<ts.ClassDeclaration>>): ts.Expression {
-    return ts.createParen(ts.createAsExpression(ts.createNull(), this.referenceType(ref)));
+    return ts.factory.createParenthesizedExpression(
+        ts.factory.createAsExpression(ts.factory.createNull(), this.referenceType(ref)));
   }
 
   reference(ref: Reference<ClassDeclaration<ts.ClassDeclaration>>): ts.Expression {
@@ -647,20 +682,20 @@ class FakeEnvironment /* implements Environment */ {
   }
 
   referenceType(ref: Reference<ClassDeclaration<ts.ClassDeclaration>>): ts.TypeNode {
-    return ts.createTypeReferenceNode(ref.node.name, /* typeArguments */ undefined);
+    return ts.factory.createTypeReferenceNode(ref.node.name, /* typeArguments */ undefined);
   }
 
   referenceExternalType(moduleName: string, name: string, typeParams?: Type[]): ts.TypeNode {
     const typeArgs: ts.TypeNode[] = [];
     if (typeParams !== undefined) {
       for (let i = 0; i < typeParams.length; i++) {
-        typeArgs.push(ts.createKeywordTypeNode(ts.SyntaxKind.AnyKeyword));
+        typeArgs.push(ts.factory.createKeywordTypeNode(ts.SyntaxKind.AnyKeyword));
       }
     }
 
-    const ns = ts.createIdentifier(moduleName.replace('@angular/', ''));
-    const qName = ts.createQualifiedName(ns, name);
-    return ts.createTypeReferenceNode(qName, typeArgs.length > 0 ? typeArgs : undefined);
+    const ns = ts.factory.createIdentifier(moduleName.replace('@angular/', ''));
+    const qName = ts.factory.createQualifiedName(ns, name);
+    return ts.factory.createTypeReferenceNode(qName, typeArgs.length > 0 ? typeArgs : undefined);
   }
 
   getPreludeStatements(): ts.Statement[] {

@@ -5,11 +5,15 @@ on:
     # Run at 14:00 every day
     - cron: '0 14 * * *'
 
+# Declare default permissions as read only.
+permissions:
+  contents: read
+
 jobs:
   feature_triage:
     if: github.repository == 'angular/angular'
     runs-on: ubuntu-latest
     steps:
-      - uses: angular/dev-infra/github-actions/feature-request@c2fb49a44ad9fa77f508010f950524ee97f5e8d5
+      - uses: angular/dev-infra/github-actions/feature-request@09337b0b54f7f450f6ce0ef61ade54511c0c8e19
         with:
           angular-robot-key: ${{ secrets.ANGULAR_ROBOT_PRIVATE_KEY }}

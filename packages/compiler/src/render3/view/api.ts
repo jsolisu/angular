@@ -117,6 +117,11 @@ export interface R3DirectiveMetadata {
    * The list of providers defined in the directive.
    */
   providers: o.Expression|null;
+
+  /**
+   * Whether or not the component or directive is standalone.
+   */
+  isStandalone: boolean;
 }
 
 /**
@@ -177,7 +182,7 @@ export interface R3ComponentMetadata extends R3DirectiveMetadata {
     nodes: t.Node[];
 
     /**
-     * Any ng-content selectors extracted from the template. Contains `null` when an ng-content
+     * Any ng-content selectors extracted from the template. Contains `*` when an ng-content
      * element without selector is present.
      */
     ngContentSelectors: string[];

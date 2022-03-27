@@ -17,7 +17,6 @@
  * explicitly.
  */
 
-
 export {ɵInternalFormsSharedModule} from './directives';
 export {AbstractControlDirective} from './directives/abstract_control_directive';
 export {AbstractFormGroupDirective} from './directives/abstract_form_group_directive';
@@ -42,8 +41,11 @@ export {FormArrayName, FormGroupName} from './directives/reactive_directives/for
 export {NgSelectOption, SelectControlValueAccessor} from './directives/select_control_value_accessor';
 export {SelectMultipleControlValueAccessor, ɵNgSelectMultipleOption} from './directives/select_multiple_control_value_accessor';
 export {AsyncValidator, AsyncValidatorFn, CheckboxRequiredValidator, EmailValidator, MaxLengthValidator, MaxValidator, MinLengthValidator, MinValidator, PatternValidator, RequiredValidator, ValidationErrors, Validator, ValidatorFn} from './directives/validators';
-export {FormBuilder} from './form_builder';
-export {AbstractControl, AbstractControlOptions, FormArray, FormControl, FormControlStatus, FormGroup} from './model';
+export {FormBuilder, UntypedFormBuilder} from './form_builder';
+export {AbstractControl, AbstractControlOptions, FormControlStatus} from './model/abstract_model';
+export {FormArray, UntypedFormArray} from './model/form_array';
+export {FormControl, FormControlOptions, UntypedFormControl, ɵFormControlCtor} from './model/form_control';
+export {FormGroup, UntypedFormGroup} from './model/form_group';
 export {NG_ASYNC_VALIDATORS, NG_VALIDATORS, Validators} from './validators';
 export {VERSION} from './version';
 

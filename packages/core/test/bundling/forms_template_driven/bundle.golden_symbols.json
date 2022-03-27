@@ -3,16 +3,10 @@
     "name": "ALLOW_MULTIPLE_PLATFORMS"
   },
   {
-    "name": "APPLICATION_MODULE_PROVIDERS"
-  },
-  {
     "name": "APP_BOOTSTRAP_LISTENER"
   },
   {
     "name": "APP_ID"
-  },
-  {
-    "name": "APP_ID_RANDOM_PROVIDER"
   },
   {
     "name": "APP_INITIALIZER"
@@ -28,6 +22,9 @@
   },
   {
     "name": "AbstractFormGroupDirective"
+  },
+  {
+    "name": "AbstractValidatorDirective"
   },
   {
     "name": "AnonymousSubject"
@@ -81,28 +78,28 @@
     "name": "ChangeDetectionStrategy"
   },
   {
+    "name": "ChangeDetectorRef"
+  },
+  {
     "name": "CheckboxControlValueAccessor"
   },
   {
     "name": "CommonModule"
   },
   {
-    "name": "Compiler"
-  },
-  {
     "name": "ComponentFactory"
   },
   {
-    "name": "ComponentFactory"
+    "name": "ComponentFactory2"
   },
   {
     "name": "ComponentFactoryResolver"
   },
   {
-    "name": "ComponentFactoryResolver"
+    "name": "ComponentFactoryResolver2"
   },
   {
-    "name": "ComponentRef"
+    "name": "ComponentRef2"
   },
   {
     "name": "ConnectableObservable"
@@ -117,16 +114,13 @@
     "name": "ControlContainer"
   },
   {
-    "name": "DEFAULT_CURRENCY_CODE"
-  },
-  {
     "name": "DEFAULT_VALUE_ACCESSOR"
   },
   {
     "name": "DOCUMENT"
   },
   {
-    "name": "DOCUMENT"
+    "name": "DOCUMENT2"
   },
   {
     "name": "DefaultDomRenderer2"
@@ -136,12 +130,6 @@
   },
   {
     "name": "DefaultIterableDifferFactory"
-  },
-  {
-    "name": "DefaultKeyValueDiffer"
-  },
-  {
-    "name": "DefaultKeyValueDifferFactory"
   },
   {
     "name": "DefaultValueAccessor"
@@ -186,9 +174,6 @@
     "name": "EventManagerPlugin"
   },
   {
-    "name": "FormArray"
-  },
-  {
     "name": "FormControl"
   },
   {
@@ -201,13 +186,10 @@
     "name": "FormsModule"
   },
   {
-    "name": "INJECTOR"
+    "name": "INJECTOR2"
   },
   {
     "name": "INJECTOR_SCOPE"
-  },
-  {
-    "name": "Inject"
   },
   {
     "name": "InjectFlags"
@@ -228,22 +210,10 @@
     "name": "KeyEventsPlugin"
   },
   {
-    "name": "KeyValueChangeRecord_"
-  },
-  {
-    "name": "KeyValueDiffers"
-  },
-  {
-    "name": "LOCALE_DATA"
-  },
-  {
-    "name": "LOCALE_ID"
+    "name": "LOCALE_ID2"
   },
   {
     "name": "LifecycleHooksFeature"
-  },
-  {
-    "name": "LocaleDataIndex"
   },
   {
     "name": "MODIFIER_KEYS"
@@ -262,9 +232,6 @@
   },
   {
     "name": "MergeMapSubscriber"
-  },
-  {
-    "name": "ModuleWithComponentFactories"
   },
   {
     "name": "NAMESPACE_URIS"
@@ -339,16 +306,7 @@
     "name": "NgForOf"
   },
   {
-    "name": "NgForOfContext"
-  },
-  {
     "name": "NgForm"
-  },
-  {
-    "name": "NgLocaleLocalization"
-  },
-  {
-    "name": "NgLocalization"
   },
   {
     "name": "NgModel"
@@ -357,13 +315,13 @@
     "name": "NgModelGroup"
   },
   {
-    "name": "NgModuleFactory"
+    "name": "NgModuleFactory2"
   },
   {
     "name": "NgModuleRef"
   },
   {
-    "name": "NgModuleRef"
+    "name": "NgModuleRef2"
   },
   {
     "name": "NgOnChangesFeatureImpl"
@@ -376,9 +334,6 @@
   },
   {
     "name": "NodeInjectorFactory"
-  },
-  {
-    "name": "NoopNgZone"
   },
   {
     "name": "NullInjector"
@@ -402,9 +357,6 @@
     "name": "PlatformRef"
   },
   {
-    "name": "Plural"
-  },
-  {
     "name": "R3Injector"
   },
   {
@@ -418,9 +370,6 @@
   },
   {
     "name": "RadioControlRegistryModule"
-  },
-  {
-    "name": "RecordViewTuple"
   },
   {
     "name": "RefCountOperator"
@@ -450,9 +399,6 @@
     "name": "RuntimeError"
   },
   {
-    "name": "SCHEDULER"
-  },
-  {
     "name": "SERVER_TRANSITION_PROVIDERS"
   },
   {
@@ -466,9 +412,6 @@
   },
   {
     "name": "SharedStylesHost"
-  },
-  {
-    "name": "SimpleChange"
   },
   {
     "name": "SimpleInnerSubscriber"
@@ -496,6 +439,9 @@
   },
   {
     "name": "THROW_IF_NOT_FOUND"
+  },
+  {
+    "name": "TRACKED_LVIEWS"
   },
   {
     "name": "TRANSITION_ID"
@@ -528,9 +474,6 @@
     "name": "VE_ViewContainerRef"
   },
   {
-    "name": "Version"
-  },
-  {
     "name": "ViewContainerRef"
   },
   {
@@ -546,19 +489,10 @@
     "name": "_DOM"
   },
   {
-    "name": "_DuplicateItemRecordList"
-  },
-  {
     "name": "_DuplicateMap"
   },
   {
-    "name": "_NoopGetTestability"
-  },
-  {
     "name": "_NullComponentFactoryResolver"
-  },
-  {
-    "name": "__extends"
   },
   {
     "name": "__forward_ref__"
@@ -645,6 +579,9 @@
     "name": "applyView"
   },
   {
+    "name": "applyViewChange"
+  },
+  {
     "name": "attachInjectFlag"
   },
   {
@@ -679,6 +616,9 @@
   },
   {
     "name": "coerceToAsyncValidator"
+  },
+  {
+    "name": "coerceToBoolean"
   },
   {
     "name": "coerceToValidator"
@@ -759,16 +699,7 @@
     "name": "defaultErrorLogger"
   },
   {
-    "name": "defaultIterableDiffers"
-  },
-  {
     "name": "defaultIterableDiffersFactory"
-  },
-  {
-    "name": "defaultKeyValueDiffers"
-  },
-  {
-    "name": "defaultKeyValueDiffersFactory"
   },
   {
     "name": "defaultScheduler"
@@ -798,6 +729,9 @@
     "name": "empty"
   },
   {
+    "name": "empty2"
+  },
+  {
     "name": "enterDI"
   },
   {
@@ -820,9 +754,6 @@
   },
   {
     "name": "executeViewQueryFn"
-  },
-  {
-    "name": "extendStatics"
   },
   {
     "name": "extractDirectiveDef"
@@ -861,9 +792,6 @@
     "name": "from"
   },
   {
-    "name": "fromArray"
-  },
-  {
     "name": "generateInitialInputs"
   },
   {
@@ -871,6 +799,9 @@
   },
   {
     "name": "getBeforeNodeForView"
+  },
+  {
+    "name": "getBindingsEnabled"
   },
   {
     "name": "getClosureSafeProperty"
@@ -924,9 +855,6 @@
     "name": "getLViewParent"
   },
   {
-    "name": "getLocaleData"
-  },
-  {
     "name": "getNativeByTNode"
   },
   {
@@ -934,9 +862,6 @@
   },
   {
     "name": "getNextLContainer"
-  },
-  {
-    "name": "getNgModuleDef"
   },
   {
     "name": "getNodeInjectable"
@@ -958,6 +883,9 @@
   },
   {
     "name": "getOrCreateTNode"
+  },
+  {
+    "name": "getOrCreateTViewCleanup"
   },
   {
     "name": "getOrCreateViewRefs"
@@ -1002,10 +930,13 @@
     "name": "getSymbolIterator"
   },
   {
-    "name": "getSymbolIterator"
+    "name": "getSymbolIterator2"
   },
   {
     "name": "getTNode"
+  },
+  {
+    "name": "getTNodeFromLView"
   },
   {
     "name": "getTStylingRangeNext"
@@ -1062,7 +993,13 @@
     "name": "initTNodeFlags"
   },
   {
+    "name": "inject"
+  },
+  {
     "name": "injectArgs"
+  },
+  {
+    "name": "injectChangeDetectorRef"
   },
   {
     "name": "injectElementRef"
@@ -1134,9 +1071,6 @@
     "name": "isInlineTemplate"
   },
   {
-    "name": "isJsObject"
-  },
-  {
     "name": "isLContainer"
   },
   {
@@ -1173,16 +1107,19 @@
     "name": "isPromise"
   },
   {
-    "name": "isPromise"
-  },
-  {
-    "name": "isScheduler"
+    "name": "isPromise2"
   },
   {
     "name": "isStylingMatch"
   },
   {
     "name": "isStylingValuePresent"
+  },
+  {
+    "name": "isTemplateNode"
+  },
+  {
+    "name": "isTemplateNode2"
   },
   {
     "name": "isTypeProvider"
@@ -1192,9 +1129,6 @@
   },
   {
     "name": "iterator"
-  },
-  {
-    "name": "keyValDiff"
   },
   {
     "name": "keyValueArrayGet"
@@ -1215,10 +1149,10 @@
     "name": "leaveViewLight"
   },
   {
-    "name": "localeEn"
+    "name": "lookupTokenUsingModuleInjector"
   },
   {
-    "name": "lookupTokenUsingModuleInjector"
+    "name": "lookupTokenUsingNodeInjector"
   },
   {
     "name": "makeParamDecorator"
@@ -1245,9 +1179,6 @@
     "name": "maybeUnwrapEmpty"
   },
   {
-    "name": "maybeUnwrapFn"
-  },
-  {
     "name": "maybeWrapInNotSelector"
   },
   {
@@ -1270,9 +1201,6 @@
   },
   {
     "name": "modelGroupProvider"
-  },
-  {
-    "name": "modules"
   },
   {
     "name": "multiFactoryAdd"
@@ -1320,6 +1248,9 @@
     "name": "notFoundValueOrThrow"
   },
   {
+    "name": "nullValidator"
+  },
+  {
     "name": "observable"
   },
   {
@@ -1336,9 +1267,6 @@
   },
   {
     "name": "pickValidators"
-  },
-  {
-    "name": "pipeFromArray"
   },
   {
     "name": "platformBrowser"
@@ -1413,6 +1341,9 @@
     "name": "renderView"
   },
   {
+    "name": "requiredValidator"
+  },
+  {
     "name": "resetPreOrderHookFlags"
   },
   {
@@ -1428,7 +1359,7 @@
     "name": "resolvedPromise"
   },
   {
-    "name": "resolvedPromise"
+    "name": "resolvedPromise2"
   },
   {
     "name": "rxSubscriber"
@@ -1542,7 +1473,7 @@
     "name": "trackByIdentity"
   },
   {
-    "name": "u"
+    "name": "uniqueIdCounter"
   },
   {
     "name": "unwrapRNode"
