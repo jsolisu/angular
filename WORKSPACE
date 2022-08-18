@@ -8,10 +8,24 @@ workspace(
 
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
+# Add a patch fix for rules_webtesting v0.3.5 required for enabling runfiles on Windows.
+# TODO: Remove the http_archive for this transitive dependency when a release is cut
+# for https://github.com/bazelbuild/rules_webtesting/commit/581b1557e382f93419da6a03b91a45c2ac9a9ec8
+# and the version is updated in rules_nodejs.
+http_archive(
+    name = "io_bazel_rules_webtesting",
+    patch_args = ["-p1"],
+    patches = [
+        "//:tools/bazel-repo-patches/rules_webtesting__windows_runfiles_fix.patch",
+    ],
+    sha256 = "e9abb7658b6a129740c0b3ef6f5a2370864e102a5ba5ffca2cea565829ed825a",
+    urls = ["https://github.com/bazelbuild/rules_webtesting/releases/download/0.3.5/rules_webtesting.tar.gz"],
+)
+
 http_archive(
     name = "build_bazel_rules_nodejs",
-    sha256 = "2b2004784358655f334925e7eadc7ba80f701144363df949b3293e1ae7a2fb7b",
-    urls = ["https://github.com/bazelbuild/rules_nodejs/releases/download/5.4.0/rules_nodejs-5.4.0.tar.gz"],
+    sha256 = "c78216f5be5d451a42275b0b7dc809fb9347e2b04a68f68bad620a2b01f5c774",
+    urls = ["https://github.com/bazelbuild/rules_nodejs/releases/download/5.5.2/rules_nodejs-5.5.2.tar.gz"],
 )
 
 load("@build_bazel_rules_nodejs//:repositories.bzl", "build_bazel_rules_nodejs_dependencies")
@@ -109,7 +123,7 @@ load("@io_bazel_rules_webtesting//web:repositories.bzl", "web_test_repositories"
 
 web_test_repositories()
 
-load("@npm//@angular/dev-infra-private/bazel/browsers:browser_repositories.bzl", "browser_repositories")
+load("@npm//@angular/build-tooling/bazel/browsers:browser_repositories.bzl", "browser_repositories")
 
 browser_repositories()
 
@@ -123,26 +137,37 @@ load("@rules_pkg//:deps.bzl", "rules_pkg_dependencies")
 
 rules_pkg_dependencies()
 
-load("//packages/common/locales/generate-locales-tool:cldr-data.bzl", "cldr_data_repository")
+load("//packages/common/locales/generate-locales-tool:cldr-data.bzl", "cldr_json_data_repository", "cldr_xml_data_repository")
 
-cldr_data_repository(
-    name = "cldr_data",
+cldr_major_version = "41"
+
+cldr_json_data_repository(
+    name = "cldr_json_data",
     urls = {
-        "https://github.com/unicode-org/cldr-json/releases/download/39.0.0/cldr-39.0.0-json-full.zip": "a631764b6bb7967fab8cc351aff3ffa3f430a23646899976dd9d65801446def6",
+        "https://github.com/unicode-org/cldr-json/releases/download/%s.0.0/cldr-%s.0.0-json-full.zip" % (cldr_major_version, cldr_major_version): "649b76647269e32b1b0a5f7b6eed52e9e63a1581f1afdcf4f6771e49c9713614",
+    },
+)
+
+cldr_xml_data_repository(
+    name = "cldr_xml_data",
+    urls = {
+        "https://github.com/unicode-org/cldr/releases/download/release-%s/cldr-common-%s.0.zip" % (cldr_major_version, cldr_major_version): "823c6170c41e2de2c229574e8a436332d25f1c9723409867fe721e00bc92d853",
     },
 )
 
 # sass rules
 http_archive(
     name = "io_bazel_rules_sass",
-    sha256 = "b83d695bc8deb5ab5fb3a8e6919999eebf738a4a5aa57a43a63ee70109f80224",
-    strip_prefix = "rules_sass-1.50.0",
+    sha256 = "85b34f2e5e227aa586b6e0fd6942262e17b3cface596891eeef5a29a0b7467e3",
+    strip_prefix = "rules_sass-697e5a08bdd39aee49f2c6f4eb621ef59e677e49",
     urls = [
-        "https://github.com/bazelbuild/rules_sass/archive/1.50.0.zip",
+        "https://github.com/bazelbuild/rules_sass/archive/697e5a08bdd39aee49f2c6f4eb621ef59e677e49.zip",
     ],
 )
 
 # Setup the rules_sass toolchain
 load("@io_bazel_rules_sass//sass:sass_repositories.bzl", "sass_repositories")
 
-sass_repositories()
+sass_repositories(
+    yarn_script = "//:.yarn/releases/yarn-1.22.17.cjs",
+)

@@ -6,33 +6,123 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
+import {RuntimeError, RuntimeErrorCode} from '../errors';
 import {Type} from '../interface/type';
 import {getComponentDef} from '../render3/definition';
 import {getFactoryDef} from '../render3/definition_factory';
 import {throwCyclicDependencyError, throwInvalidProviderError} from '../render3/errors_di';
+import {stringifyForError} from '../render3/util/stringify_utils';
 import {deepForEach} from '../util/array_utils';
 import {getClosureSafeProperty} from '../util/property';
 import {stringify} from '../util/stringify';
 import {EMPTY_ARRAY} from '../view';
 
 import {resolveForwardRef} from './forward_ref';
-import {INJECTOR_INITIALIZER} from './initializer_token';
+import {ENVIRONMENT_INITIALIZER} from './initializer_token';
 import {ɵɵinject as inject} from './injector_compatibility';
 import {getInjectorDef, InjectorType, InjectorTypeWithProviders} from './interface/defs';
-import {ClassProvider, ConstructorProvider, ExistingProvider, FactoryProvider, Provider, StaticClassProvider, TypeProvider, ValueProvider} from './interface/provider';
+import {ClassProvider, ConstructorProvider, ExistingProvider, FactoryProvider, ImportedNgModuleProviders, ModuleWithProviders, Provider, StaticClassProvider, TypeProvider, ValueProvider} from './interface/provider';
 import {INJECTOR_DEF_TYPES} from './internal_tokens';
+
+/**
+ * A source of providers for the `importProvidersFrom` function.
+ *
+ * @developerPreview
+ * @publicApi
+ */
+export type ImportProvidersSource =
+    Type<unknown>|ModuleWithProviders<unknown>|Array<ImportProvidersSource>;
 
 /**
  * Collects providers from all NgModules and standalone components, including transitively imported
  * ones.
  *
- * @returns The list of collected providers from the specified list of types.
+ * Providers extracted via `importProvidersFrom` are only usable in an application injector or
+ * another environment injector (such as a route injector). They should not be used in component
+ * providers.
+ *
+ * More information about standalone components can be found in [this
+ * guide](guide/standalone-components).
+ *
+ * @usageNotes
+ * The results of the `importProvidersFrom` call can be used in the `bootstrapApplication` call:
+ *
+ * ```typescript
+ * await bootstrapApplication(RootComponent, {
+ *   providers: [
+ *     importProvidersFrom(NgModuleOne, NgModuleTwo)
+ *   ]
+ * });
+ * ```
+ *
+ * You can also use the `importProvidersFrom` results in the `providers` field of a route, when a
+ * standalone component is used:
+ *
+ * ```typescript
+ * export const ROUTES: Route[] = [
+ *   {
+ *     path: 'foo',
+ *     providers: [
+ *       importProvidersFrom(NgModuleOne, NgModuleTwo)
+ *     ],
+ *     component: YourStandaloneComponent
+ *   }
+ * ];
+ * ```
+ *
+ * @returns Collected providers from the specified list of types.
  * @publicApi
+ * @developerPreview
  */
-export function importProvidersFrom(...types: Array<Type<unknown>>): Provider[] {
-  const providers: SingleProvider[] = [];
-  deepForEach(types, type => walkProviderTree(type, providers, [], new Set()));
-  return providers;
+export function importProvidersFrom(...sources: ImportProvidersSource[]):
+    ImportedNgModuleProviders {
+  return {ɵproviders: internalImportProvidersFrom(true, sources)};
+}
+
+export function internalImportProvidersFrom(
+    checkForStandaloneCmp: boolean, ...sources: ImportProvidersSource[]): Provider[] {
+  const providersOut: SingleProvider[] = [];
+  const dedup = new Set<Type<unknown>>();  // already seen types
+  let injectorTypesWithProviders: InjectorTypeWithProviders<unknown>[]|undefined;
+  deepForEach(sources, source => {
+    if ((typeof ngDevMode === 'undefined' || ngDevMode) && checkForStandaloneCmp) {
+      const cmpDef = getComponentDef(source);
+      if (cmpDef?.standalone) {
+        throw new RuntimeError(
+            RuntimeErrorCode.IMPORT_PROVIDERS_FROM_STANDALONE,
+            `Importing providers supports NgModule or ModuleWithProviders but got a standalone component "${
+                stringifyForError(source)}"`);
+      }
+    }
+
+    // Narrow `source` to access the internal type analogue for `ModuleWithProviders`.
+    const internalSource = source as Type<unknown>| InjectorTypeWithProviders<unknown>;
+    if (walkProviderTree(internalSource, providersOut, [], dedup)) {
+      injectorTypesWithProviders ||= [];
+      injectorTypesWithProviders.push(internalSource);
+    }
+  });
+  // Collect all providers from `ModuleWithProviders` types.
+  if (injectorTypesWithProviders !== undefined) {
+    processInjectorTypesWithProviders(injectorTypesWithProviders, providersOut);
+  }
+
+  return providersOut;
+}
+
+/**
+ * Collects all providers from the list of `ModuleWithProviders` and appends them to the provided
+ * array.
+ */
+function processInjectorTypesWithProviders(
+    typesWithProviders: InjectorTypeWithProviders<unknown>[], providersOut: Provider[]): void {
+  for (let i = 0; i < typesWithProviders.length; i++) {
+    const {ngModule, providers} = typesWithProviders[i];
+    deepForEach(providers!, provider => {
+      ngDevMode && validateProvider(provider, providers || EMPTY_ARRAY, ngModule);
+      providersOut.push(provider);
+    });
+  }
 }
 
 /**
@@ -121,7 +211,7 @@ export function walkProviderTree(
       try {
         deepForEach(injDef.imports, imported => {
           if (walkProviderTree(imported, providersOut, parents, dedup)) {
-            if (importTypesWithProviders === undefined) importTypesWithProviders = [];
+            importTypesWithProviders ||= [];
             // If the processed import is an injector type with providers, we store it in the
             // list of import types with providers, so that we can process those afterwards.
             importTypesWithProviders.push(imported);
@@ -136,46 +226,36 @@ export function walkProviderTree(
       // after all imported modules are processed. This is similar to how View Engine
       // processes/merges module imports in the metadata resolver. See: FW-1349.
       if (importTypesWithProviders !== undefined) {
-        for (let i = 0; i < importTypesWithProviders.length; i++) {
-          const {ngModule, providers} = importTypesWithProviders[i];
-          deepForEach(providers!, provider => {
-            validateProvider(provider, providers || EMPTY_ARRAY, ngModule);
-            providersOut.push(provider);
-          });
-        }
+        processInjectorTypesWithProviders(importTypesWithProviders, providersOut);
       }
     }
-    // Track the InjectorType and add a provider for it.
-    // It's important that this is done after the def's imports.
-    const factory = getFactoryDef(defType) || (() => new defType!());
 
-    // Provider to create `defType` using its factory.
-    providersOut.push({
-      provide: defType,
-      useFactory: factory,
-      deps: EMPTY_ARRAY,
-    });
+    if (!isDuplicate) {
+      // Track the InjectorType and add a provider for it.
+      // It's important that this is done after the def's imports.
+      const factory = getFactoryDef(defType) || (() => new defType!());
 
-    providersOut.push({
-      provide: INJECTOR_DEF_TYPES,
-      useValue: defType,
-      multi: true,
-    });
+      // Append extra providers to make more info available for consumers (to retrieve an injector
+      // type), as well as internally (to calculate an injection scope correctly and eagerly
+      // instantiate a `defType` when an injector is created).
+      providersOut.push(
+          // Provider to create `defType` using its factory.
+          {provide: defType, useFactory: factory, deps: EMPTY_ARRAY},
 
-    // Provider to eagerly instantiate `defType` via `INJECTOR_INITIALIZER`.
-    providersOut.push({
-      provide: INJECTOR_INITIALIZER,
-      useValue: () => inject(defType!),
-      multi: true,
-    });
+          // Make this `defType` available to an internal logic that calculates injector scope.
+          {provide: INJECTOR_DEF_TYPES, useValue: defType, multi: true},
+
+          // Provider to eagerly instantiate `defType` via `ENVIRONMENT_INITIALIZER`.
+          {provide: ENVIRONMENT_INITIALIZER, useValue: () => inject(defType!), multi: true}  //
+      );
+    }
 
     // Next, include providers listed on the definition itself.
     const defProviders = injDef.providers;
     if (defProviders != null && !isDuplicate) {
       const injectorType = container as InjectorType<any>;
       deepForEach(defProviders, provider => {
-        // TODO: fix cast
-        validateProvider(provider, defProviders as any[], injectorType);
+        ngDevMode && validateProvider(provider, defProviders as SingleProvider[], injectorType);
         providersOut.push(provider);
       });
     }
@@ -199,7 +279,7 @@ function validateProvider(
   // Here we expect the provider to be a `useClass` provider (by elimination).
   const classRef = resolveForwardRef(
       provider && ((provider as StaticClassProvider | ClassProvider).useClass || provider.provide));
-  if (ngDevMode && !classRef) {
+  if (!classRef) {
     throwInvalidProviderError(containerType, providers, provider);
   }
 }

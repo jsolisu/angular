@@ -70,6 +70,34 @@
           ]
         }
       ]
+    },
+    {
+      "description": "should optimize injector imports",
+      "inputFiles": [
+        "module_optimization.ts"
+      ],
+      "expectations": [
+        {
+          "failureMessage": "Injector imports not optimized",
+          "files": [
+            "module_optimization.js"
+          ]
+        }
+      ]
+    },
+    {
+      "description": "should handle a forwardRef in the imports of a standalone component",
+      "inputFiles": [
+        "forward_ref.ts"
+      ],
+      "expectations": [
+        {
+          "failureMessage": "Invalid component definition",
+          "files": [
+            "forward_ref.js"
+          ]
+        }
+      ]
     }
   ]
 }

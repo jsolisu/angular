@@ -11,31 +11,37 @@ import {Injector} from '../di/injector';
 import {InjectFlags} from '../di/interface/injector';
 import {ProviderToken} from '../di/provider_token';
 import {EnvironmentInjector} from '../di/r3_injector';
+import {RuntimeError, RuntimeErrorCode} from '../errors';
 import {Type} from '../interface/type';
-import {ComponentFactory as viewEngine_ComponentFactory, ComponentRef as viewEngine_ComponentRef} from '../linker/component_factory';
+import {ComponentFactory as viewEngine_ComponentFactory, ComponentRef as AbstractComponentRef} from '../linker/component_factory';
 import {ComponentFactoryResolver as viewEngine_ComponentFactoryResolver} from '../linker/component_factory_resolver';
 import {createElementRef, ElementRef as viewEngine_ElementRef} from '../linker/element_ref';
 import {NgModuleRef as viewEngine_NgModuleRef} from '../linker/ng_module_factory';
 import {RendererFactory2} from '../render/api';
 import {Sanitizer} from '../sanitization/sanitizer';
+import {assertDefined, assertIndexInRange} from '../util/assert';
 import {VERSION} from '../version';
 import {NOT_FOUND_CHECK_ONLY_ELEMENT_INJECTOR} from '../view/provider_flags';
 
 import {assertComponentType} from './assert';
-import {createRootComponent, createRootComponentView, createRootContext, LifecycleHooksFeature} from './component';
 import {getComponentDef} from './definition';
-import {NodeInjector} from './di';
-import {createLView, createTView, locateHostElement, renderView} from './instructions/shared';
-import {ComponentDef} from './interfaces/definition';
-import {TContainerNode, TElementContainerNode, TElementNode, TNode} from './interfaces/node';
-import {domRendererFactory3, RendererFactory3} from './interfaces/renderer';
-import {RNode} from './interfaces/renderer_dom';
-import {HEADER_OFFSET, LView, LViewFlags, TViewType} from './interfaces/view';
+import {diPublicInInjector, getOrCreateNodeInjectorForNode, NodeInjector} from './di';
+import {throwProviderNotFoundError} from './errors_di';
+import {registerPostOrderHooks} from './hooks';
+import {reportUnknownPropertyError} from './instructions/element_validation';
+import {addToViewTree, createLView, createTView, getOrCreateTComponentView, getOrCreateTNode, initTNodeFlags, instantiateRootComponent, invokeHostBindingsInCreationMode, locateHostElement, markAsComponentHost, markDirtyIfOnPush, registerHostBindingOpCodes, renderView, setInputsForProperty} from './instructions/shared';
+import {ComponentDef, RenderFlags} from './interfaces/definition';
+import {PropertyAliasValue, TContainerNode, TElementContainerNode, TElementNode, TNode, TNodeType} from './interfaces/node';
+import {Renderer, RendererFactory} from './interfaces/renderer';
+import {RElement, RNode} from './interfaces/renderer_dom';
+import {CONTEXT, HEADER_OFFSET, LView, LViewFlags, RootContext, TVIEW, TViewType} from './interfaces/view';
 import {MATH_ML_NAMESPACE, SVG_NAMESPACE} from './namespaces';
-import {createElementNode, writeDirectClass} from './node_manipulation';
+import {createElementNode, writeDirectClass, writeDirectStyle} from './node_manipulation';
 import {extractAttrsAndClassesFromSelector, stringifyCSSSelectorList} from './node_selector_matcher';
-import {enterView, leaveView} from './state';
+import {enterView, getCurrentTNode, getLView, leaveView, setSelectedIndex} from './state';
+import {computeStaticStyling} from './styling/static_styling';
 import {setUpAttributes} from './util/attrs_utils';
+import {stringifyForError} from './util/stringify_utils';
 import {getTNode} from './util/view_utils';
 import {RootViewRef, ViewRef} from './view_ref';
 
@@ -78,16 +84,17 @@ class ChainedInjector implements Injector {
   constructor(private injector: Injector, private parentInjector: Injector) {}
 
   get<T>(token: ProviderToken<T>, notFoundValue?: T, flags?: InjectFlags): T {
-    const value = this.injector.get(token, NOT_FOUND_CHECK_ONLY_ELEMENT_INJECTOR as T, flags);
+    const value = this.injector.get<T|typeof NOT_FOUND_CHECK_ONLY_ELEMENT_INJECTOR>(
+        token, NOT_FOUND_CHECK_ONLY_ELEMENT_INJECTOR, flags);
 
     if (value !== NOT_FOUND_CHECK_ONLY_ELEMENT_INJECTOR ||
-        notFoundValue === NOT_FOUND_CHECK_ONLY_ELEMENT_INJECTOR) {
+        notFoundValue === (NOT_FOUND_CHECK_ONLY_ELEMENT_INJECTOR as unknown as T)) {
       // Return the value from the root element injector when
       // - it provides it
       //   (value !== NOT_FOUND_CHECK_ONLY_ELEMENT_INJECTOR)
       // - the module injector should not be checked
       //   (notFoundValue === NOT_FOUND_CHECK_ONLY_ELEMENT_INJECTOR)
-      return value;
+      return value as T;
     }
 
     return this.parentInjector.get(token, notFoundValue, flags);
@@ -128,7 +135,7 @@ export class ComponentFactory<T> extends viewEngine_ComponentFactory<T> {
   override create(
       injector: Injector, projectableNodes?: any[][]|undefined, rootSelectorOrNode?: any,
       environmentInjector?: viewEngine_NgModuleRef<any>|EnvironmentInjector|
-      undefined): viewEngine_ComponentRef<T> {
+      undefined): AbstractComponentRef<T> {
     environmentInjector = environmentInjector || this.ngModule;
 
     let realEnvironmentInjector = environmentInjector instanceof EnvironmentInjector ?
@@ -143,9 +150,15 @@ export class ComponentFactory<T> extends viewEngine_ComponentFactory<T> {
     const rootViewInjector =
         realEnvironmentInjector ? new ChainedInjector(injector, realEnvironmentInjector) : injector;
 
-    const rendererFactory =
-        rootViewInjector.get(RendererFactory2, domRendererFactory3 as RendererFactory2) as
-        RendererFactory3;
+    const rendererFactory = rootViewInjector.get(RendererFactory2, null);
+    if (rendererFactory === null) {
+      throw new RuntimeError(
+          RuntimeErrorCode.RENDERER_NOT_FOUND,
+          ngDevMode &&
+              'Angular was not able to inject a renderer (RendererFactory2). ' +
+                  'Likely this is due to a broken DI hierarchy. ' +
+                  'Make sure that any injector used to create this component has a correct parent.');
+    }
     const sanitizer = rootViewInjector.get(Sanitizer, null);
 
     const hostRenderer = rendererFactory.createRenderer(null, this.componentDef);
@@ -219,7 +232,6 @@ export class ComponentFactory<T> extends viewEngine_ComponentFactory<T> {
       // Angular 5 reference: https://stackblitz.com/edit/lifecycle-hooks-vcref
       component = createRootComponent(
           componentView, this.componentDef, rootLView, rootContext, [LifecycleHooksFeature]);
-
       renderView(rootTView, rootLView, null);
     } finally {
       leaveView();
@@ -252,7 +264,7 @@ export function injectComponentFactoryResolver(): viewEngine_ComponentFactoryRes
  * method.
  *
  */
-export class ComponentRef<T> extends viewEngine_ComponentRef<T> {
+export class ComponentRef<T> extends AbstractComponentRef<T> {
   override instance: T;
   override hostView: ViewRef<T>;
   override changeDetectorRef: ViewEngine_ChangeDetectorRef;
@@ -268,6 +280,25 @@ export class ComponentRef<T> extends viewEngine_ComponentRef<T> {
     this.componentType = componentType;
   }
 
+  override setInput(name: string, value: unknown): void {
+    const inputData = this._tNode.inputs;
+    let dataValue: PropertyAliasValue|undefined;
+    if (inputData !== null && (dataValue = inputData[name])) {
+      const lView = this._rootLView;
+      setInputsForProperty(lView[TVIEW], lView, dataValue, name, value);
+      markDirtyIfOnPush(lView, this._tNode.index);
+    } else {
+      if (ngDevMode) {
+        const cmpNameForError = stringifyForError(this.componentType);
+        let message =
+            `Can't set value of the '${name}' input on the '${cmpNameForError}' component. `;
+        message += `Make sure that the '${
+            name}' property is annotated with @Input() or a mapped @Input('${name}') exists.`;
+        reportUnknownPropertyError(message);
+      }
+    }
+  }
+
   override get injector(): Injector {
     return new NodeInjector(this._tNode, this._rootLView);
   }
@@ -279,4 +310,136 @@ export class ComponentRef<T> extends viewEngine_ComponentRef<T> {
   override onDestroy(callback: () => void): void {
     this.hostView.onDestroy(callback);
   }
+}
+
+/** Represents a HostFeature function. */
+type HostFeature = (<T>(component: T, componentDef: ComponentDef<T>) => void);
+
+// TODO: A hack to not pull in the NullInjector from @angular/core.
+export const NULL_INJECTOR: Injector = {
+  get: (token: any, notFoundValue?: any) => {
+    throwProviderNotFoundError(token, 'NullInjector');
+  }
+};
+
+/**
+ * Creates the root component view and the root component node.
+ *
+ * @param rNode Render host element.
+ * @param def ComponentDef
+ * @param rootView The parent view where the host node is stored
+ * @param rendererFactory Factory to be used for creating child renderers.
+ * @param hostRenderer The current renderer
+ * @param sanitizer The sanitizer, if provided
+ *
+ * @returns Component view created
+ */
+export function createRootComponentView(
+    rNode: RElement|null, def: ComponentDef<any>, rootView: LView, rendererFactory: RendererFactory,
+    hostRenderer: Renderer, sanitizer?: Sanitizer|null): LView {
+  const tView = rootView[TVIEW];
+  const index = HEADER_OFFSET;
+  ngDevMode && assertIndexInRange(rootView, index);
+  rootView[index] = rNode;
+  // '#host' is added here as we don't know the real host DOM name (we don't want to read it) and at
+  // the same time we want to communicate the debug `TNode` that this is a special `TNode`
+  // representing a host element.
+  const tNode: TElementNode = getOrCreateTNode(tView, index, TNodeType.Element, '#host', null);
+  const mergedAttrs = tNode.mergedAttrs = def.hostAttrs;
+  if (mergedAttrs !== null) {
+    computeStaticStyling(tNode, mergedAttrs, true);
+    if (rNode !== null) {
+      setUpAttributes(hostRenderer, rNode, mergedAttrs);
+      if (tNode.classes !== null) {
+        writeDirectClass(hostRenderer, rNode, tNode.classes);
+      }
+      if (tNode.styles !== null) {
+        writeDirectStyle(hostRenderer, rNode, tNode.styles);
+      }
+    }
+  }
+
+  const viewRenderer = rendererFactory.createRenderer(rNode, def);
+  const componentView = createLView(
+      rootView, getOrCreateTComponentView(def), null,
+      def.onPush ? LViewFlags.Dirty : LViewFlags.CheckAlways, rootView[index], tNode,
+      rendererFactory, viewRenderer, sanitizer || null, null, null);
+
+  if (tView.firstCreatePass) {
+    diPublicInInjector(getOrCreateNodeInjectorForNode(tNode, rootView), tView, def.type);
+    markAsComponentHost(tView, tNode);
+    initTNodeFlags(tNode, rootView.length, 1);
+  }
+
+  addToViewTree(rootView, componentView);
+
+  // Store component view at node index, with node as the HOST
+  return rootView[index] = componentView;
+}
+
+/**
+ * Creates a root component and sets it up with features and host bindings.Shared by
+ * renderComponent() and ViewContainerRef.createComponent().
+ */
+export function createRootComponent<T>(
+    componentView: LView, componentDef: ComponentDef<T>, rootLView: LView, rootContext: RootContext,
+    hostFeatures: HostFeature[]|null): any {
+  const tView = rootLView[TVIEW];
+  // Create directive instance with factory() and store at next index in viewData
+  const component = instantiateRootComponent(tView, rootLView, componentDef);
+
+  rootContext.components.push(component);
+  componentView[CONTEXT] = component;
+
+  if (hostFeatures !== null) {
+    for (const feature of hostFeatures) {
+      feature(component, componentDef);
+    }
+  }
+
+  // We want to generate an empty QueryList for root content queries for backwards
+  // compatibility with ViewEngine.
+  if (componentDef.contentQueries) {
+    const tNode = getCurrentTNode()!;
+    ngDevMode && assertDefined(tNode, 'TNode expected');
+    componentDef.contentQueries(RenderFlags.Create, component, tNode.directiveStart);
+  }
+
+  const rootTNode = getCurrentTNode()!;
+  ngDevMode && assertDefined(rootTNode, 'tNode should have been already created');
+  if (tView.firstCreatePass &&
+      (componentDef.hostBindings !== null || componentDef.hostAttrs !== null)) {
+    setSelectedIndex(rootTNode.index);
+
+    const rootTView = rootLView[TVIEW];
+    registerHostBindingOpCodes(
+        rootTView, rootTNode, rootLView, rootTNode.directiveStart, rootTNode.directiveEnd,
+        componentDef);
+
+    invokeHostBindingsInCreationMode(componentDef, component);
+  }
+  return component;
+}
+
+function createRootContext(): RootContext {
+  return {components: []};
+}
+
+/**
+ * Used to enable lifecycle hooks on the root component.
+ *
+ * Include this feature when calling `renderComponent` if the root component
+ * you are rendering has lifecycle hooks defined. Otherwise, the hooks won't
+ * be called properly.
+ *
+ * Example:
+ *
+ * ```
+ * renderComponent(AppComponent, {hostFeatures: [LifecycleHooksFeature]});
+ * ```
+ */
+export function LifecycleHooksFeature(): void {
+  const tNode = getCurrentTNode()!;
+  ngDevMode && assertDefined(tNode, 'TNode is required');
+  registerPostOrderHooks(getLView()[TVIEW], tNode);
 }

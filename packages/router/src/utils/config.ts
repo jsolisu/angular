@@ -6,12 +6,30 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
-import {EnvironmentInjector, ɵisStandalone as isStandalone} from '@angular/core';
+import {createEnvironmentInjector, EnvironmentInjector, Type, ɵisStandalone as isStandalone, ɵRuntimeError as RuntimeError} from '@angular/core';
 
 import {EmptyOutletComponent} from '../components/empty_outlet';
+import {RuntimeErrorCode} from '../errors';
 import {Route, Routes} from '../models';
 import {ActivatedRouteSnapshot} from '../router_state';
 import {PRIMARY_OUTLET} from '../shared';
+
+/**
+ * Creates an `EnvironmentInjector` if the `Route` has providers and one does not already exist
+ * and returns the injector. Otherwise, if the `Route` does not have `providers`, returns the
+ * `currentInjector`.
+ *
+ * @param route The route that might have providers
+ * @param currentInjector The parent injector of the `Route`
+ */
+export function getOrCreateRouteInjectorIfNeeded(
+    route: Route, currentInjector: EnvironmentInjector) {
+  if (route.providers && !route._injector) {
+    route._injector =
+        createEnvironmentInjector(route.providers, currentInjector, `Route: ${route.path}`);
+  }
+  return route._injector ?? currentInjector;
+}
 
 export function getLoadedRoutes(route: Route): Route[]|undefined {
   return route._loadedRoutes;
@@ -19,6 +37,9 @@ export function getLoadedRoutes(route: Route): Route[]|undefined {
 
 export function getLoadedInjector(route: Route): EnvironmentInjector|undefined {
   return route._loadedInjector;
+}
+export function getLoadedComponent(route: Route): Type<unknown>|undefined {
+  return route._loadedComponent;
 }
 
 export function getProvidersInjector(route: Route): EnvironmentInjector|undefined {
@@ -35,10 +56,18 @@ export function validateConfig(
   }
 }
 
+export function assertStandalone(fullPath: string, component: Type<unknown>|undefined) {
+  if (component && !isStandalone(component)) {
+    throw new RuntimeError(
+        RuntimeErrorCode.INVALID_ROUTE_CONFIG,
+        `Invalid configuration of route '${fullPath}'. The component must be standalone.`);
+  }
+}
+
 function validateNode(route: Route, fullPath: string, requireStandaloneComponents: boolean): void {
   if (typeof ngDevMode === 'undefined' || ngDevMode) {
     if (!route) {
-      throw new Error(`
+      throw new RuntimeError(RuntimeErrorCode.INVALID_ROUTE_CONFIG, `
       Invalid configuration of route '${fullPath}': Encountered undefined route.
       The reason might be an extra comma.
 
@@ -51,60 +80,87 @@ function validateNode(route: Route, fullPath: string, requireStandaloneComponent
     `);
     }
     if (Array.isArray(route)) {
-      throw new Error(`Invalid configuration of route '${fullPath}': Array cannot be specified`);
+      throw new RuntimeError(
+          RuntimeErrorCode.INVALID_ROUTE_CONFIG,
+          `Invalid configuration of route '${fullPath}': Array cannot be specified`);
     }
-    if (!route.component && !route.children && !route.loadChildren &&
+    if (!route.component && !route.loadComponent && !route.children && !route.loadChildren &&
         (route.outlet && route.outlet !== PRIMARY_OUTLET)) {
-      throw new Error(`Invalid configuration of route '${
-          fullPath}': a componentless route without children or loadChildren cannot have a named outlet set`);
+      throw new RuntimeError(
+          RuntimeErrorCode.INVALID_ROUTE_CONFIG,
+          `Invalid configuration of route '${
+              fullPath}': a componentless route without children or loadChildren cannot have a named outlet set`);
     }
     if (route.redirectTo && route.children) {
-      throw new Error(`Invalid configuration of route '${
-          fullPath}': redirectTo and children cannot be used together`);
+      throw new RuntimeError(
+          RuntimeErrorCode.INVALID_ROUTE_CONFIG,
+          `Invalid configuration of route '${
+              fullPath}': redirectTo and children cannot be used together`);
     }
     if (route.redirectTo && route.loadChildren) {
-      throw new Error(`Invalid configuration of route '${
-          fullPath}': redirectTo and loadChildren cannot be used together`);
+      throw new RuntimeError(
+          RuntimeErrorCode.INVALID_ROUTE_CONFIG,
+          `Invalid configuration of route '${
+              fullPath}': redirectTo and loadChildren cannot be used together`);
     }
     if (route.children && route.loadChildren) {
-      throw new Error(`Invalid configuration of route '${
-          fullPath}': children and loadChildren cannot be used together`);
+      throw new RuntimeError(
+          RuntimeErrorCode.INVALID_ROUTE_CONFIG,
+          `Invalid configuration of route '${
+              fullPath}': children and loadChildren cannot be used together`);
     }
-    if (route.redirectTo && route.component) {
-      throw new Error(`Invalid configuration of route '${
-          fullPath}': redirectTo and component cannot be used together`);
+    if (route.redirectTo && (route.component || route.loadComponent)) {
+      throw new RuntimeError(
+          RuntimeErrorCode.INVALID_ROUTE_CONFIG,
+          `Invalid configuration of route '${
+              fullPath}': redirectTo and component/loadComponent cannot be used together`);
+    }
+    if (route.component && route.loadComponent) {
+      throw new RuntimeError(
+          RuntimeErrorCode.INVALID_ROUTE_CONFIG,
+          `Invalid configuration of route '${
+              fullPath}': component and loadComponent cannot be used together`);
     }
     if (route.redirectTo && route.canActivate) {
-      throw new Error(
+      throw new RuntimeError(
+          RuntimeErrorCode.INVALID_ROUTE_CONFIG,
           `Invalid configuration of route '${
               fullPath}': redirectTo and canActivate cannot be used together. Redirects happen before activation ` +
-          `so canActivate will never be executed.`);
+              `so canActivate will never be executed.`);
     }
     if (route.path && route.matcher) {
-      throw new Error(
+      throw new RuntimeError(
+          RuntimeErrorCode.INVALID_ROUTE_CONFIG,
           `Invalid configuration of route '${fullPath}': path and matcher cannot be used together`);
     }
-    if (route.redirectTo === void 0 && !route.component && !route.children && !route.loadChildren) {
-      throw new Error(`Invalid configuration of route '${
-          fullPath}'. One of the following must be provided: component, redirectTo, children or loadChildren`);
+    if (route.redirectTo === void 0 && !route.component && !route.loadComponent &&
+        !route.children && !route.loadChildren) {
+      throw new RuntimeError(
+          RuntimeErrorCode.INVALID_ROUTE_CONFIG,
+          `Invalid configuration of route '${
+              fullPath}'. One of the following must be provided: component, loadComponent, redirectTo, children or loadChildren`);
     }
     if (route.path === void 0 && route.matcher === void 0) {
-      throw new Error(`Invalid configuration of route '${
-          fullPath}': routes must have either a path or a matcher specified`);
+      throw new RuntimeError(
+          RuntimeErrorCode.INVALID_ROUTE_CONFIG,
+          `Invalid configuration of route '${
+              fullPath}': routes must have either a path or a matcher specified`);
     }
     if (typeof route.path === 'string' && route.path.charAt(0) === '/') {
-      throw new Error(
+      throw new RuntimeError(
+          RuntimeErrorCode.INVALID_ROUTE_CONFIG,
           `Invalid configuration of route '${fullPath}': path cannot start with a slash`);
     }
     if (route.path === '' && route.redirectTo !== void 0 && route.pathMatch === void 0) {
       const exp =
           `The default value of 'pathMatch' is 'prefix', but often the intent is to use 'full'.`;
-      throw new Error(`Invalid configuration of route '{path: "${fullPath}", redirectTo: "${
-          route.redirectTo}"}': please provide 'pathMatch'. ${exp}`);
+      throw new RuntimeError(
+          RuntimeErrorCode.INVALID_ROUTE_CONFIG,
+          `Invalid configuration of route '{path: "${fullPath}", redirectTo: "${
+              route.redirectTo}"}': please provide 'pathMatch'. ${exp}`);
     }
-    if (requireStandaloneComponents && route.component && !isStandalone(route.component)) {
-      throw new Error(
-          `Invalid configuration of route '${fullPath}'. The component must be standalone.`);
+    if (requireStandaloneComponents) {
+      assertStandalone(fullPath, route.component);
     }
   }
   if (route.children) {
@@ -133,7 +189,8 @@ function getFullPath(parentPath: string, currentRoute: Route): string {
 export function standardizeConfig(r: Route): Route {
   const children = r.children && r.children.map(standardizeConfig);
   const c = children ? {...r, children} : {...r};
-  if (!c.component && (children || c.loadChildren) && (c.outlet && c.outlet !== PRIMARY_OUTLET)) {
+  if ((!c.component && !c.loadComponent) && (children || c.loadChildren) &&
+      (c.outlet && c.outlet !== PRIMARY_OUTLET)) {
     c.component = EmptyOutletComponent;
   }
   return c;

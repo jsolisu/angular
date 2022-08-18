@@ -82,7 +82,7 @@ export interface ɵɵInjectorDef<T> {
  * A `Type` which has a `ɵprov: ɵɵInjectableDeclaration` static field.
  *
  * `InjectableType`s contain their own Dependency Injection metadata and are usable in an
- * `InjectorDef`-based `StaticInjector.
+ * `InjectorDef`-based `StaticInjector`.
  *
  * @publicApi
  */
@@ -188,6 +188,10 @@ export function ɵɵdefineInjector(options: {providers?: any[], imports?: any[]}
  */
 export function getInjectableDef<T>(type: any): ɵɵInjectableDeclaration<T>|null {
   return getOwnDefinition(type, NG_PROV_DEF) || getOwnDefinition(type, NG_INJECTABLE_DEF);
+}
+
+export function isInjectable(type: any): boolean {
+  return getInjectableDef(type) !== null;
 }
 
 /**

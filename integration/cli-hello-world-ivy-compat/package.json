@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
-    "build": "ng build --prod",
+    "build": "ng build --configuration production",
     "e2e": "ng e2e --port 0",
     "lint": "ng lint",
     "ng": "ng",
@@ -44,6 +44,6 @@
     "protractor": "file:../../node_modules/protractor",
     "ts-node": "8.3.0",
     "tslint": "5.18.0",
-    "typescript": "file:../../node_modules/typescript"
+    "typescript": "~4.7.2"
   }
 }

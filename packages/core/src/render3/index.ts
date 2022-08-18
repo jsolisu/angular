@@ -5,7 +5,7 @@
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.io/license
  */
-import {LifecycleHooksFeature, renderComponent, whenRendered} from './component';
+import {LifecycleHooksFeature} from './component_ref';
 import {ɵɵdefineComponent, ɵɵdefineDirective, ɵɵdefineNgModule, ɵɵdefinePipe, ɵɵsetComponentScope, ɵɵsetNgModuleScope} from './definition';
 import {ɵɵCopyDefinitionFeature} from './features/copy_definition_feature';
 import {ɵɵInheritDefinitionFeature} from './features/inherit_definition_feature';
@@ -23,9 +23,7 @@ export {getLocaleId, setLocaleId} from './i18n/i18n_locale_id';
 // clang-format off
 export {
   detectChanges,
-  markDirty,
   store,
-  tick,
   ɵɵadvance,
 
   ɵɵattribute,
@@ -129,6 +127,10 @@ export {
   ɵɵtextInterpolate7,
   ɵɵtextInterpolate8,
   ɵɵtextInterpolateV,
+  ɵgetUnknownElementStrictMode,
+  ɵsetUnknownElementStrictMode,
+  ɵgetUnknownPropertyStrictMode,
+  ɵsetUnknownPropertyStrictMode
 } from './instructions/all';
 export {ɵɵi18n, ɵɵi18nApply, ɵɵi18nAttributes, ɵɵi18nEnd, ɵɵi18nExp,ɵɵi18nPostprocess, ɵɵi18nStart} from './instructions/i18n';
 export {RenderFlags} from './interfaces/definition';
@@ -192,8 +194,6 @@ export {
   getRenderedText,
   LifecycleHooksFeature,
   PipeDef,
-  renderComponent,
-  whenRendered,
   ɵɵComponentDeclaration,
   ɵɵCopyDefinitionFeature,
   ɵɵdefineComponent,

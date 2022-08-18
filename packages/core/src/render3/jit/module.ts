@@ -9,16 +9,17 @@
 import {getCompilerFacade, JitCompilerUsage, R3InjectorMetadataFacade} from '../../compiler/compiler_facade';
 import {resolveForwardRef} from '../../di/forward_ref';
 import {NG_INJ_DEF} from '../../di/interface/defs';
+import {ModuleWithProviders} from '../../di/interface/provider';
 import {reflectDependencies} from '../../di/jit/util';
 import {Type} from '../../interface/type';
 import {registerNgModuleType} from '../../linker/ng_module_registration';
 import {Component} from '../../metadata/directives';
-import {ModuleWithProviders, NgModule} from '../../metadata/ng_module';
+import {NgModule} from '../../metadata/ng_module';
 import {NgModuleDef, NgModuleTransitiveScopes, NgModuleType} from '../../metadata/ng_module_def';
 import {deepForEach, flatten} from '../../util/array_utils';
 import {assertDefined} from '../../util/assert';
 import {EMPTY_ARRAY} from '../../util/empty';
-import {getComponentDef, getDirectiveDef, getNgModuleDef, getPipeDef} from '../definition';
+import {getComponentDef, getDirectiveDef, getNgModuleDef, getPipeDef, isStandalone} from '../definition';
 import {NG_COMP_DEF, NG_DIR_DEF, NG_FACTORY_DEF, NG_MOD_DEF, NG_PIPE_DEF} from '../fields';
 import {ComponentDef} from '../interfaces/definition';
 import {maybeUnwrapFn} from '../util/misc_utils';
@@ -26,6 +27,7 @@ import {stringifyForError} from '../util/stringify_utils';
 
 import {angularCoreEnv} from './environment';
 import {patchModuleCompilation} from './module_patch';
+import {isModuleWithProviders, isNgModule} from './util';
 
 interface ModuleQueueItem {
   moduleType: Type<any>;
@@ -195,9 +197,11 @@ export function compileNgModuleDefs(
   });
 }
 
-export function isStandalone<T>(type: Type<T>) {
-  const def = getComponentDef(type) || getDirectiveDef(type) || getPipeDef(type);
-  return def !== null ? def.standalone : false;
+export function generateStandaloneInDeclarationsError(type: Type<any>, location: string) {
+  const prefix = `Unexpected "${stringifyForError(type)}" found in the "declarations" array of the`;
+  const suffix = `"${stringifyForError(type)}" is marked as standalone and can't be declared ` +
+      'in any NgModule - did you intend to import it instead (by adding it to the "imports" array)?';
+  return `${prefix} ${location}, ${suffix}`;
 }
 
 function verifySemanticsOfNgModuleDef(
@@ -205,7 +209,7 @@ function verifySemanticsOfNgModuleDef(
     importingModule?: NgModuleType): void {
   if (verifiedNgModule.get(moduleType)) return;
 
-  // skip verifications of standalone components, direcrtives and pipes
+  // skip verifications of standalone components, directives and pipes
   if (isStandalone(moduleType)) return;
 
   verifiedNgModule.set(moduleType, true);
@@ -230,6 +234,7 @@ function verifySemanticsOfNgModuleDef(
   const exports = maybeUnwrapFn(ngModuleDef.exports);
   declarations.forEach(verifyDeclarationsHaveDefinitions);
   declarations.forEach(verifyDirectivesHaveSelector);
+  declarations.forEach((declarationType) => verifyNotStandalone(declarationType, moduleType));
   const combinedDeclarations: Type<any>[] = [
     ...declarations.map(resolveForwardRef),
     ...flatten(imports.map(computeCombinedExports)).map(resolveForwardRef),
@@ -273,6 +278,15 @@ function verifySemanticsOfNgModuleDef(
     }
   }
 
+  function verifyNotStandalone(type: Type<any>, moduleType: NgModuleType): void {
+    type = resolveForwardRef(type);
+    const def = getComponentDef(type) || getDirectiveDef(type) || getPipeDef(type);
+    if (def?.standalone) {
+      const location = `"${stringifyForError(moduleType)}" NgModule`;
+      errors.push(generateStandaloneInDeclarationsError(type, location));
+    }
+  }
+
   function verifyExportsAreDeclaredOrReExported(type: Type<any>) {
     type = resolveForwardRef(type);
     const kind = getComponentDef(type) && 'component' || getDirectiveDef(type) && 'directive' ||
@@ -312,7 +326,7 @@ function verifySemanticsOfNgModuleDef(
   function verifyComponentIsPartOfNgModule(type: Type<any>) {
     type = resolveForwardRef(type);
     const existingModule = ownerNgModule.get(type);
-    if (!existingModule) {
+    if (!existingModule && !isStandalone(type)) {
       errors.push(`Component ${
           stringifyForError(
               type)} is not part of any NgModule or the module has not been imported into your module.`);
@@ -323,6 +337,14 @@ function verifySemanticsOfNgModuleDef(
     type = resolveForwardRef(type);
     if (!getComponentDef(type)) {
       errors.push(`${stringifyForError(type)} cannot be used as an entry component.`);
+    }
+    if (isStandalone(type)) {
+      // Note: this error should be the same as the
+      // `NGMODULE_BOOTSTRAP_IS_STANDALONE` one in AOT compiler.
+      errors.push(
+          `The \`${stringifyForError(type)}\` class is a standalone component, which can ` +
+          `not be used in the \`@NgModule.bootstrap\` array. Use the \`bootstrapApplication\` ` +
+          `function for bootstrap instead.`);
     }
   }
 
@@ -439,6 +461,7 @@ function setScopeOnDeclaredComponents(moduleType: Type<any>, ngModule: NgModule)
   const transitiveScopes = transitiveScopesFor(moduleType);
 
   declarations.forEach(declaration => {
+    declaration = resolveForwardRef(declaration);
     if (declaration.hasOwnProperty(NG_COMP_DEF)) {
       // A `ɵcmp` field exists - go ahead and patch the component directly.
       const component = declaration as Type<any>& {ɵcmp: ComponentDef<any>};
@@ -477,7 +500,7 @@ export function patchComponentDefWithScope<C>(
 
 /**
  * Compute the pair of transitive scopes (compilation scope and exported scope) for a given type
- * (eaither a NgModule or a standalone component / directive / pipe).
+ * (either a NgModule or a standalone component / directive / pipe).
  */
 export function transitiveScopesFor<T>(type: Type<T>): NgModuleTransitiveScopes {
   if (isNgModule(type)) {
@@ -608,12 +631,4 @@ function expandModuleWithProviders(value: Type<any>|ModuleWithProviders<{}>): Ty
     return value.ngModule;
   }
   return value;
-}
-
-function isModuleWithProviders(value: any): value is ModuleWithProviders<{}> {
-  return (value as {ngModule?: any}).ngModule !== undefined;
-}
-
-function isNgModule<T>(value: Type<T>): value is Type<T>&{ɵmod: NgModuleDef<T>} {
-  return !!getNgModuleDef(value);
 }

@@ -191,9 +191,6 @@ def _ngc_tsconfig(ctx, files, srcs, **kwargs):
     if not ctx.attr.type_check and ctx.attr.strict_templates:
         fail("Cannot set type_check = False and strict_templates = True for ng_module()")
 
-    if ctx.attr.experimental_extended_template_diagnostics and not ctx.attr.strict_templates:
-        fail("Cannot set `experimental_extended_template_diagnostics = True` **and** `strict_templates = False` for `ng_module()`")
-
     angular_compiler_options = {
         "enableResourceInlining": ctx.attr.inline_resources,
         "generateCodeForLibraries": False,
@@ -503,10 +500,6 @@ NG_MODULE_ATTRIBUTES = {
     "filter_summaries": attr.bool(default = False),
     "type_check": attr.bool(default = True),
     "strict_templates": attr.bool(default = False),
-    "experimental_extended_template_diagnostics": attr.bool(
-        default = False,
-        doc = "Experimental option, not publicly supported.",
-    ),
     "inline_resources": attr.bool(default = True),
     "no_i18n": attr.bool(default = False),
     "compiler": attr.label(
@@ -635,7 +628,7 @@ NG_MODULE_RULE_ATTRS = dict(dict(COMMON_ATTRIBUTES, **NG_MODULE_ATTRIBUTES), **{
     # Later packaging rules will point to these generated files as the entry point
     # into the package.
     # See the flatModuleOutFile documentation in
-    # https://github.com/angular/angular/blob/master/packages/compiler-cli/src/transformers/api.ts
+    # https://github.com/angular/angular/blob/main/packages/compiler-cli/src/transformers/api.ts
     "flat_module_out_file": attr.string(),
     # Should the rule generate ngfactory and ngsummary shim files?
     "generate_ve_shims": attr.bool(default = False),

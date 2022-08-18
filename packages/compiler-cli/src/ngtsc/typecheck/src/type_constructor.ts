@@ -9,6 +9,7 @@
 import ts from 'typescript';
 
 import {ClassDeclaration, ReflectionHost} from '../../reflection';
+import {updateTypeParameterDeclaration} from '../../ts_compatibility';
 import {TypeCtorMetadata} from '../api';
 
 import {checkIfGenericTypeBoundsCanBeEmitted, ReferenceEmitEnvironment} from './tcb_util';
@@ -244,11 +245,9 @@ function typeParametersWithDefaultTypes(params: ReadonlyArray<ts.TypeParameterDe
 
   return params.map(param => {
     if (param.default === undefined) {
-      return ts.factory.updateTypeParameterDeclaration(
-          /* node */ param,
-          /* name */ param.name,
-          /* constraint */ param.constraint,
-          /* defaultType */ ts.factory.createKeywordTypeNode(ts.SyntaxKind.AnyKeyword));
+      return updateTypeParameterDeclaration(
+          param, param.modifiers, param.name, param.constraint,
+          ts.factory.createKeywordTypeNode(ts.SyntaxKind.AnyKeyword));
     } else {
       return param;
     }

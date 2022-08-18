@@ -21,7 +21,7 @@ import {NO_PARENT_INJECTOR, NodeInjectorOffset} from '../interfaces/injector';
 import {AttributeMarker, InsertBeforeIndex, PropertyAliases, TConstants, TContainerNode, TElementNode, TNode as ITNode, TNodeFlags, TNodeProviderIndexes, TNodeType, toTNodeTypeAsString} from '../interfaces/node';
 import {SelectorFlags} from '../interfaces/projection';
 import {LQueries, TQueries} from '../interfaces/query';
-import {Renderer3, RendererFactory3} from '../interfaces/renderer';
+import {Renderer, RendererFactory} from '../interfaces/renderer';
 import {RComment, RElement, RNode} from '../interfaces/renderer_dom';
 import {getTStylingRangeNext, getTStylingRangeNextDuplicate, getTStylingRangePrev, getTStylingRangePrevDuplicate, TStylingKey, TStylingRange} from '../interfaces/styling';
 import {CHILD_HEAD, CHILD_TAIL, CLEANUP, CONTEXT, DebugNode, DECLARATION_VIEW, DestroyHookData, FLAGS, HEADER_OFFSET, HookData, HOST, HostBindingOpCodes, ID, INJECTOR, LContainerDebug as ILContainerDebug, LView, LViewDebug as ILViewDebug, LViewDebugRange, LViewDebugRangeContent, LViewFlags, NEXT, NodeInjectorDebug, PARENT, QUERIES, RENDERER, RENDERER_FACTORY, SANITIZER, T_HOST, TData, TView as ITView, TVIEW, TView, TViewType, TViewTypeAsString} from '../interfaces/view';
@@ -73,7 +73,7 @@ interface TViewDebug extends ITView {
  *
  * Simple slice will keep the same type, and we need it to be LView
  */
-export function cloneToLViewFromTViewBlueprint(tView: TView): LView {
+export function cloneToLViewFromTViewBlueprint<T>(tView: TView): LView<T> {
   const debugTView = tView as TViewDebug;
   const lView = getLViewToClone(debugTView.type, tView.template && tView.template.name);
   return lView.concat(tView.blueprint) as any;
@@ -387,9 +387,9 @@ export function attachLContainerDebug(lContainer: LContainer) {
   attachDebugObject(lContainer, new LContainerDebug(lContainer));
 }
 
-export function toDebug(obj: LView): ILViewDebug;
-export function toDebug(obj: LView|null): ILViewDebug|null;
-export function toDebug(obj: LView|LContainer|null): ILViewDebug|ILContainerDebug|null;
+export function toDebug<T>(obj: LView<T>): ILViewDebug<T>;
+export function toDebug<T>(obj: LView<T>|null): ILViewDebug<T>|null;
+export function toDebug<T>(obj: LView<T>|LContainer|null): ILViewDebug<T>|ILContainerDebug|null;
 export function toDebug(obj: any): any {
   if (obj) {
     const debug = (obj as any).debug;
@@ -432,8 +432,8 @@ function toHtml(value: any, includeChildren: boolean = false): string|null {
   return null;
 }
 
-export class LViewDebug implements ILViewDebug {
-  constructor(private readonly _raw_lView: LView) {}
+export class LViewDebug<T = unknown> implements ILViewDebug<T> {
+  constructor(private readonly _raw_lView: LView<T>) {}
 
   /**
    * Flags associated with the `LView` unpacked into a more readable state.
@@ -453,8 +453,8 @@ export class LViewDebug implements ILViewDebug {
       indexWithinInitPhase: flags >> LViewFlags.IndexWithinInitPhaseShift,
     };
   }
-  get parent(): ILViewDebug|ILContainerDebug|null {
-    return toDebug(this._raw_lView[PARENT]);
+  get parent(): ILViewDebug<T>|ILContainerDebug|null {
+    return toDebug<T>(this._raw_lView[PARENT] as LView<T>| LContainer | null);
   }
   get hostHTML(): string|null {
     return toHtml(this._raw_lView[HOST], true);
@@ -462,7 +462,7 @@ export class LViewDebug implements ILViewDebug {
   get html(): string {
     return (this.nodes || []).map(mapToHTML).join('');
   }
-  get context(): {}|null {
+  get context(): T {
     return this._raw_lView[CONTEXT];
   }
   /**
@@ -486,10 +486,10 @@ export class LViewDebug implements ILViewDebug {
   get injector(): Injector|null {
     return this._raw_lView[INJECTOR];
   }
-  get rendererFactory(): RendererFactory3 {
+  get rendererFactory(): RendererFactory {
     return this._raw_lView[RENDERER_FACTORY];
   }
-  get renderer(): Renderer3 {
+  get renderer(): Renderer {
     return this._raw_lView[RENDERER];
   }
   get sanitizer(): Sanitizer|null {
@@ -498,8 +498,8 @@ export class LViewDebug implements ILViewDebug {
   get childHead(): ILViewDebug|ILContainerDebug|null {
     return toDebug(this._raw_lView[CHILD_HEAD]);
   }
-  get next(): ILViewDebug|ILContainerDebug|null {
-    return toDebug(this._raw_lView[NEXT]);
+  get next(): ILViewDebug<T>|ILContainerDebug|null {
+    return toDebug<T>(this._raw_lView[NEXT] as LView<T>| LContainer | null);
   }
   get childTail(): ILViewDebug|ILContainerDebug|null {
     return toDebug(this._raw_lView[CHILD_TAIL]);
@@ -534,11 +534,11 @@ export class LViewDebug implements ILViewDebug {
   /**
    * Normalized view of child views (and containers) attached at this location.
    */
-  get childViews(): Array<ILViewDebug|ILContainerDebug> {
-    const childViews: Array<ILViewDebug|ILContainerDebug> = [];
+  get childViews(): Array<ILViewDebug<T>|ILContainerDebug> {
+    const childViews: Array<ILViewDebug<T>|ILContainerDebug> = [];
     let child = this.childHead;
     while (child) {
-      childViews.push(child);
+      childViews.push(child as ILViewDebug<T>| ILContainerDebug);
       child = child.next;
     }
     return childViews;

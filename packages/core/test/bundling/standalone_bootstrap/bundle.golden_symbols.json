@@ -24,16 +24,10 @@
     "name": "BrowserDomAdapter"
   },
   {
-    "name": "BrowserGetTestability"
-  },
-  {
     "name": "BrowserXhr"
   },
   {
     "name": "CIRCULAR"
-  },
-  {
-    "name": "CLEAN_PROMISE"
   },
   {
     "name": "COMPONENT_REGEX"
@@ -63,9 +57,6 @@
     "name": "ConnectableSubscriber"
   },
   {
-    "name": "DOCUMENT"
-  },
-  {
     "name": "DOCUMENT2"
   },
   {
@@ -85,6 +76,9 @@
   },
   {
     "name": "EMPTY_PAYLOAD"
+  },
+  {
+    "name": "ENVIRONMENT_INITIALIZER"
   },
   {
     "name": "EVENT_MANAGER_PLUGINS"
@@ -118,9 +112,6 @@
   },
   {
     "name": "INJECTOR_DEF_TYPES"
-  },
-  {
-    "name": "INJECTOR_INITIALIZER"
   },
   {
     "name": "INJECTOR_SCOPE"
@@ -228,13 +219,13 @@
     "name": "Observable"
   },
   {
+    "name": "PLATFORM_DESTROY_LISTENERS"
+  },
+  {
     "name": "PLATFORM_ID"
   },
   {
     "name": "PLATFORM_INITIALIZER"
-  },
-  {
-    "name": "PLATFORM_ON_DESTROY"
   },
   {
     "name": "R3Injector"
@@ -291,16 +282,13 @@
     "name": "Subscription"
   },
   {
+    "name": "TESTABILITY"
+  },
+  {
     "name": "THROW_IF_NOT_FOUND"
   },
   {
     "name": "TRACKED_LVIEWS"
-  },
-  {
-    "name": "Testability"
-  },
-  {
-    "name": "TestabilityRegistry"
   },
   {
     "name": "USE_VALUE"
@@ -324,9 +312,6 @@
     "name": "__forward_ref__"
   },
   {
-    "name": "_chromeNumKeyPadMap"
-  },
-  {
     "name": "_currentInjector"
   },
   {
@@ -346,12 +331,6 @@
   },
   {
     "name": "_randomChar"
-  },
-  {
-    "name": "_renderCompCount"
-  },
-  {
-    "name": "_testabilityGetter"
   },
   {
     "name": "_wrapInTimeout"
@@ -402,6 +381,9 @@
     "name": "collectNativeNodes"
   },
   {
+    "name": "componentDefCount"
+  },
+  {
     "name": "concatStringsWithSpace"
   },
   {
@@ -429,9 +411,6 @@
     "name": "createNodeInjector"
   },
   {
-    "name": "createRootComponentView"
-  },
-  {
     "name": "createTView"
   },
   {
@@ -441,22 +420,7 @@
     "name": "deepForEach"
   },
   {
-    "name": "defaultErrorLogger"
-  },
-  {
-    "name": "defaultScheduler"
-  },
-  {
     "name": "detachMovedView"
-  },
-  {
-    "name": "detectChangesInRootView"
-  },
-  {
-    "name": "detectChangesInternal"
-  },
-  {
-    "name": "domRendererFactory3"
   },
   {
     "name": "empty"
@@ -486,16 +450,22 @@
     "name": "extractDirectiveDef"
   },
   {
-    "name": "flatten"
-  },
-  {
     "name": "flattenStyles"
   },
   {
     "name": "flattenUnsubscriptionErrors"
   },
   {
+    "name": "forEachSingleProvider"
+  },
+  {
     "name": "forwardRef"
+  },
+  {
+    "name": "generateInitialInputs"
+  },
+  {
+    "name": "generatePropertyAliases"
   },
   {
     "name": "getClosureSafeProperty"
@@ -558,6 +528,9 @@
     "name": "getNullInjector"
   },
   {
+    "name": "getOrCreateInjectable"
+  },
+  {
     "name": "getOrCreateTNode"
   },
   {
@@ -612,9 +585,6 @@
     "name": "incrementInitPhaseFlags"
   },
   {
-    "name": "inject"
-  },
-  {
     "name": "injectArgs"
   },
   {
@@ -636,6 +606,9 @@
     "name": "instructionState"
   },
   {
+    "name": "internalImportProvidersFrom"
+  },
+  {
     "name": "invertObject"
   },
   {
@@ -648,16 +621,13 @@
     "name": "isComponentDef"
   },
   {
-    "name": "isExistingProvider"
-  },
-  {
-    "name": "isFactoryProvider"
-  },
-  {
     "name": "isFunction"
   },
   {
-    "name": "isInCheckNoChangesMode"
+    "name": "isImportedNgModuleProviders"
+  },
+  {
+    "name": "isInlineTemplate"
   },
   {
     "name": "isLContainer"
@@ -672,9 +642,6 @@
     "name": "isPositive"
   },
   {
-    "name": "isProceduralRenderer"
-  },
-  {
     "name": "isPromise"
   },
   {
@@ -682,9 +649,6 @@
   },
   {
     "name": "isTemplateNode"
-  },
-  {
-    "name": "isTemplateNode2"
   },
   {
     "name": "isTypeProvider"
@@ -753,6 +717,9 @@
     "name": "onLeave"
   },
   {
+    "name": "processInjectorTypesWithProviders"
+  },
+  {
     "name": "promise"
   },
   {
@@ -810,9 +777,6 @@
     "name": "scheduleArray"
   },
   {
-    "name": "scheduleMicroTask"
-  },
-  {
     "name": "searchTokensOnInjector"
   },
   {
@@ -834,9 +798,6 @@
     "name": "setInjectImplementation"
   },
   {
-    "name": "setIsInCheckNoChangesMode"
-  },
-  {
     "name": "setSelectedIndex"
   },
   {
@@ -853,9 +814,6 @@
   },
   {
     "name": "stringifyCSSSelector"
-  },
-  {
-    "name": "stringifyForError"
   },
   {
     "name": "subscribeTo"
@@ -885,9 +843,6 @@
     "name": "urlParsingNode"
   },
   {
-    "name": "validateProvider"
-  },
-  {
     "name": "viewAttachedToChangeDetector"
   },
   {
@@ -904,6 +859,9 @@
   },
   {
     "name": "ɵɵdefineInjectable"
+  },
+  {
+    "name": "ɵɵdirectiveInject"
   },
   {
     "name": "ɵɵinject"
